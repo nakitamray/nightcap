@@ -19,6 +19,13 @@
     U+00D5-00D6, U+00DC, U+00E4, U+00F5-00F6, U+00FC, U+0160-0161, U+017D-017E;
 }
 
+/* Rye on its own, for small signs */
+@font-face {
+  font-family: 'Nightcap Sign';
+  src: url('/fonts/Rye.woff2') format('woff2');
+  font-display: block;
+}
+
 :root {
   --ink: #0b0806;
   --night: #040307;

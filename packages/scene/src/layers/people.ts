@@ -228,7 +228,7 @@ export class People extends Container {
       const w = new Walker(o, rng)
       w.x = (i / OUTFITS.length) * (WORLD.width + 800) - 400 + range(rng, -80, 80)
       w.y = range(rng, GROUND + 26, CURB - 6)
-      w.scale.set(range(rng, 0.58, 0.64))
+      w.scale.set(range(rng, 0.46, 0.52))
       w.zIndex = w.y
       this.walkers.push(w)
       this.addChild(w)

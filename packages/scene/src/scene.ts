@@ -102,7 +102,7 @@ export class StreetScene {
     this.people = new People(seed + 10)
     const lovers = couple()
     lovers.position.set(1700, CURB - 12)
-    lovers.scale.set(0.62)
+    lovers.scale.set(0.5)
     this.people.addStanding(lovers)
     const cars = new ParkedCars({ x: 700, y: CURB + 98 }, { x: 1850, y: CURB + 98 })
 

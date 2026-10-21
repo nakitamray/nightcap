@@ -1,17 +1,11 @@
 import { Container, Graphics, Sprite, Text } from 'pixi.js'
-import { DISPLAY_FONT } from '../fonts'
+import { DISPLAY_FONT, SIGN_FONT } from '../fonts'
 import { CAFE, GROUND, HOUSE } from '../layout'
 import { palette } from '../palette'
 import { chance, createRng, pick, range, type Rng } from '../rng'
-import { dotTexture, glowTexture, puffTexture } from '../textures'
+import { dotTexture, glowTexture } from '../textures'
+import { Smoke } from './smoke'
 import { ironRail } from './ironwork'
-
-interface Puff {
-  s: Sprite
-  age: number
-  life: number
-  drift: number
-}
 
 interface Lantern {
   glow: Sprite
@@ -38,9 +32,8 @@ const INK = { color: palette.ink, width: 1.5, alpha: 0.6 }
 // The buildings either side of ours. Darker and quieter than the house on
 // purpose -- they're the set, not the actors.
 export class Neighbors extends Container {
-  private puffs: Puff[] = []
   private lanterns: Lantern[] = []
-  private chimney = { x: 640, y: 214 }
+  private smoke: Smoke
   private signGlow: Sprite
   private signText: Text
   private rng: Rng
@@ -114,7 +107,8 @@ export class Neighbors extends Container {
     lights.addChild(this.signGlow)
     this.addChild(board, this.signText)
 
-    for (let i = 0; i < 22; i++) this.spawnPuff(rng() * 6)
+    this.smoke = new Smoke(seed + 1, { x: 640, y: 214 }, { tint: 0x8a7a72, strength: 0.16, rise: 150, count: 14 })
+    this.addChildAt(this.smoke, 0)
   }
 
   /** a generic Haussmann block: mansard, stone, rows of tall windows, a balcony or two */
@@ -212,7 +206,7 @@ export class Neighbors extends Container {
     }
     const name = new Text({
       text: 'CAFE DU SOIR',
-      style: { fontFamily: DISPLAY_FONT, fontSize: 15, fill: 0xf2e2bd, letterSpacing: 3 },
+      style: { fontFamily: SIGN_FONT, fontSize: 15, fill: 0xf2e2bd, letterSpacing: 2 },
       resolution: 2,
     })
     name.anchor.set(0.5)
@@ -323,7 +317,7 @@ export class Neighbors extends Container {
     g.rect(x, y, w, 28).fill(0x2a0806)
     const name = new Text({
       text: 'BAR TABAC',
-      style: { fontFamily: DISPLAY_FONT, fontSize: 16, fill: palette.gold, letterSpacing: 4 },
+      style: { fontFamily: SIGN_FONT, fontSize: 16, fill: palette.gold, letterSpacing: 2 },
       resolution: 2,
     })
     name.anchor.set(0.5)
@@ -393,27 +387,8 @@ export class Neighbors extends Container {
     for (let l = 0; l < 4; l++) g.rect(x + w * 0.42 + 12, GROUND - 40 + l * 9, 18 - (l % 2) * 6, 2).fill({ color: 0xf2e2bd, alpha: 0.7 })
   }
 
-  private spawnPuff(age = 0) {
-    const s = new Sprite(puffTexture())
-    s.anchor.set(0.5)
-    s.tint = 0x56607a
-    this.addChildAt(s, 0)
-    this.puffs.push({ s, age, life: range(this.rng, 5, 8), drift: range(this.rng, 6, 16) })
-  }
-
   update(time: number, dt: number) {
-    for (const p of this.puffs) {
-      p.age += dt
-      if (p.age > p.life) {
-        p.age = 0
-        p.life = range(this.rng, 5, 8)
-      }
-      const t = p.age / p.life
-      p.s.x = this.chimney.x + Math.sin(time * 0.6 + p.life) * 6 + t * p.drift * 6
-      p.s.y = this.chimney.y - t * 150
-      p.s.scale.set(0.12 + t * 0.5, 0.1 + t * 0.35)
-      p.s.alpha = Math.sin(t * Math.PI) * 0.14
-    }
+    this.smoke.update(time, dt)
     for (const l of this.lanterns) l.glow.alpha = 0.66 + Math.sin(time * 1.7 + l.phase) * 0.04
 
     // neon that buzzes now and then

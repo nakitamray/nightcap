@@ -1,5 +1,5 @@
 import { Container, Graphics, Sprite, Text } from 'pixi.js'
-import { DISPLAY_FONT } from '../fonts'
+import { SIGN_FONT } from '../fonts'
 import { CURB, GROUND, LAMPPOSTS, MORRIS_COLUMN, WORLD } from '../layout'
 import { palette } from '../palette'
 import { createRng, range } from '../rng'
@@ -123,7 +123,7 @@ export class Lampposts extends Container {
       .stroke({ color: 0xe8d2a8, width: 1.5 })
     const name = new Text({
       text: 'RUE DE\nLA LUNE',
-      style: { fontFamily: DISPLAY_FONT, fontSize: 14, lineHeight: 16, align: 'center', fill: 0xf2dfb6 },
+      style: { fontFamily: SIGN_FONT, fontSize: 14, lineHeight: 16, align: 'center', fill: 0xf2dfb6 },
       resolution: 3,
     })
     name.anchor.set(0.5)
