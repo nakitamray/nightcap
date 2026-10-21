@@ -1,0 +1,70 @@
+/*
+ * Display face. Kollektiiv only has letters, digits and ! , . ? so Rye is
+ * registered under the same name to cover the rest (: ' / - & etc).
+ * Order matters: for overlapping ranges the browser checks the *last* rule
+ * first, so the catch-all goes first and Kollektiiv's narrower range last.
+ */
+@font-face {
+  font-family: 'Nightcap Display';
+  src: url('/fonts/Rye.woff2') format('woff2');
+  font-display: block;
+}
+
+@font-face {
+  font-family: 'Nightcap Display';
+  src: url('/fonts/Kollektiiv-Collective.woff') format('woff');
+  font-display: block;
+  unicode-range:
+    U+0020-0021, U+002C, U+002E, U+0030-0039, U+003F, U+0041-005A, U+0061-007A, U+00C4,
+    U+00D5-00D6, U+00DC, U+00E4, U+00F5-00F6, U+00FC, U+0160-0161, U+017D-017E;
+}
+
+:root {
+  --ink: #0b0806;
+  --night: #040307;
+  --paper: #f2e2bd;
+  --amber: #ffb04a;
+  --amber-deep: #e07a26;
+  --red: #8e2416;
+  --muted: #b79b7a;
+
+  --font-display: 'Nightcap Display', serif;
+  --font-body: var(--font-caslon), Georgia, serif;
+
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--night);
+  color: var(--paper);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  overflow: hidden;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

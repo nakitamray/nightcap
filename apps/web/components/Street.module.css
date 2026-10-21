@@ -1,0 +1,59 @@
+.street {
+  position: fixed;
+  inset: 0;
+}
+
+.canvas {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 1.6s ease;
+}
+
+.canvas[data-ready='true'] {
+  opacity: 1;
+}
+
+.canvas canvas {
+  display: block;
+}
+
+.footer {
+  position: absolute;
+  left: 28px;
+  bottom: 22px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1s ease 1.2s;
+}
+
+.footer[data-ready='true'] {
+  opacity: 1;
+}
+
+.count {
+  margin: 0;
+  font-size: 15px;
+  letter-spacing: 0.02em;
+  color: var(--paper);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.8);
+}
+
+.number {
+  font-family: var(--font-display);
+  font-size: 26px;
+  color: var(--amber);
+  margin-right: 4px;
+}
+
+.hint {
+  margin: 4px 0 0;
+  font-size: 13px;
+  font-style: italic;
+  color: var(--muted);
+  transition: opacity 0.8s ease;
+}
+
+.hint[data-hidden='true'] {
+  opacity: 0;
+}
