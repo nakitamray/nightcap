@@ -36,7 +36,7 @@ export class Marquee extends Container {
 
     const board = new Graphics()
     // underside of the canopy, then the face
-    board.poly([x - 14, y + h, x + w + 14, y + h, x + w - 6, y + h + 16, x + 6, y + h + 16]).fill(0x2a0d08)
+    board.poly([x - 14, y + h, x + w + 14, y + h, x + w - 6, y + h + 8, x + 6, y + h + 8]).fill(0x2a0d08)
     board.roundRect(x - 14, y - 8, w + 28, h + 16, 6).fill(palette.red)
     board.roundRect(x - 6, y, w + 12, h, 4).fill(0x6b1a10)
     board.roundRect(x + 12, y + 12, w - 24, h - 24, 3).fill(0x140a08)
@@ -70,19 +70,19 @@ export class Marquee extends Container {
 
     this.title = new Text({
       text: '',
-      style: { fontFamily: DISPLAY_FONT, fontSize: 46, fill: 0xffe2a0, letterSpacing: 5 },
+      style: { fontFamily: DISPLAY_FONT, fontSize: 38, fill: 0xffe2a0, letterSpacing: 5 },
       resolution: 2,
     })
     this.title.anchor.set(0.5)
-    this.title.position.set(cx, y + 37)
+    this.title.position.set(cx, y + h * 0.4)
 
     this.line = new Text({
       text: '',
-      style: { fontFamily: DISPLAY_FONT, fontSize: 21, fill: 0xfff0d2, letterSpacing: 3 },
+      style: { fontFamily: DISPLAY_FONT, fontSize: 17, fill: 0xfff0d2, letterSpacing: 3 },
       resolution: 2,
     })
     this.line.anchor.set(0.5)
-    this.line.position.set(cx, y + 69)
+    this.line.position.set(cx, y + h * 0.77)
     // text sits on the lights layer so the bloom catches it
     lights.addChild(this.title, this.line)
 

@@ -18,6 +18,7 @@ export class House extends Container {
   readonly windows: RoomWindow[]
   readonly marquee: Marquee
   private doorGlow: Sprite
+  private neon: { text: Text; glow: Sprite }
   private dormerGlows: Sprite[] = []
 
   constructor(seed: number, lights: Container) {
@@ -30,6 +31,7 @@ export class House extends Container {
     this.drawCornice(shell)
     this.drawGroundFloor(shell, rng)
     this.addChild(shell)
+    this.addChild(ivy(rng))
 
     this.windows = windowSlots().map((slot) => new RoomWindow(slot, lights))
     this.addChild(...this.windows)
@@ -58,11 +60,12 @@ export class House extends Container {
 
     this.marquee = new Marquee(lights)
     this.addChild(this.marquee)
+    this.neon = this.neonSign(lights, HOUSE.x - 22, 600, 'LIVRES')
 
     this.doorGlow = new Sprite(glowTexture())
     this.doorGlow.anchor.set(0.5)
-    this.doorGlow.position.set(DOOR.x + DOOR.width / 2, DOOR.y + 20)
-    this.doorGlow.scale.set(1.2, 0.6)
+    this.doorGlow.position.set(DOOR.x + DOOR.width / 4, DOOR.y + 90)
+    this.doorGlow.scale.set(0.8, 1.3)
     this.doorGlow.tint = palette.amber
     this.doorGlow.alpha = 0.4
     this.doorGlow.blendMode = 'add'
@@ -201,25 +204,51 @@ export class House extends Container {
 
     for (const [i, shop] of SHOPFRONTS.entries()) this.drawShop(g, shop, i, rng)
 
-    // carriage door: painted wood, carved panels, iron fanlight
+    this.drawDoor(g)
+  }
+
+  /**
+   * Tall green double door with an iron fanlight. The left leaf stands open,
+   * the hallway's lit, and someone's stopped in the doorway.
+   */
+  private drawDoor(g: Graphics) {
     const d = DOOR
-    g.rect(d.x - 14, d.y - 14, d.width + 28, d.height + 14).fill(palette.stoneLight)
-    g.rect(d.x, d.y, d.width, d.height).fill(0x123026)
-    g.rect(d.x, d.y, d.width, 30).fill(0xe0954a)
+    const half = d.width / 2
+    const fan = 26
+    g.rect(d.x - 12, d.y - 12, d.width + 24, d.height + 12).fill(palette.stoneLight)
+    g.rect(d.x - 12, d.y - 12, d.width + 24, d.height + 12).stroke({ color: palette.ink, width: 1.5, alpha: 0.7 })
+    // fanlight
+    g.rect(d.x, d.y, d.width, fan).fill(0xf0a050)
     for (let i = 0; i <= 6; i++) {
       const a = Math.PI + (i / 6) * Math.PI
-      g.moveTo(d.x + d.width / 2, d.y + 30)
-        .lineTo(d.x + d.width / 2 + Math.cos(a) * (d.width / 2), d.y + 30 + Math.sin(a) * 30)
-        .stroke({ color: palette.ink, width: 2 })
+      g.moveTo(d.x + half, d.y + fan)
+        .lineTo(d.x + half + Math.cos(a) * half, d.y + fan + Math.sin(a) * fan)
+        .stroke({ color: palette.ink, width: 1.5 })
     }
-    g.rect(d.x, d.y + 28, d.width, 4).fill(palette.ink)
-    g.rect(d.x + d.width / 2 - 1.5, d.y + 30, 3, d.height - 30).fill(palette.ink)
-    for (const px of [d.x + 8, d.x + d.width / 2 + 8]) {
-      g.rect(px, d.y + 40, d.width / 2 - 16, 34).stroke({ color: 0x2c5a48, width: 2 })
-      g.rect(px, d.y + 82, d.width / 2 - 16, 34).stroke({ color: 0x2c5a48, width: 2 })
-    }
-    g.circle(d.x + d.width / 2, d.y + 78, 5).fill(palette.gold)
-    g.rect(d.x - 20, GROUND - 8, d.width + 40, 8).fill(palette.stone)
+    g.rect(d.x, d.y + fan - 2, d.width, 4).fill(palette.ink)
+
+    // the lit hallway behind the open leaf
+    const top = d.y + fan + 2
+    const h = d.height - fan - 2
+    g.rect(d.x, top, half, h).fill(0xd8642a)
+    g.rect(d.x + 4, top + 6, half - 8, h - 6).fill(0xf59a48)
+    // a figure in a long coat and hat, backlit
+    const fx = d.x + half / 2
+    const fy = GROUND - 2
+    g.poly([fx - 7, fy, fx + 7, fy, fx + 9, fy - 70, fx + 6, fy - 92, fx - 6, fy - 92, fx - 9, fy - 70]).fill(palette.ink)
+    g.circle(fx, fy - 100, 6).fill(palette.ink)
+    g.ellipse(fx, fy - 105, 11, 2.5).rect(fx - 5, fy - 113, 10, 8).fill(palette.ink)
+    // the open leaf, seen edge-on against the jamb
+    g.poly([d.x, top, d.x + 9, top + 5, d.x + 9, top + h - 2, d.x, top + h]).fill(0x0e2a20)
+
+    // the closed leaf
+    g.rect(d.x + half, top, half, h).fill(0x123026)
+    g.rect(d.x + half + 6, top + 8, half - 12, h * 0.42).stroke({ color: 0x2c5a48, width: 2 })
+    g.rect(d.x + half + 6, top + 16 + h * 0.42, half - 12, h * 0.42).stroke({ color: 0x2c5a48, width: 2 })
+    g.circle(d.x + half + 6, top + h * 0.5, 3).fill(palette.gold)
+    g.rect(d.x + half - 1.5, top, 3, h).fill(palette.ink)
+
+    g.rect(d.x - 18, GROUND - 7, d.width + 36, 7).fill(palette.stone)
   }
 
   private drawShop(g: Graphics, shop: Rect, i: number, rng: Rng) {
@@ -262,7 +291,7 @@ export class House extends Container {
   }
 
   private addShopSigns() {
-    const names = ['LIVRES', 'FLEURS']
+    const names = ['LIBRAIRIE', 'FLEURS']
     SHOPFRONTS.forEach((shop, i) => {
       const t = new Text({
         text: names[i] ?? '',
@@ -294,6 +323,38 @@ export class House extends Container {
     n.anchor.set(0.5)
     n.position.set(px + 18, py + 13.5)
     this.addChild(plate, n)
+  }
+
+  /** vertical red neon hanging off the corner, over the bookshop */
+  private neonSign(lights: Container, x: number, y: number, word: string) {
+    const letters = word.split('').join('\n')
+    const lineH = 33
+    const h = word.length * lineH + 22
+    const bracket = new Graphics()
+      .rect(x + 18, y - 16, 8, 16)
+      .rect(x + 18, y - 18, 40, 5)
+      .fill(palette.ink)
+      .roundRect(x, y, 44, h, 6)
+      .fill(0x1a0806)
+      .roundRect(x + 3, y + 3, 38, h - 6, 4)
+      .stroke({ color: 0xff3b2a, width: 2 })
+    const text = new Text({
+      text: letters,
+      style: { fontFamily: DISPLAY_FONT, fontSize: 28, lineHeight: lineH, align: 'center', fill: 0xff4a32 },
+      resolution: 2,
+    })
+    text.anchor.set(0.5)
+    text.position.set(x + 22, y + h / 2)
+    const glow = new Sprite(glowTexture())
+    glow.anchor.set(0.5)
+    glow.position.set(x + 22, y + h / 2)
+    glow.scale.set(1.2, (h * 2.4) / 256)
+    glow.tint = 0xff2a1a
+    glow.alpha = 0.6
+    glow.blendMode = 'add'
+    this.addChild(bracket, text)
+    lights.addChild(glow)
+    return { text, glow }
   }
 
   private flowerPots(g: Graphics, x: number, y: number, rng: Rng) {
@@ -363,7 +424,44 @@ export class House extends Container {
   update(time: number, dt: number, reducedMotion: boolean) {
     for (const w of this.windows) w.update(time, dt, reducedMotion)
     this.marquee.update(time, dt, reducedMotion)
+    // one tube is going, so every so often it stutters
+    const stutter = !reducedMotion && time % 7 > 6.5 && Math.sin(time * 70) > 0.2
+    this.neon.text.alpha = stutter ? 0.4 : 1
+    this.neon.glow.alpha = stutter ? 0.2 : 0.58 + Math.sin(time * 3) * 0.03
     this.doorGlow.alpha = 0.38 + Math.sin(time * 0.7) * 0.02
     this.dormerGlows.forEach((g, i) => (g.alpha = 0.42 + Math.sin(time * 1.1 + i * 2) * 0.03))
   }
+}
+
+/**
+ * Ivy creeping up from the pavement at both corners and along the ground
+ * floor. Each vine is a random walk upward that throws off leaves (and the
+ * odd side shoot) as it climbs.
+ */
+function ivy(rng: Rng) {
+  const g = new Graphics()
+  const greens = [0x16260f, 0x1d3214, 0x24401a, 0x2c4c1e]
+  const lit = [0x5a6a1e, 0x6e7a26]
+  const grow = (x: number, y: number, steps: number, drift: number, depth = 0) => {
+    for (let i = 0; i < steps; i++) {
+      x += range(rng, -4, 4) + drift
+      y -= range(rng, 4, 8)
+      x = Math.max(HOUSE.x - 6, Math.min(HOUSE.x + HOUSE.width + 6, x))
+      g.circle(x, y, 1.2).fill(0x1a1a0c)
+      for (let l = 0; l < 3; l++) {
+        const lx = x + range(rng, -11, 11)
+        const ly = y + range(rng, -6, 6)
+        // leaves low down catch the lamps and shop light
+        const colour = y > GROUND_FLOOR.y - 60 && chance(rng, 0.3) ? pick(rng, lit) : pick(rng, greens)
+        g.ellipse(lx, ly, range(rng, 3.5, 6.5), range(rng, 2.5, 4.5)).fill({ color: colour, alpha: 0.95 })
+      }
+      if (depth < 2 && chance(rng, 0.05)) grow(x, y, int(rng, 10, 26), range(rng, -2.5, 2.5), depth + 1)
+    }
+  }
+  for (const x of [HOUSE.x + 6, HOUSE.x + 22]) grow(x, GROUND, int(rng, 85, 110), 0.6)
+  for (const x of [HOUSE.x + HOUSE.width - 8, HOUSE.x + HOUSE.width - 24]) grow(x, GROUND, int(rng, 60, 80), -0.6)
+  // a little around the shopfronts and over the door
+  for (const shop of SHOPFRONTS) grow(shop.x - 8, GROUND, 24, 0.2)
+  grow(DOOR.x - 14, GROUND, 30, 1.1)
+  return g
 }

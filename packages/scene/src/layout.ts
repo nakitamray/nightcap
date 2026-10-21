@@ -47,9 +47,10 @@ export const GROUND_FLOOR: Rect = {
   height: GROUND - (FIRST_ROW_Y + FLOOR_H * ROWS - 8),
 }
 
-export const MARQUEE: Rect = { x: 1200 - 180, y: GROUND_FLOOR.y + 16, width: 360, height: 88 }
+export const MARQUEE: Rect = { x: 1200 - 180, y: GROUND_FLOOR.y + 10, width: 360, height: 70 }
 
-export const DOOR: Rect = { x: 1200 - 54, y: GROUND - 126, width: 108, height: 126 }
+/** tall and narrow, the way Paris doors are */
+export const DOOR: Rect = { x: 1200 - 38, y: GROUND - 152, width: 76, height: 152 }
 
 /** the two little shops either side of the carriage door */
 export const SHOPFRONTS: Rect[] = [
@@ -59,11 +60,14 @@ export const SHOPFRONTS: Rect[] = [
 
 // close enough to the house that their light lands on the stone
 export const LAMPPOSTS = [
-  { x: 770, top: 720 },
+  { x: 690, top: 720 },
   { x: 1630, top: 720 },
 ] as const
 
-export const MORRIS_COLUMN = { x: 568, width: 60, top: GROUND - 240 } as const
+export const MORRIS_COLUMN = { x: 360, width: 60, top: GROUND - 240 } as const
+
+/** the café terrace, tucked up against our building */
+export const CAFE = { x: 480, width: 270 } as const
 
 export function bayCenter(col: number) {
   return HOUSE.x + (HOUSE.width * (col + 0.5)) / COLS
@@ -95,7 +99,7 @@ export interface Fit {
 }
 
 /** what the camera frames: the house from the dormers down to the kerb */
-export const FOCUS: Rect = { x: HOUSE.x - 150, y: 50, width: HOUSE.width + 300, height: 1110 }
+export const FOCUS: Rect = { x: HOUSE.x - 150, y: 50, width: HOUSE.width + 300, height: 1170 }
 
 /**
  * Scale the world so the focus box fills the screen, centred. Anything around

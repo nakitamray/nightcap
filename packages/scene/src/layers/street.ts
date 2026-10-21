@@ -1,4 +1,5 @@
-import { Container, Graphics, Sprite } from 'pixi.js'
+import { Container, Graphics, Sprite, Text } from 'pixi.js'
+import { DISPLAY_FONT } from '../fonts'
 import { CURB, GROUND, LAMPPOSTS, MORRIS_COLUMN, WORLD } from '../layout'
 import { palette } from '../palette'
 import { createRng, range } from '../rng'
@@ -108,6 +109,26 @@ export class Lampposts extends Container {
       this.pools.addChild(pool)
     }
     this.addChild(g)
+
+    // street name on the first post
+    const first = LAMPPOSTS[0]
+    const px = first.x
+    const py = first.top + 180
+    const plate = new Graphics()
+      .rect(px - 3, py - 6, 6, 6)
+      .fill(palette.ink)
+      .roundRect(px - 52, py, 104, 44, 4)
+      .fill(0x1a0d0a)
+      .roundRect(px - 49, py + 3, 98, 38, 3)
+      .stroke({ color: 0xe8d2a8, width: 1.5 })
+    const name = new Text({
+      text: 'RUE DE\nLA LUNE',
+      style: { fontFamily: DISPLAY_FONT, fontSize: 14, lineHeight: 16, align: 'center', fill: 0xf2dfb6 },
+      resolution: 3,
+    })
+    name.anchor.set(0.5)
+    name.position.set(px, py + 22)
+    this.addChild(plate, name)
   }
 
   update(time: number) {
@@ -146,42 +167,59 @@ export function morrisColumn(seed: number) {
   return g
 }
 
-/** a big plane tree on the left edge, mostly just dark leaves against the sky */
+/** a plane tree on the pavement, trunk base at (x, ground). crown sways a little. */
 export class PlaneTree extends Container {
   private crown = new Container()
+  private phase: number
 
-  constructor(seed: number) {
+  constructor(seed: number, x: number, scale = 1) {
     super()
     const rng = createRng(seed)
+    this.phase = rng() * 10
+    const bark = 0x120c0a
     const trunk = new Graphics()
-    trunk
-      .poly([60, GROUND + 30, 100, GROUND + 30, 92, 600, 70, 600])
-      .fill(0x0a0c14)
-      .moveTo(82, 640)
-      .bezierCurveTo(120, 560, 200, 520, 250, 470)
-      .stroke({ color: 0x0a0c14, width: 10 })
-      .moveTo(80, 620)
-      .bezierCurveTo(40, 540, 0, 500, -60, 470)
-      .stroke({ color: 0x0a0c14, width: 9 })
+      .poly([-20, 0, 20, 0, 12, -420, -10, -420])
+      .fill(bark)
+      // the mottled patches plane trees have
+      .ellipse(-4, -120, 6, 14)
+      .ellipse(5, -220, 5, 10)
+      .ellipse(-3, -300, 4, 9)
+      .fill({ color: 0x3a2a1c, alpha: 0.7 })
+      .moveTo(2, -390)
+      .bezierCurveTo(40, -470, 120, -520, 180, -560)
+      .stroke({ color: bark, width: 11 })
+      .moveTo(0, -370)
+      .bezierCurveTo(-40, -460, -100, -510, -160, -560)
+      .stroke({ color: bark, width: 10 })
     this.addChild(trunk)
+
     const leaves = new Graphics()
-    for (let i = 0; i < 70; i++) {
-      const cx = range(rng, -220, 300)
-      const cy = range(rng, 330, 640) + Math.abs(cx - 80) * 0.25
-      leaves.circle(cx, cy, range(rng, 24, 60)).fill({ color: i % 3 ? 0x070a12 : 0x0b1020, alpha: 0.97 })
+    for (let i = 0; i < 80; i++) {
+      const cx = range(rng, -270, 270)
+      const cy = range(rng, -820, -480) + Math.abs(cx) * 0.3
+      leaves.circle(cx, cy, range(rng, 26, 62)).fill({ color: i % 3 ? 0x0b1209 : 0x111a0d, alpha: 0.97 })
     }
-    // ragged edge
-    for (let i = 0; i < 120; i++) {
-      leaves.circle(range(rng, -240, 330), range(rng, 300, 700), range(rng, 4, 10)).fill(0x070a12)
+    // the underside of the canopy catches the lamplight
+    for (let i = 0; i < 60; i++) {
+      const cx = range(rng, -230, 230)
+      leaves.circle(cx, range(rng, -540, -460) + Math.abs(cx) * 0.25, range(rng, 18, 34)).fill({
+        color: i % 2 ? 0x2a2a0e : 0x1e220c,
+        alpha: 0.55,
+      })
+    }
+    for (let i = 0; i < 140; i++) {
+      leaves.circle(range(rng, -300, 300), range(rng, -880, -440), range(rng, 4, 10)).fill(0x0b1209)
     }
     this.crown.addChild(leaves)
-    this.crown.pivot.set(80, 640)
-    this.crown.position.set(80, 640)
+    this.crown.pivot.set(0, -420)
+    this.crown.position.set(0, -420)
     this.addChild(this.crown)
+    this.position.set(x, GROUND + 30)
+    this.scale.set(scale)
   }
 
   update(time: number) {
-    this.crown.rotation = Math.sin(time * 0.5) * 0.006 + Math.sin(time * 1.3) * 0.003
+    this.crown.rotation = Math.sin(time * 0.5 + this.phase) * 0.006 + Math.sin(time * 1.3 + this.phase) * 0.003
   }
 }
 

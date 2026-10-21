@@ -6,6 +6,8 @@ import { loadDisplayFont } from './fonts'
 import { CURB, fitWorld } from './layout'
 import { House } from './layers/house'
 import { Neighbors } from './layers/neighbors'
+import { ParkedCars } from './layers/cars'
+import { People } from './layers/people'
 import { Rain } from './layers/rain'
 import { Reflection } from './layers/reflection'
 import { Sky } from './layers/sky'
@@ -28,7 +30,8 @@ export class StreetScene {
   private neighbors!: Neighbors
   private house!: House
   private lamps!: Lampposts
-  private tree!: PlaneTree
+  private trees: PlaneTree[] = []
+  private people!: People
   private rain!: Rain
   private reflection!: Reflection
   private paper = new PaperFilter()
@@ -76,7 +79,7 @@ export class StreetScene {
     this.neighbors = new Neighbors(seed + 2, this.lights)
     this.house = new House(seed + 3, this.lights)
     this.lamps = new Lampposts(this.lights)
-    this.tree = new PlaneTree(seed + 6)
+    this.trees = [new PlaneTree(seed + 6, 220, 0.92), new PlaneTree(seed + 9, 2240, 0.96)]
     this.upper.addChild(
       this.sky,
       this.skyline,
@@ -85,7 +88,7 @@ export class StreetScene {
       morrisColumn(seed + 7),
       this.lamps,
       this.lights,
-      this.tree,
+      ...this.trees,
     )
 
     this.bloom = new AdvancedBloomFilter({ threshold: 0.42, bloomScale: 0.8, brightness: 1, blur: 5, quality: 4 })
@@ -94,12 +97,24 @@ export class StreetScene {
     this.reflection = new Reflection(this.upper)
     this.rain = new Rain(seed + 4, reduced ? 50 : 160)
 
-    // standing on the pavement, so not part of the reflected world
+    // people and cars are on the pavement and road, below the line the
+    // reflection mirrors around, so they live outside `upper`
+    this.people = new People(seed + 10)
     const lovers = couple()
     lovers.position.set(1700, CURB - 12)
     lovers.scale.set(0.62)
+    this.people.addStanding(lovers)
+    const cars = new ParkedCars({ x: 700, y: CURB + 98 }, { x: 1850, y: CURB + 98 })
 
-    this.world.addChild(this.upper, new Pavement(seed + 5), this.reflection, this.lamps.pools, lovers, this.rain)
+    this.world.addChild(
+      this.upper,
+      new Pavement(seed + 5),
+      this.reflection,
+      this.lamps.pools,
+      this.people,
+      cars,
+      this.rain,
+    )
     app.stage.addChild(this.world)
 
     app.stage.filters = [this.paper]
@@ -174,7 +189,8 @@ export class StreetScene {
     this.neighbors.update(t, dt)
     this.house.update(t, dt, reduced)
     this.lamps.update(t)
-    if (!reduced) this.tree.update(t)
+    if (!reduced) for (const tree of this.trees) tree.update(t)
+    this.people.update(dt, reduced)
     this.rain.update(reduced ? dt * 0.4 : dt)
     this.paper.time = t
     this.reflection.update(this.app.renderer, t)

@@ -1,6 +1,6 @@
 import { Container, Graphics, Sprite, Text } from 'pixi.js'
 import { DISPLAY_FONT } from '../fonts'
-import { GROUND, HOUSE } from '../layout'
+import { CAFE, GROUND, HOUSE } from '../layout'
 import { palette } from '../palette'
 import { chance, createRng, pick, range, type Rng } from '../rng'
 import { dotTexture, glowTexture, puffTexture } from '../textures'
@@ -70,6 +70,7 @@ export class Neighbors extends Container {
     const far: Block = { x: right.x + right.width, width: 1100, top: 400, tone: palette.neighborDark, bay: 92, litChance: 0.5, base: GROUND - 200 }
     lit.push(...this.block(g, rng, far))
     this.plainGround(g, far)
+    this.tabac(g, lights, far.x + 24, GROUND - 176, 260)
 
     for (const r of lit) {
       const glow = new Sprite(glowTexture())
@@ -83,7 +84,7 @@ export class Neighbors extends Container {
     }
 
     // the café terrace goes over the café block's ground floor
-    this.cafeTerrace(g, lights, rng, 130, GROUND - 170, 310)
+    this.cafeTerrace(g, lights, rng, CAFE.x, GROUND - 170, CAFE.width)
 
     // blade sign hanging off the club
     const sx = right.x + 30
@@ -313,6 +314,83 @@ export class Neighbors extends Container {
     glow.alpha = 0.55
     glow.blendMode = 'add'
     lights.addChild(glow)
+  }
+
+  /** the corner bar-tabac: red carrot sign, people at the counter */
+  private tabac(g: Graphics, lights: Container, x: number, y: number, w: number) {
+    const h = GROUND - y
+    g.rect(x, y, w, h).fill(palette.oxblood).stroke(INK)
+    g.rect(x, y, w, 28).fill(0x2a0806)
+    const name = new Text({
+      text: 'BAR TABAC',
+      style: { fontFamily: DISPLAY_FONT, fontSize: 16, fill: palette.gold, letterSpacing: 4 },
+      resolution: 2,
+    })
+    name.anchor.set(0.5)
+    name.position.set(x + w / 2, y + 14)
+    this.addChild(name)
+
+    // window into the bar
+    const wx = x + 10
+    const wy = y + 64
+    const ww = w - 76
+    const wh = h - 74
+    g.rect(wx, wy, ww, wh).fill(0xd8702a)
+    g.rect(wx, wy, ww, wh * 0.45).fill({ color: 0xffb050, alpha: 0.6 })
+    // bottles on the back shelf
+    for (let bx = wx + 6; bx < wx + ww - 6; bx += 7) {
+      g.rect(bx, wy + 20, 4, 14).fill({ color: palette.ink, alpha: 0.55 })
+    }
+    g.rect(wx, wy + 36, ww, 3).fill(palette.ink)
+    // counter, two regulars on stools
+    g.rect(wx, wy + wh - 30, ww, 30).fill(0x3a120c)
+    for (const px of [wx + ww * 0.3, wx + ww * 0.68]) {
+      g.circle(px, wy + wh - 62, 7).fill(palette.ink)
+      g.poly([px - 9, wy + wh - 54, px + 9, wy + wh - 54, px + 10, wy + wh - 26, px - 10, wy + wh - 26]).fill(palette.ink)
+    }
+    for (let i = 1; i < 3; i++) g.rect(wx + (ww * i) / 3 - 1, wy, 2, wh).fill(palette.oxblood)
+    // door
+    g.rect(x + w - 56, y + 64, 44, h - 64).fill(0x8a3a16)
+    g.rect(x + w - 50, y + 72, 32, 54).fill({ color: 0xffb050, alpha: 0.7 })
+    g.circle(x + w - 22, y + 64 + (h - 64) / 2, 2.5).fill(palette.gold)
+
+    // awning
+    const stripes = 9
+    const sw = (w + 20) / stripes
+    for (let i = 0; i < stripes; i++) {
+      const sx = x - 10 + i * sw
+      g.poly([sx, y + 28, sx + sw, y + 28, sx + sw + 4, y + 58, sx + 4, y + 58]).fill(i % 2 ? 0xf0dcc0 : palette.red)
+      g.moveTo(sx + sw + 4, y + 58)
+        .arc(sx + sw / 2 + 4, y + 58, sw / 2, 0, Math.PI)
+        .fill(i % 2 ? 0xf0dcc0 : palette.red)
+    }
+
+    // la carotte: the red lozenge every tabac hangs out front
+    const cx = x - 4
+    const cy = y - 40
+    g.rect(cx - 2, cy - 54, 4, 20).fill(palette.ink)
+    g.poly([cx, cy - 36, cx + 13, cy, cx, cy + 36, cx - 13, cy]).fill(0xe0301e).stroke({ color: palette.ink, width: 1.5 })
+    g.rect(cx - 13, cy - 1, 26, 2).fill({ color: palette.ink, alpha: 0.5 })
+    const carrot = new Sprite(glowTexture())
+    carrot.anchor.set(0.5)
+    carrot.position.set(cx, cy)
+    carrot.scale.set(0.55, 0.9)
+    carrot.tint = 0xff2a1a
+    carrot.alpha = 0.7
+    carrot.blendMode = 'add'
+
+    const glow = new Sprite(glowTexture())
+    glow.anchor.set(0.5)
+    glow.position.set(wx + ww / 2, wy + wh / 2)
+    glow.scale.set((ww * 2.2) / 256, (wh * 2.2) / 256)
+    glow.tint = palette.amber
+    glow.alpha = 0.5
+    glow.blendMode = 'add'
+    lights.addChild(carrot, glow)
+
+    // sandwich board on the pavement
+    g.poly([x + w * 0.42, GROUND, x + w * 0.42 + 8, GROUND - 46, x + w * 0.42 + 34, GROUND - 46, x + w * 0.42 + 42, GROUND]).fill(0x1a120e)
+    for (let l = 0; l < 4; l++) g.rect(x + w * 0.42 + 12, GROUND - 40 + l * 9, 18 - (l % 2) * 6, 2).fill({ color: 0xf2e2bd, alpha: 0.7 })
   }
 
   private spawnPuff(age = 0) {
