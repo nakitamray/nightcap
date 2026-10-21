@@ -26,15 +26,25 @@ export default async function HousePage({ params }: { params: Promise<{ id: stri
   if (error) return <HouseError message={error.message} />
   if (!house || !userId) notFound()
 
-  const { data: rooms } = await supabase.from('memberships').select('user_id, room, curtains').eq('house_id', id)
+  const { data: rooms } = await supabase
+    .from('memberships')
+    .select('user_id, room, curtains')
+    .eq('house_id', id)
   const ids = (rooms ?? []).map((r) => r.user_id)
-  const { data: people } = await supabase.from('profiles').select('id, display_name, city, time_zone').in('id', ids)
+  const { data: people } = await supabase
+    .from('profiles')
+    .select('id, display_name, city, time_zone')
+    .in('id', ids)
 
   const members: (Member | null)[] = Array.from({ length: 12 }, () => null)
+  const roomless: { id: string; name: string }[] = []
   for (const r of rooms ?? []) {
-    // people who haven't picked a room yet don't light up a window
-    if (r.room == null) continue
     const p = people?.find((p) => p.id === r.user_id)
+    // people who haven't picked a room yet don't light up a window
+    if (r.room == null) {
+      roomless.push({ id: r.user_id, name: p?.display_name ?? '?' })
+      continue
+    }
     members[r.room] = {
       id: r.user_id,
       name: p?.display_name ?? '?',
@@ -53,6 +63,7 @@ export default async function HousePage({ params }: { params: Promise<{ id: stri
       houseName={house.name}
       userId={userId}
       initialRooms={members}
+      roomless={roomless}
       marquee={marquee}
       theme={isTheme(house.theme) ? house.theme : 'paris'}
     />

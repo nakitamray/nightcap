@@ -60,3 +60,61 @@
     width: 160px;
   }
 }
+
+.button {
+  text-decoration: none;
+}
+
+.banner {
+  position: absolute;
+  top: 64px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: calc(100% - 32px);
+  margin: 0;
+  padding: 8px 14px;
+  font-size: 13px;
+  text-align: center;
+  color: var(--paper);
+  background: rgba(20, 12, 9, 0.85);
+  border: 1px solid #5a3420;
+  border-radius: 2px;
+  opacity: 0;
+  transition: opacity 1s ease 1.4s;
+}
+
+.banner[data-ready='true'] {
+  opacity: 1;
+}
+
+.claim {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(300px, calc(100% - 32px));
+  padding: 18px 20px;
+  color: var(--paper);
+  text-align: center;
+  background: rgba(16, 10, 8, 0.94);
+  border: 1px solid var(--amber);
+  border-radius: 2px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+}
+
+.claim p {
+  margin: 0 0 6px;
+  font-size: 15px;
+}
+
+.claim .small {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.claimButtons {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 12px;
+}

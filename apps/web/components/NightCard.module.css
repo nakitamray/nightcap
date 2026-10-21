@@ -324,3 +324,16 @@
 .demo:hover {
   border-color: #d9c7a2;
 }
+
+.copyRow {
+  display: flex;
+  gap: 8px;
+  margin: 14px 0 6px;
+}
+
+.copyRow .input {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  text-transform: none;
+}

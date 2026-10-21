@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Member } from '@/lib/house'
@@ -16,11 +17,21 @@ interface Props {
   houseName: string
   userId: string
   initialRooms: (Member | null)[]
+  /** people who live here but haven't picked a window yet */
+  roomless: { id: string; name: string }[]
   marquee: string[]
   theme: Theme
 }
 
-export function HouseView({ houseId, houseName, userId, initialRooms, marquee, theme }: Props) {
+export function HouseView({
+  houseId,
+  houseName,
+  userId,
+  initialRooms,
+  roomless,
+  marquee,
+  theme,
+}: Props) {
   const router = useRouter()
   const supabase = useMemo(() => supabaseBrowser(), [])
   const hostRef = useRef<HTMLDivElement>(null)
@@ -44,22 +55,75 @@ export function HouseView({ houseId, houseName, userId, initialRooms, marquee, t
       if (!me) return
       const curtains = me.curtains === 'open' ? 'drawn' : 'open'
       setMembers((prev) => prev.map((m, i) => (i === index && m ? { ...m, curtains } : m)))
-      await supabase.from('memberships').update({ curtains }).eq('house_id', houseId).eq('user_id', userId)
-      channelRef.current?.send({ type: 'broadcast', event: 'curtains', payload: { userId, curtains } })
+      await supabase
+        .from('memberships')
+        .update({ curtains })
+        .eq('house_id', houseId)
+        .eq('user_id', userId)
+      channelRef.current?.send({
+        type: 'broadcast',
+        event: 'curtains',
+        payload: { userId, curtains },
+      })
     },
     [members, myRoom, supabase, houseId, userId],
   )
 
-  const { hover, ready } = useStreetScene(hostRef, rooms, marquee, theme, toggleCurtains)
+  // one click on your window does the curtains, two goes inside. the single
+  // click waits a beat so a double doesn't flap the curtains on the way in
+  const [claiming, setClaiming] = useState<number | null>(null)
+  const [claimError, setClaimError] = useState('')
+  const pending = useRef<{ index: number; timer: ReturnType<typeof setTimeout> } | null>(null)
+
+  const onWindowClick = useCallback(
+    (index: number) => {
+      const last = pending.current
+      if (last && last.index === index) {
+        clearTimeout(last.timer)
+        pending.current = null
+        if (index === myRoom) router.push(`/h/${houseId}/room`)
+        else if (!members[index]) {
+          setClaimError('')
+          setClaiming(index)
+        }
+        return
+      }
+      if (last) clearTimeout(last.timer)
+      pending.current = {
+        index,
+        timer: setTimeout(() => {
+          pending.current = null
+          toggleCurtains(index)
+        }, 320),
+      }
+    },
+    [myRoom, members, router, houseId, toggleCurtains],
+  )
+
+  async function claim() {
+    if (claiming === null) return
+    const { error } = await supabase.rpc('claim_room', { h: houseId, wanted: claiming })
+    if (error) return setClaimError(error.message)
+    setClaiming(null)
+    router.refresh()
+  }
+
+  const { hover, ready } = useStreetScene(hostRef, rooms, marquee, theme, onWindowClick)
 
   // presence: everyone with the house open is "home"
   useEffect(() => {
     const channel = supabase.channel(`house:${houseId}`, { config: { presence: { key: userId } } })
     channelRef.current = channel
     channel
-      .on('presence', { event: 'sync' }, () => setOnline(new Set(Object.keys(channel.presenceState()))))
+      .on('presence', { event: 'sync' }, () =>
+        setOnline(new Set(Object.keys(channel.presenceState()))),
+      )
       .on('broadcast', { event: 'curtains' }, ({ payload }) => {
-        setMembers((prev) => prev.map((m) => (m && m.id === payload.userId ? { ...m, curtains: payload.curtains } : m)))
+        setMembers((prev) =>
+          prev.map((m) =>
+            m && m.id === payload.userId ? { ...m, curtains: payload.curtains } : m,
+          ),
+        )
       })
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') channel.track({ since: Date.now() })
@@ -75,9 +139,13 @@ export function HouseView({ houseId, houseName, userId, initialRooms, marquee, t
     const me = initialRooms.find((m) => m?.id === userId)
     const zone = Intl.DateTimeFormat().resolvedOptions().timeZone
     if (me && me.timeZone === 'UTC' && zone && zone !== 'UTC') {
-      supabase.from('profiles').update({ time_zone: zone }).eq('id', userId).then(() => {
-        setMembers((prev) => prev.map((m) => (m?.id === userId ? { ...m, timeZone: zone } : m)))
-      })
+      supabase
+        .from('profiles')
+        .update({ time_zone: zone })
+        .eq('id', userId)
+        .then(() => {
+          setMembers((prev) => prev.map((m) => (m?.id === userId ? { ...m, timeZone: zone } : m)))
+        })
     }
   }, [initialRooms, supabase, userId])
 
@@ -88,6 +156,8 @@ export function HouseView({ houseId, houseName, userId, initialRooms, marquee, t
   }
 
   const residents = rooms.filter((r): r is Member => r !== null)
+  const everyone = residents.length + roomless.length
+  const unplaced = roomless.filter((p) => p.id !== userId).map((p) => p.name)
   const home = residents.filter((r) => r.home).length
   const hovered = hover ? (rooms[hover.index] ?? null) : null
 
@@ -97,7 +167,34 @@ export function HouseView({ houseId, houseName, userId, initialRooms, marquee, t
 
       {hover && <WindowCard member={hovered} bounds={hover.bounds} />}
 
+      {everyone < 2 && (
+        <p className={styles.banner} data-ready={ready}>
+          just you in here so far. this house only sticks around once a friend moves in
+        </p>
+      )}
+
+      {claiming !== null && (
+        <div className={styles.claim} role="dialog" aria-label="claim this room">
+          <p>this one&apos;s empty.</p>
+          <p className={styles.small}>
+            {myRoom >= 0 ? 'moving here gives up your old room.' : 'make it yours?'}
+          </p>
+          {claimError && <p className={styles.small}>{claimError}</p>}
+          <div className={styles.claimButtons}>
+            <button type="button" className={styles.button} onClick={claim}>
+              claim it
+            </button>
+            <button type="button" className={styles.button} onClick={() => setClaiming(null)}>
+              not this one
+            </button>
+          </div>
+        </div>
+      )}
+
       <nav className={styles.controls} data-ready={ready}>
+        <Link className={styles.button} href="/keys">
+          keyring
+        </Link>
         <span className={styles.name}>{houseName}</span>
         <InviteButton houseId={houseId} userId={userId} />
         <button type="button" className={styles.button} onClick={signOut}>
@@ -110,9 +207,18 @@ export function HouseView({ houseId, houseName, userId, initialRooms, marquee, t
           <span className={streetStyles.number}>{home}</span> of {residents.length} home
         </p>
         <p className={streetStyles.hint}>
-          {myRoom >= 0 ? 'click your own window to open or draw the curtains' : ''}
+          {myRoom >= 0
+            ? 'click your window for the curtains, double click to go inside'
+            : 'double click an empty window to claim it'}
+          {unplaced.length > 0 && ` · ${listNames(unplaced)} still picking a room`}
         </p>
       </footer>
     </main>
   )
+}
+
+function listNames(names: string[]) {
+  if (names.length === 1) return `${names[0]} is`
+  if (names.length === 2) return `${names[0]} and ${names[1]} are`
+  return `${names.slice(0, 2).join(', ')} and ${names.length - 2} more are`
 }
