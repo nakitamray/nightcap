@@ -37,7 +37,8 @@ export function WindowCard({ member, bounds }: Props) {
     <div className={styles.card} style={style} role="status">
       <p className={styles.name}>{member.name}</p>
       <p className={styles.meta}>
-        {member.city} &middot; {localTime(member.timeZone, now)}, {partOfDay(member.timeZone, now)}
+        {member.city && <>{member.city} &middot; </>}
+        {localTime(member.timeZone, now)}, {partOfDay(member.timeZone, now)}
       </p>
       <p className={styles.status} data-home={member.home}>
         {member.home ? 'home' : 'out'}

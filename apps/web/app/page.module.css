@@ -1,0 +1,17 @@
+.door {
+  position: fixed;
+  top: 18px;
+  right: 22px;
+  padding: 6px 14px;
+  font-size: 14px;
+  color: var(--paper);
+  text-decoration: none;
+  background: rgba(20, 12, 9, 0.85);
+  border: 1px solid #5a3420;
+  border-radius: 2px;
+  transition: border-color 0.2s ease;
+}
+
+.door:hover {
+  border-color: var(--amber);
+}

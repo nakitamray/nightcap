@@ -26,6 +26,26 @@ pnpm lint
 pnpm build
 ```
 
+## houses (supabase)
+
+The street at `/` is a demo with made-up friends and works with no setup.
+Real houses need a Supabase project:
+
+1. run `supabase/migrations/*.sql` in the Supabase SQL editor
+2. Authentication -> URL Configuration: add `http://localhost:3000/auth/callback`
+   (and your deployed url later) to the redirect urls
+3. copy `apps/web/.env.example` to `apps/web/.env.local` and fill in the
+   project url + publishable key
+
+Sign in is a magic link. `/new` makes a house, `/h/<id>` is the house,
+"invite a friend" makes a 7-day link to `/join/<code>`. Lights are live
+presence: a window is lit while that person has the house open.
+
+Privacy is enforced in the database with row level security, not in the
+ui: you can only read a house, its rooms and its people if you live there.
+Creating and joining go through `create_house` / `join_house`, which hand
+out rooms and stop at 12.
+
 ## layout
 
 ```
