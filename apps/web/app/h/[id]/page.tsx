@@ -32,6 +32,8 @@ export default async function HousePage({ params }: { params: Promise<{ id: stri
 
   const members: (Member | null)[] = Array.from({ length: 12 }, () => null)
   for (const r of rooms ?? []) {
+    // people who haven't picked a room yet don't light up a window
+    if (r.room == null) continue
     const p = people?.find((p) => p.id === r.user_id)
     members[r.room] = {
       id: r.user_id,
@@ -66,7 +68,7 @@ function HouseError({ message }: { message: string }) {
         <p className={styles.lede}>the house wouldn&apos;t open</p>
         <p className={styles.note}>{message}</p>
         <p className={styles.note}>
-          <Link className={styles.link} href="/home">
+          <Link className={styles.link} href="/keys">
             try again
           </Link>
         </p>

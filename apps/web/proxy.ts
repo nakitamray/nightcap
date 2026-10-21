@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { hasSupabase, supabaseKey, supabaseUrl } from '@/lib/supabase/env'
 
 // pages you have to be signed in for
-const PRIVATE = ['/h/', '/new', '/home', '/join/']
+const PRIVATE = ['/h/', '/new', '/home', '/join/', '/keys']
 
 // Keeps the session cookie fresh on every request, and bounces signed-out
 // people to /login for private pages.
