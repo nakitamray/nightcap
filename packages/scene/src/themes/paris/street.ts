@@ -227,11 +227,13 @@ export class PlaneTree extends Container {
 export function couple() {
   const g = new Graphics()
   const ink = palette.ink
-  // him
-  g.circle(-14, -176, 11).fill(ink)
-  g.poly([-26, -164, -4, -164, 0, -60, -6, 0, -14, 0, -18, -60, -30, -70]).fill(ink)
-  // her, leaning in, red dress
-  g.circle(12, -170, 10).fill(ink)
+  // him: dark coat, short dark hair
+  g.circle(-14, -176, 11).fill(0x8a5430)
+  g.ellipse(-14, -183, 11, 6).fill(0x140a06)
+  g.poly([-26, -164, -4, -164, 0, -60, -6, 0, -14, 0, -18, -60, -30, -70]).fill(0x1e2438)
+  // her, leaning in, red dress, hair up
+  g.circle(12, -170, 10).fill(0xd4a47c)
+  g.circle(16, -180, 7).fill(0x4a2a14)
   g.poly([2, -160, 20, -158, 26, -96, 34, 0, -4, 0, 4, -96]).fill(0xb3261a)
   g.poly([2, -160, 20, -158, 18, -120, 4, -120]).fill(ink)
   // umbrella

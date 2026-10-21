@@ -8,7 +8,7 @@ const FAR = 0x0c0c1a
 const NEAR = 0x131020
 
 // Manhattan across the river: a wall of towers with their offices still lit,
-// the Empire State and the Chrysler standing out of it, the sky over the city
+// the Empire State (left, over the bodega) and the Chrysler standing out of it, the sky over the city
 // burning orange.
 export class Manhattan extends Container {
   private far = new Container()
@@ -54,8 +54,8 @@ export class Manhattan extends Container {
       this.tower(near, rng, x, w, nearLandmark ? range(rng, 420, 520) : range(rng, 300, 540), NEAR, 0.22)
       x += w + range(rng, 0, 18)
     }
-    this.empireState(near, 1960)
-    this.chrysler(near, 470)
+    this.empireState(near, 470)
+    this.chrysler(near, 1960)
     this.near.addChild(near)
   }
 

@@ -44,10 +44,12 @@ export class Neighbors extends Container {
     let bx = -400
     while (bx < 2800) {
       const width = range(rng, 170, 320)
+      // stay low round the empire state so it shows over the bodega
+      const nearEmpire = bx < 700 && bx + width > 200
       this.tenement(g, lights, rng, {
         x: bx,
         width,
-        top: range(rng, 170, 320),
+        top: nearEmpire ? range(rng, 440, 520) : range(rng, 170, 320),
         base: GROUND,
         brick: pick(rng, [0x2a0e0a, 0x241210, 0x30140e]),
         litChance: 0.38,

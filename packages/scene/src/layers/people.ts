@@ -1,14 +1,16 @@
 import { Container, Graphics } from 'pixi.js'
 import { CURB, GROUND, WORLD } from '../layout'
 import { palette } from '../palette'
-import { createRng, range, type Rng } from '../rng'
+import { createRng, pick, range, type Rng } from '../rng'
 
 // Passers-by. Drawn as flat cut-out shapes like the rest of the street, feet
 // at the origin, roughly 300 units tall before scaling. Each street brings its
 // own wardrobe; the walk is the same everywhere.
 
 const INK = palette.ink
-const SKIN = 0x2a1812
+// people come in every shade -- a bit darker than daylight, it's night
+export const SKIN_TONES = [0x3a2216, 0x4e2e1a, 0x6e4224, 0x8a5430, 0x9c6a3a, 0xb07c50, 0xc49064, 0xd4a47c, 0xe0b892]
+export const HAIR = [0x140a06, 0x1a0e08, 0x2e1a0e, 0x4a2a14, 0x6a3a1a, 0x8a5a2a, 0xb08a4a, 0x8a8480]
 
 export type Hat = 'none' | 'beret' | 'fedora' | 'wide' | 'scarf' | 'cap' | 'afro' | 'bucket' | 'bun'
 
@@ -48,6 +50,8 @@ class Walker extends Container {
 
   constructor(o: Outfit, rng: Rng) {
     super()
+    const skin = pick(rng, SKIN_TONES)
+    const hair = pick(rng, HAIR)
     this.phase = rng() * 10
     this.dir = rng() > 0.5 ? 1 : -1
     this.speed = range(rng, 34, 52)
@@ -84,9 +88,9 @@ class Walker extends Container {
     // head, hair, hat
     const head = new Graphics()
     const hy = shoulder - 22
-    if (o.longHair) head.poly([-13, hy - 6, 13, hy - 6, 15, hy + 36, -15, hy + 36]).fill(0x1a0e08)
-    head.rect(-4, hy + 10, 8, 14).fill(SKIN)
-    head.circle(0, hy, 14).fill(SKIN)
+    if (o.longHair) head.poly([-13, hy - 6, 13, hy - 6, 15, hy + 36, -15, hy + 36]).fill(hair)
+    head.rect(-4, hy + 10, 8, 14).fill(skin)
+    head.circle(0, hy, 14).fill(skin)
     switch (o.hat) {
       case 'wide':
         head.ellipse(0, hy - 10, 30, 6).fill(o.hatColour)
@@ -106,8 +110,8 @@ class Walker extends Container {
         head.ellipse(9, hy - 6, 12, 3).fill(o.hatColour)
         break
       case 'afro':
-        head.circle(0, hy - 6, 22).fill(0x140a06)
-        head.circle(0, hy + 2, 13).fill(SKIN)
+        head.circle(0, hy - 6, 22).fill(hair)
+        head.circle(0, hy + 2, 13).fill(skin)
         break
       case 'bucket':
         head.poly([-12, hy - 6, 12, hy - 6, 9, hy - 22, -9, hy - 22]).fill(o.hatColour)
@@ -126,13 +130,13 @@ class Walker extends Container {
         head.ellipse(-5, hy + 1, 5, 4).ellipse(6, hy + 1, 5, 4).fill(INK)
         break
       default:
-        if (!o.longHair) head.ellipse(0, hy - 8, 14, 8).fill(0x1a0e08)
-        else head.ellipse(0, hy - 8, 15, 9).fill(0x1a0e08)
+        if (!o.longHair) head.ellipse(0, hy - 8, 14, 8).fill(hair)
+        else head.ellipse(0, hy - 8, 15, 9).fill(hair)
     }
     this.body.addChild(head)
 
     for (const arm of [this.armL, this.armR]) {
-      arm.addChild(new Graphics().poly([-6, 0, 6, 0, 5, 92, -5, 92]).fill(o.coat).circle(0, 96, 5).fill(SKIN))
+      arm.addChild(new Graphics().poly([-6, 0, 6, 0, 5, 92, -5, 92]).fill(o.coat).circle(0, 96, 5).fill(skin))
       arm.position.set(0, shoulder + 8)
     }
     // the far arm is a shade darker

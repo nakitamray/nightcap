@@ -146,8 +146,8 @@ export function windowExtras(
 /** people sat out on the stoops: it's warm, nobody wants to go in yet */
 export function stoopSitters() {
   const g = new Graphics()
-  const sit = (x: number, y: number, coat: number, legs: number, hair: number, facing: 1 | -1) => {
-    g.circle(x, y - 46, 7).fill(0x2a1812)
+  const sit = (x: number, y: number, coat: number, legs: number, hair: number, facing: 1 | -1, skin: number) => {
+    g.circle(x, y - 46, 7).fill(skin)
     g.ellipse(x, y - 52, 8, 5).fill(hair)
     g.poly([x - 8, y - 38, x + 8, y - 38, x + 9, y - 12, x - 9, y - 12]).fill(coat)
     // thighs along the step, shins down to the next
@@ -156,10 +156,10 @@ export function stoopSitters() {
     g.ellipse(x + facing * 22, y + 8, 7, 3).fill(INK)
   }
   // two friends sharing a step next door, and someone alone with a book on ours
-  sit(905, 1040, 0xb0501e, 0x2a3448, 0x1a0e08, -1)
-  sit(935, 1040, 0x3a5a8a, 0x8a5a2a, 0x3a1e10, -1)
-  sit(1160, 1058, 0x6a2a3a, 0x1a120e, 0x1a0e08, 1)
+  sit(905, 1040, 0xb0501e, 0x2a3448, 0x1a0e08, -1, 0x6e4224)
+  sit(935, 1040, 0x3a5a8a, 0x8a5a2a, 0x8a5a2a, -1, 0xd4a47c)
+  sit(1160, 1058, 0x6a2a3a, 0x1a120e, 0x2e1a0e, 1, 0xb07c50)
   g.rect(1176, 1034, 12, 9).fill(0xe8d8b0)
-  sit(1490, 1050, 0x2a4a2a, 0x2a2a2e, 0x0a0a0a, 1)
+  sit(1490, 1050, 0x2a4a2a, 0x2a2a2e, 0x0a0a0a, 1, 0x4e2e1a)
   return g
 }
