@@ -14,6 +14,8 @@ const EAVES = HOUSE.y - 20
 // brick, istrian stone trim, a stone balcony on the middle floor, a wooden
 // altana on the roof and funnel chimneys.
 export class House extends BaseHouse {
+  /** text and lanterns drawn while building the shell, kept in front of it */
+  private signs = new Container()
   private lanterns: Sprite[] = []
 
   constructor(seed: number, lights: Container) {
@@ -25,7 +27,7 @@ export class House extends BaseHouse {
     plasterWall(shell, HOUSE.x, EAVES, HOUSE.width, GROUND - EAVES, vn.plaster, rng)
     this.drawTrim(shell, rng)
     this.drawGroundFloor(shell, lights, rng)
-    this.addChild(shell)
+    this.addChild(shell, this.signs)
 
     this.addWindows(lights, veniceWindow)
     this.addChild(this.balcony())
@@ -130,7 +132,7 @@ export class House extends BaseHouse {
     const t = new Text({ text: name, style: { fontFamily: SIGN_FONT, fontSize: 14, fill: palette.gold, letterSpacing: 2 }, resolution: 2 })
     t.anchor.set(0.5)
     t.position.set(x + w / 2, y - 22)
-    this.addChild(t)
+    this.signs.addChild(t)
     glow(lights, x + w / 2, y + h / 2, (w * 2) / 256, (h * 2) / 256, palette.amber, 0.45)
   }
 

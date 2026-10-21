@@ -15,6 +15,8 @@ const STOOP_TOP = GROUND - 52
 // A Brooklyn brownstone: red-brown brick, a heavy bracketed cornice, a water
 // tank on the roof, and a high stoop with iron rails up to the front door.
 export class House extends BaseHouse {
+  /** text and lanterns drawn while building the shell, kept in front of it */
+  private signs = new Container()
   private doorGlow: Sprite
 
   constructor(seed: number, lights: Container) {
@@ -27,7 +29,7 @@ export class House extends BaseHouse {
     this.drawCornice(shell)
     this.drawCourses(shell)
     this.drawBase(shell, lights)
-    this.addChild(shell)
+    this.addChild(shell, this.signs)
 
     this.addWindows(lights, nyWindow)
 
@@ -119,7 +121,7 @@ export class House extends BaseHouse {
     const number = new Text({ text: '214', style: { fontFamily: SIGN_FONT, fontSize: 13, fill: 0x2a140a }, resolution: 3 })
     number.anchor.set(0.5)
     number.position.set(d.x + d.width / 2, top + 11)
-    this.addChild(number)
+    this.signs.addChild(number)
     g.rect(d.x, top + 22, d.width, h - 22).fill(0x2a120a)
     for (const px of [d.x + 6, d.x + d.width / 2 + 4]) {
       g.rect(px, top + 30, d.width / 2 - 10, 34).fill({ color: palette.amber, alpha: 0.8 })
