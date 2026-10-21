@@ -33,7 +33,8 @@ const INK = { color: palette.ink, width: 1.5, alpha: 0.6 }
 // purpose -- they're the set, not the actors.
 export class Neighbors extends Container {
   private lanterns: Lantern[] = []
-  private smoke: Smoke
+  private smoke: Smoke[]
+  private chimneyTops: { x: number; y: number }[] = []
   private signGlow: Sprite
   private signText: Text
   private rng: Rng
@@ -51,11 +52,13 @@ export class Neighbors extends Container {
 
     // left neighbour
     const left: Block = { x: 560, width: HOUSE.x - 560, top: 300, tone: palette.neighbor, bay: 90, litChance: 0.5, base: GROUND - 200 }
+    const firstLeftChimney = this.chimneyTops.length
     lit.push(...this.block(g, rng, left))
     this.plainGround(g, left)
 
     // right neighbour, with the club downstairs
     const right: Block = { x: HOUSE.x + HOUSE.width, width: 290, top: 420, tone: 0x2f211b, bay: 96, litChance: 0.5, base: GROUND - 200 }
+    const firstRightChimney = this.chimneyTops.length
     lit.push(...this.block(g, rng, right))
     this.clubFront(g, lights, right.x + 26, GROUND - 190, right.width - 52)
 
@@ -107,8 +110,11 @@ export class Neighbors extends Container {
     lights.addChild(this.signGlow)
     this.addChild(board, this.signText)
 
-    this.smoke = new Smoke(seed + 1, { x: 640, y: 214 }, { tint: 0x8a7a72, strength: 0.16, rise: 150, count: 14 })
-    this.addChildAt(this.smoke, 0)
+    // steam off one little chimney either side of the house
+    this.smoke = [this.chimneyTops[firstLeftChimney], this.chimneyTops[firstRightChimney]]
+      .filter((c) => c !== undefined)
+      .map((c, i) => new Smoke(seed + 1 + i, c))
+    for (const s of this.smoke) this.addChildAt(s, 0)
   }
 
   /** a generic Haussmann block: mansard, stone, rows of tall windows, a balcony or two */
@@ -121,6 +127,7 @@ export class Neighbors extends Container {
     g.poly([x - 4, top, x + w + 4, top, x + w - 18, top - roofH, x + 18, top - roofH]).fill(palette.neighborRoof)
     for (let cx = x + 30; cx < x + w - 40; cx += range(rng, 90, 180)) {
       g.rect(cx, top - roofH - 34, 30, 40).fill(tone)
+      this.chimneyTops.push({ x: cx + 15, y: top - roofH - 52 })
       for (let p = 0; p < 3; p++) g.rect(cx + 2 + p * 9, top - roofH - 34 - range(rng, 8, 16), 7, 16).fill(palette.terracotta)
     }
     const cols = Math.max(1, Math.floor(w / bay))
@@ -388,7 +395,7 @@ export class Neighbors extends Container {
   }
 
   update(time: number, dt: number) {
-    this.smoke.update(time, dt)
+    for (const s of this.smoke) s.update(time, dt)
     for (const l of this.lanterns) l.glow.alpha = 0.66 + Math.sin(time * 1.7 + l.phase) * 0.04
 
     // neon that buzzes now and then

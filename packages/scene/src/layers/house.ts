@@ -7,7 +7,6 @@ import { dotTexture, glowTexture } from '../textures'
 import type { Rooms } from '../types'
 import { balconySlab, ironRail } from './ironwork'
 import { Marquee } from './marquee'
-import { Smoke } from './smoke'
 import { RoomWindow } from './window'
 
 const CORNICE_Y = HOUSE.y
@@ -19,7 +18,6 @@ export class House extends Container {
   readonly windows: RoomWindow[]
   readonly marquee: Marquee
   private doorGlow: Sprite
-  private smoke: Smoke[]
   private neon: { text: Text; glow: Sprite }
   private dormerGlows: Sprite[] = []
 
@@ -32,11 +30,6 @@ export class House extends Container {
     this.drawStone(shell, rng)
     this.drawCornice(shell)
     this.drawGroundFloor(shell, rng)
-    // steam off both chimney stacks, behind the roofline
-    this.smoke = [HOUSE.x + 66, HOUSE.x + HOUSE.width - 66].map(
-      (x, i) => new Smoke(seed + 20 + i, { x, y: ROOF_TOP - 84 }),
-    )
-    this.addChild(...this.smoke)
     this.addChild(shell)
     this.addChild(ivy(rng))
 
@@ -431,7 +424,6 @@ export class House extends Container {
   update(time: number, dt: number, reducedMotion: boolean) {
     for (const w of this.windows) w.update(time, dt, reducedMotion)
     this.marquee.update(time, dt, reducedMotion)
-    for (const s of this.smoke) s.update(time, reducedMotion ? dt * 0.3 : dt)
     // one tube is going, so every so often it stutters
     const stutter = !reducedMotion && time % 7 > 6.5 && Math.sin(time * 70) > 0.2
     this.neon.text.alpha = stutter ? 0.4 : 1

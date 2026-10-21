@@ -98,8 +98,8 @@ export interface Fit {
   y: number
 }
 
-/** what the camera frames: a bit of sky over the chimneys, down to the kerb */
-export const FOCUS: Rect = { x: HOUSE.x - 150, y: -30, width: HOUSE.width + 300, height: 1250 }
+/** what the camera frames: the house from the chimneys down to the kerb */
+export const FOCUS: Rect = { x: HOUSE.x - 150, y: 50, width: HOUSE.width + 300, height: 1170 }
 
 /**
  * Scale the world so the focus box fills the screen, centred. Anything around
