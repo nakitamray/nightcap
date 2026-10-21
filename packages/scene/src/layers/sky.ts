@@ -16,15 +16,30 @@ interface Cloud {
   speed: number
 }
 
-const MOON = { x: 430, y: 200, r: 105 }
+type Glow = readonly [x: number, sx: number, sy: number, alpha: number, tint: number]
+
+export interface SkyOptions {
+  moon?: { x: number; y: number; r: number }
+  /** the city's light low on the horizon */
+  glows?: readonly Glow[]
+  stars?: number
+}
+
+const PARIS_GLOWS: readonly Glow[] = [
+  [WORLD.width / 2, 14, 3.2, 0.5, 0xff4a1e],
+  [WORLD.width * 0.2, 6, 2.2, 0.45, 0xff8a2a],
+  [WORLD.width * 0.8, 6, 2.2, 0.45, 0xff8a2a],
+]
 
 export class Sky extends Container {
   private stars: Star[] = []
   private clouds: Cloud[] = []
+  private moon: { x: number; y: number; r: number }
 
-  constructor(seed: number) {
+  constructor(seed: number, options: SkyOptions = {}) {
     super()
     const rng = createRng(seed)
+    this.moon = options.moon ?? { x: 430, y: 200, r: 105 }
 
     // the gradient runs way above the world so tall/narrow screens still get sky
     const top = -1600
@@ -43,11 +58,7 @@ export class Sky extends Container {
     this.addChild(new Graphics().rect(-400, top, WORLD.width + 800, GROUND - top).fill(gradient))
 
     // the rest of the city glowing red-orange low behind the rooftops
-    for (const [x, sx, sy, a, tint] of [
-      [WORLD.width / 2, 14, 3.2, 0.5, 0xff4a1e],
-      [WORLD.width * 0.2, 6, 2.2, 0.45, 0xff8a2a],
-      [WORLD.width * 0.8, 6, 2.2, 0.45, 0xff8a2a],
-    ] as const) {
+    for (const [x, sx, sy, a, tint] of options.glows ?? PARIS_GLOWS) {
       const glow = new Sprite(glowTexture())
       glow.anchor.set(0.5)
       glow.position.set(x, GROUND - 120)
@@ -58,16 +69,16 @@ export class Sky extends Container {
       this.addChild(glow)
     }
 
-    this.addStars(rng, top)
+    this.addStars(rng, top, options.stars ?? 300)
     this.addMoon(rng)
     this.addClouds(rng)
   }
 
-  private addStars(rng: Rng, top: number) {
+  private addStars(rng: Rng, top: number, count: number) {
     // printed stars: hard round dots in a few sizes, the odd big one with a halo
     const tex = dotTexture()
     const halo = glowTexture()
-    for (let i = 0; i < 300; i++) {
+    for (let i = 0; i < count; i++) {
       const big = rng() > 0.94
       const s = new Sprite(tex)
       s.anchor.set(0.5)
@@ -92,6 +103,7 @@ export class Sky extends Container {
   }
 
   private addMoon(rng: Rng) {
+    const MOON = this.moon
     const halo = new Sprite(glowTexture())
     halo.anchor.set(0.5)
     halo.position.set(MOON.x, MOON.y)
