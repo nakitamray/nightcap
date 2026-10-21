@@ -1,0 +1,16 @@
+node_modules
+.next
+out
+dist
+coverage
+*.tsbuildinfo
+.env*
+!.env.example
+.DS_Store
+test-results
+playwright-report
+
+# only the web font gets committed, never the desktop files
+*.ttf
+*.otf
+next-env.d.ts
