@@ -2,7 +2,7 @@ import { Container, Graphics, Sprite, Text } from 'pixi.js'
 import { DISPLAY_FONT } from '../fonts'
 import { GROUND, HOUSE } from '../layout'
 import { palette } from '../palette'
-import { chance, createRng, range, type Rng } from '../rng'
+import { chance, createRng, pick, range, type Rng } from '../rng'
 import { dotTexture, glowTexture, puffTexture } from '../textures'
 import { ironRail } from './ironwork'
 
@@ -53,7 +53,7 @@ export class Neighbors extends Container {
     const lit: LitRect[] = []
 
     // far left: the café building
-    const cafe: Block = { x: -500, width: 1060, top: 470, tone: 0x5a5244, bay: 96, litChance: 0.5, base: GROUND - 170 }
+    const cafe: Block = { x: -500, width: 1060, top: 470, tone: 0x34251e, bay: 96, litChance: 0.5, base: GROUND - 170 }
     lit.push(...this.block(g, rng, cafe))
 
     // left neighbour
@@ -62,7 +62,7 @@ export class Neighbors extends Container {
     this.plainGround(g, left)
 
     // right neighbour, with the club downstairs
-    const right: Block = { x: HOUSE.x + HOUSE.width, width: 290, top: 420, tone: 0x534b3f, bay: 96, litChance: 0.5, base: GROUND - 200 }
+    const right: Block = { x: HOUSE.x + HOUSE.width, width: 290, top: 420, tone: 0x2f211b, bay: 96, litChance: 0.5, base: GROUND - 200 }
     lit.push(...this.block(g, rng, right))
     this.clubFront(g, lights, right.x + 26, GROUND - 190, right.width - 52)
 
@@ -142,7 +142,7 @@ export class Neighbors extends Container {
     // body
     g.rect(x, top, w, GROUND - top).fill(tone)
     for (let jy = top + 22; jy < b.base; jy += 22) g.rect(x, jy, w, 1.2).fill({ color: palette.ink, alpha: 0.18 })
-    g.rect(x - 10, top - 4, w + 20, 14).fill(0x6c6252).stroke(INK)
+    g.rect(x - 10, top - 4, w + 20, 14).fill(0x45302a).stroke(INK)
 
     // floors of tall windows
     const floors = Math.floor((b.base - top - 30) / FLOOR)
@@ -152,14 +152,14 @@ export class Neighbors extends Container {
       const wh = FLOOR * 0.66
       for (let c = 0; c < cols; c++) {
         const wx = off + c * bay + (bay - ww) / 2
-        g.rect(wx - 6, wy - 6, ww + 12, wh + 10).fill(0x6c6252).stroke(INK)
+        g.rect(wx - 6, wy - 6, ww + 12, wh + 10).fill(0x45302a).stroke(INK)
         if (chance(rng, b.litChance)) {
-          g.rect(wx, wy, ww, wh).fill({ color: 0xf07a32, alpha: range(rng, 0.7, 0.95) })
+          g.rect(wx, wy, ww, wh).fill({ color: pick(rng, [0xf07a32, 0xffa040, 0xe0461f, 0xc0301a]), alpha: range(rng, 0.8, 1) })
           // half-drawn sheers
           g.rect(wx, wy, ww * 0.3, wh).rect(wx + ww * 0.7, wy, ww * 0.3, wh).fill({ color: 0xffd0a0, alpha: 0.25 })
           lit.push({ x: wx, y: wy, w: ww, h: wh })
         } else {
-          g.rect(wx, wy, ww, wh).fill(0x0c0f1a)
+          g.rect(wx, wy, ww, wh).fill(0x0c0806)
         }
         g.rect(wx + ww / 2 - 1, wy, 2, wh).rect(wx, wy + wh * 0.22, ww, 2).fill(palette.ink)
         if (f !== 0 && f !== 2) ironRail(wx - 6, wy + wh - 26, ww + 12, 26, g)
@@ -167,10 +167,10 @@ export class Neighbors extends Container {
       // full-width balconies on the 2nd and top floors, like ours
       if (f === 0 || f === 2) {
         const by = wy + wh + 4
-        g.rect(x - 6, by, w + 12, 7).fill(0x6c6252)
+        g.rect(x - 6, by, w + 12, 7).fill(0x45302a)
         ironRail(x - 2, by - 30, w + 4, 30, g)
       }
-      g.rect(x, wy + FLOOR - 26, w, 4).fill({ color: 0x6c6252, alpha: 0.8 })
+      g.rect(x, wy + FLOOR - 26, w, 4).fill({ color: 0x45302a, alpha: 0.8 })
     }
     // ground floor band
     g.rect(x, b.base, w, GROUND - b.base).fill({ color: palette.ink, alpha: 0.35 })
@@ -185,7 +185,7 @@ export class Neighbors extends Container {
       const x = b.x + 20 + i * (b.width / n)
       const w = b.width / n - 40
       if (x + w < -100) continue
-      g.rect(x, b.base + 40, w, GROUND - b.base - 40).fill(0x1a1c26)
+      g.rect(x, b.base + 40, w, GROUND - b.base - 40).fill(0x160e0c)
       for (let y = b.base + 46; y < GROUND; y += 6) g.rect(x, y, w, 1.5).fill({ color: palette.ink, alpha: 0.6 })
     }
   }

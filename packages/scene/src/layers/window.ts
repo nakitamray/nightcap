@@ -33,6 +33,7 @@ export class RoomWindow extends Container {
   resident: Resident | null = null
 
   private frame = new Graphics()
+  private wall = new Graphics()
   private interior = new Container()
   private props = new Graphics()
   private catTail: Graphics | null = null
@@ -65,21 +66,9 @@ export class RoomWindow extends Container {
     this.glassPath(glass).fill(0x120c0e)
     this.addChild(glass)
 
-    // everything you can see through the glass
-    const warm = new FillGradient({
-      type: 'linear',
-      start: { x: 0, y: 0 },
-      end: { x: 0, y: 1 },
-      colorStops: [
-        { offset: 0, color: 0xd8582a },
-        { offset: 0.5, color: 0xf5823a },
-        { offset: 1, color: 0xffad5c },
-      ],
-      textureSpace: 'local',
-    })
-    const wall = new Graphics()
-    this.glassPath(wall).fill(warm)
-    this.interior.addChild(wall)
+    // everything you can see through the glass. the wall colour is picked
+    // per resident in setResident()
+    this.interior.addChild(this.wall)
     this.hotspot.anchor.set(0.5)
     this.hotspot.tint = palette.lampWhite
     this.hotspot.blendMode = 'add'
@@ -181,6 +170,7 @@ export class RoomWindow extends Container {
 
   setResident(resident: Resident | null, rng?: Rng) {
     this.resident = resident
+    if (resident) this.setLightColour(pickLight(resident.id))
     this.props.clear()
     this.catTail?.destroy()
     this.catTail = null
@@ -279,6 +269,20 @@ export class RoomWindow extends Container {
     if (!props.includes('lamp')) this.hotspot.position.set(range(rng, w * 0.3, w * 0.7), h * 0.22)
   }
 
+  private setLightColour(light: RoomLight) {
+    const gradient = new FillGradient({
+      type: 'linear',
+      start: { x: 0, y: 0 },
+      end: { x: 0, y: 1 },
+      colorStops: light.stops.map((color, i) => ({ offset: i / (light.stops.length - 1), color })),
+      textureSpace: 'local',
+    })
+    this.wall.clear()
+    this.glassPath(this.wall).fill(gradient)
+    this.halo.tint = light.halo
+    this.spill.tint = light.halo
+  }
+
   setLit(on: boolean, animate = true) {
     if (on === this.lit && this.flickerT < 0) return
     this.lit = on
@@ -333,6 +337,29 @@ export class RoomWindow extends Container {
 
     this.frame.tint = this.hovered ? 0xffe0b8 : 0xffffff
   }
+}
+
+interface RoomLight {
+  stops: number[]
+  halo: number
+}
+
+// Not every lamp is the same colour. Some rooms are a soft amber, some are
+// lit through a red shade or a paper lantern and come out ember or deep red.
+const LIGHTS: { weight: number; light: RoomLight }[] = [
+  { weight: 4, light: { stops: [0xd8582a, 0xf5823a, 0xffad5c], halo: palette.amber } },
+  { weight: 3, light: { stops: [0xa8261a, 0xe0461f, 0xff7a3a], halo: 0xff5a24 } },
+  { weight: 2, light: { stops: [0x6e100c, 0xb0201a, 0xe8442a], halo: 0xff3a1e } },
+]
+
+function pickLight(id: string): RoomLight {
+  const total = LIGHTS.reduce((n, l) => n + l.weight, 0)
+  let r = createRng(hashString(`${id}:light`))() * total
+  for (const l of LIGHTS) {
+    r -= l.weight
+    if (r < 0) return l.light
+  }
+  return LIGHTS[0]!.light
 }
 
 function sampleFlicker(t: number) {

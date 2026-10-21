@@ -10,19 +10,19 @@ export const palette = {
   farCity: 0x0a1028,
   nearCity: 0x101833,
 
-  // Haussmann limestone, as it looks under street lamps
-  stone: 0x9a8669,
-  stoneLight: 0xb8a382,
-  stoneDark: 0x5c4f3f,
-  stoneJoint: 0x6e604c,
-  zinc: 0x2c3449,
-  zincDark: 0x1d2335,
+  // Haussmann limestone at night -- kept dark and warm so the windows burn
+  stone: 0x553a2e,
+  stoneLight: 0x6f4d3d,
+  stoneDark: 0x33211a,
+  stoneJoint: 0x412b22,
+  zinc: 0x1e2130,
+  zincDark: 0x141622,
   terracotta: 0x8a4a30,
   iron: 0x07080d,
 
-  neighbor: 0x4a4436,
-  neighborDark: 0x2c2a2b,
-  neighborRoof: 0x1f2538,
+  neighbor: 0x2e201a,
+  neighborDark: 0x1b1210,
+  neighborRoof: 0x151824,
 
   amber: 0xffb04a,
   amberDeep: 0xe07a26,
