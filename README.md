@@ -31,7 +31,7 @@ pnpm build
 The street at `/` is a demo with made-up friends and works with no setup.
 Real houses need a Supabase project:
 
-1. run `supabase/migrations/*.sql` in the Supabase SQL editor
+1. run each file in `supabase/migrations/`, oldest first, in the Supabase SQL editor
 2. Authentication -> URL Configuration: add `http://localhost:3000/auth/callback`
    (and your deployed url later) to the redirect urls
 3. copy `apps/web/.env.example` to `apps/web/.env.local` and fill in the

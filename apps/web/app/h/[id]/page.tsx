@@ -1,4 +1,8 @@
+import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { WindowCardFrame } from '@/components/WindowCardFrame'
+import { WindowWallBackground } from '@/components/WindowWallBackground'
+import styles from '@/components/NightCard.module.css'
 import { HouseView } from '@/components/HouseView'
 import type { Member } from '@/lib/house'
 import { currentUserId, supabaseServer } from '@/lib/supabase/server'
@@ -13,7 +17,13 @@ export default async function HousePage({ params }: { params: Promise<{ id: stri
   const supabase = await supabaseServer()
 
   // row level security means this comes back empty unless you live here
-  const { data: house } = await supabase.from('houses').select('id, name, theme, marquee').eq('id', id).maybeSingle<HouseRow>()
+  const { data: house, error } = await supabase
+    .from('houses')
+    .select('id, name, theme, marquee')
+    .eq('id', id)
+    .maybeSingle<HouseRow>()
+  // a real error (permissions, a missing table) shouldn't pretend to be a 404
+  if (error) return <HouseError message={error.message} />
   if (!house || !userId) notFound()
 
   const { data: rooms } = await supabase.from('memberships').select('user_id, room, curtains').eq('house_id', id)
@@ -44,5 +54,23 @@ export default async function HousePage({ params }: { params: Promise<{ id: stri
       marquee={marquee}
       theme={isTheme(house.theme) ? house.theme : 'paris'}
     />
+  )
+}
+
+function HouseError({ message }: { message: string }) {
+  return (
+    <main className={styles.page}>
+      <WindowWallBackground />
+      <WindowCardFrame>
+        <h1 className={styles.title}>HM.</h1>
+        <p className={styles.lede}>the house wouldn&apos;t open</p>
+        <p className={styles.note}>{message}</p>
+        <p className={styles.note}>
+          <Link className={styles.link} href="/home">
+            try again
+          </Link>
+        </p>
+      </WindowCardFrame>
+    </main>
   )
 }
