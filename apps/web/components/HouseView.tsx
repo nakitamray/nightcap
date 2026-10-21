@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Member } from '@/lib/house'
+import type { Theme } from '@/lib/themes'
 import { supabaseBrowser } from '@/lib/supabase/browser'
 import { InviteButton } from './InviteButton'
 import styles from './HouseView.module.css'
@@ -16,9 +17,10 @@ interface Props {
   userId: string
   initialRooms: (Member | null)[]
   marquee: string[]
+  theme: Theme
 }
 
-export function HouseView({ houseId, houseName, userId, initialRooms, marquee }: Props) {
+export function HouseView({ houseId, houseName, userId, initialRooms, marquee, theme }: Props) {
   const router = useRouter()
   const supabase = useMemo(() => supabaseBrowser(), [])
   const hostRef = useRef<HTMLDivElement>(null)
@@ -48,7 +50,7 @@ export function HouseView({ houseId, houseName, userId, initialRooms, marquee }:
     [members, myRoom, supabase, houseId, userId],
   )
 
-  const { hover, ready } = useStreetScene(hostRef, rooms, marquee, toggleCurtains)
+  const { hover, ready } = useStreetScene(hostRef, rooms, marquee, theme, toggleCurtains)
 
   // presence: everyone with the house open is "home"
   useEffect(() => {

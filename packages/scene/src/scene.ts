@@ -3,18 +3,13 @@ import { Application, Container, type PointData } from 'pixi.js'
 import { Emitter } from './emitter'
 import { PaperFilter } from './filters/PaperFilter'
 import { loadDisplayFont } from './fonts'
-import { CURB, fitWorld } from './layout'
-import { House } from './layers/house'
-import { Neighbors } from './layers/neighbors'
-import { ParkedCars } from './layers/cars'
-import { People } from './layers/people'
+import { fitWorld } from './layout'
+import type { BaseHouse } from './layers/house-base'
 import { Rain } from './layers/rain'
 import { Reflection } from './layers/reflection'
-import { Sky } from './layers/sky'
-import { Skyline } from './layers/skyline'
-import { couple, Lampposts, morrisColumn, Pavement, PlaneTree } from './layers/street'
 import type { RoomWindow } from './layers/window'
 import { palette } from './palette'
+import { themes, type BuiltTheme } from './themes'
 import type { Rooms, SceneEvents, SceneOptions, WindowEvent } from './types'
 
 const DEFAULT_SEED = 1931
@@ -25,13 +20,8 @@ export class StreetScene {
   private world = new Container()
   private upper = new Container()
   private lights = new Container()
-  private sky!: Sky
-  private skyline!: Skyline
-  private neighbors!: Neighbors
-  private house!: House
-  private lamps!: Lampposts
-  private trees: PlaneTree[] = []
-  private people!: People
+  private street!: BuiltTheme
+  private house!: BaseHouse
   private rain!: Rain
   private reflection!: Reflection
   private paper = new PaperFilter()
@@ -74,45 +64,36 @@ export class StreetScene {
     const seed = options.seed ?? DEFAULT_SEED
     const reduced = options.reducedMotion ?? false
 
-    this.sky = new Sky(seed)
-    this.skyline = new Skyline(seed + 1)
-    this.neighbors = new Neighbors(seed + 2, this.lights)
-    this.house = new House(seed + 3, this.lights)
-    this.lamps = new Lampposts(this.lights)
-    this.trees = [new PlaneTree(seed + 6, 220, 0.92), new PlaneTree(seed + 9, 2240, 0.96)]
-    this.upper.addChild(
-      this.sky,
-      this.skyline,
-      this.neighbors,
-      this.house,
-      morrisColumn(seed + 7),
-      this.lamps,
-      this.lights,
-      ...this.trees,
-    )
+    const street = (this.street = themes[options.theme ?? 'paris'].build({
+      seed,
+      lights: this.lights,
+      reducedMotion: reduced,
+    }))
+    this.house = street.house
+    this.upper.addChild(...street.backdrop, street.house, ...street.props, this.lights, ...street.front)
 
-    this.bloom = new AdvancedBloomFilter({ threshold: 0.42, bloomScale: 0.8, brightness: 1, blur: 5, quality: 4 })
+    this.bloom = new AdvancedBloomFilter({
+      threshold: street.bloomThreshold ?? 0.42,
+      bloomScale: 0.8,
+      brightness: 1,
+      blur: 5,
+      quality: 4,
+    })
     this.lights.filters = [this.bloom]
 
-    this.reflection = new Reflection(this.upper)
-    this.rain = new Rain(seed + 4, reduced ? 50 : 160)
+    this.reflection = new Reflection(this.upper, 0.4, street.reflection)
+    const drops = street.rain ?? 160
+    this.rain = new Rain(seed + 4, reduced ? Math.round(drops / 3) : drops)
 
-    // people and cars are on the pavement and road, below the line the
-    // reflection mirrors around, so they live outside `upper`
-    this.people = new People(seed + 10)
-    const lovers = couple()
-    lovers.position.set(1700, CURB - 12)
-    lovers.scale.set(0.5)
-    this.people.addStanding(lovers)
-    const cars = new ParkedCars({ x: 700, y: CURB + 98 }, { x: 1850, y: CURB + 98 })
-
+    // people, cars and boats are on the pavement, road or water, below the
+    // line the reflection mirrors around, so they live outside `upper`
     this.world.addChild(
       this.upper,
-      new Pavement(seed + 5),
+      street.ground,
       this.reflection,
-      this.lamps.pools,
-      this.people,
-      cars,
+      street.pools,
+      street.people,
+      ...street.foreground,
       this.rain,
     )
     app.stage.addChild(this.world)
@@ -184,13 +165,9 @@ export class StreetScene {
     const t = this.time
     const reduced = this.options.reducedMotion ?? false
 
-    this.sky.update(t, dt)
-    this.skyline.update(t, reduced ? 0 : this.pointerX)
-    this.neighbors.update(t, dt)
+    this.street.update(t, dt, this.pointerX, reduced)
     this.house.update(t, dt, reduced)
-    this.lamps.update(t)
-    if (!reduced) for (const tree of this.trees) tree.update(t)
-    this.people.update(dt, reduced)
+    this.street.people.update(dt, reduced)
     this.rain.update(reduced ? dt * 0.4 : dt)
     this.paper.time = t
     this.reflection.update(this.app.renderer, t)

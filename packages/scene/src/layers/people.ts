@@ -3,16 +3,16 @@ import { CURB, GROUND, WORLD } from '../layout'
 import { palette } from '../palette'
 import { createRng, range, type Rng } from '../rng'
 
-// Passers-by, Paris in the seventies: trench coats, flares, berets, a mini
-// dress and knee boots, a poodle. Drawn as flat cut-out shapes like the rest
-// of the street, feet at the origin, roughly 300 units tall before scaling.
+// Passers-by. Drawn as flat cut-out shapes like the rest of the street, feet
+// at the origin, roughly 300 units tall before scaling. Each street brings its
+// own wardrobe; the walk is the same everywhere.
 
 const INK = palette.ink
 const SKIN = 0x2a1812
 
-type Hat = 'none' | 'beret' | 'fedora' | 'wide' | 'scarf'
+export type Hat = 'none' | 'beret' | 'fedora' | 'wide' | 'scarf' | 'cap' | 'afro' | 'bucket' | 'bun'
 
-interface Outfit {
+export interface Outfit {
   coat: number
   coatHem: number
   /** coat flares out at the hem */
@@ -23,26 +23,15 @@ interface Outfit {
   hat: Hat
   hatColour: number
   longHair: boolean
+  /** a dress rather than a jacket over trousers */
+  dress?: boolean
   scarf?: number
+  /** a sash round the middle (an obi, a belt) */
+  belt?: number
   umbrella?: number
-  baguette?: boolean
+  carry?: 'baguette' | 'briefcase' | 'bag'
   poodle?: boolean
 }
-
-const OUTFITS: Outfit[] = [
-  // camel trench, belted, big floppy hat
-  { coat: 0x9a6a32, coatHem: -70, flare: 14, legs: 0x1a120e, bellBottoms: false, boots: 0x140c08, hat: 'wide', hatColour: 0x3a140c, longHair: true },
-  // leather jacket, turtleneck, tan flares, a baguette under the arm
-  { coat: 0x4a1e10, coatHem: -132, flare: 2, legs: 0x8a5a2a, bellBottoms: true, boots: null, hat: 'none', hatColour: 0, longHair: false, baguette: true },
-  // mustard mini dress, knee boots, red umbrella
-  { coat: 0xc08a1c, coatHem: -118, flare: 10, legs: 0x2a160e, bellBottoms: false, boots: 0x0e0806, hat: 'none', hatColour: 0, longHair: true, umbrella: 0xc0301e },
-  // long dark coat, beret, red scarf, flares
-  { coat: 0x24202a, coatHem: -80, flare: 6, legs: 0x3a2a22, bellBottoms: true, boots: null, hat: 'beret', hatColour: 0x0e0a0a, longHair: false, scarf: 0xb02418 },
-  // red maxi coat with a fur collar, headscarf, and the dog
-  { coat: 0x8a1a14, coatHem: -40, flare: 16, legs: 0x140c0a, bellBottoms: false, boots: 0x140c0a, hat: 'scarf', hatColour: 0xd8a040, longHair: false, poodle: true },
-  // fedora, wide lapels, flares
-  { coat: 0x5a3a1e, coatHem: -110, flare: 4, legs: 0x2e2018, bellBottoms: true, boots: null, hat: 'fedora', hatColour: 0x1a100c, longHair: false },
-]
 
 class Walker extends Container {
   private legL = new Graphics()
@@ -77,13 +66,14 @@ class Walker extends Container {
     const shoulder = -232
     const coat = new Graphics().poly([-17, shoulder, 17, shoulder, 18 + o.flare, o.coatHem, -18 - o.flare, o.coatHem]).fill(o.coat)
     coat.rect(-1, shoulder + 6, 2, o.coatHem - shoulder - 6).fill({ color: INK, alpha: 0.25 })
-    if (o.coatHem < -100 && o.coat !== 0xc08a1c) {
+    if (o.coatHem < -100 && !o.dress) {
       // jacket: show a belt line and the turtleneck
       coat.rect(-17, -150, 34, 3).fill({ color: INK, alpha: 0.35 })
       coat.rect(-6, shoulder - 6, 12, 8).fill(0x1a120e)
     }
     if (o.coatHem > -90) coat.rect(-19, -160, 38, 4).fill({ color: INK, alpha: 0.4 })
     if (o.poodle) coat.ellipse(0, shoulder + 2, 20, 8).fill(0xe8d8c0)
+    if (o.belt) coat.rect(-19, -176, 38, 14).fill(o.belt)
     if (o.scarf) {
       coat.rect(-14, shoulder - 2, 28, 9).fill(o.scarf)
       coat.rect(4, shoulder + 4, 8, 40).fill(o.scarf)
@@ -110,6 +100,25 @@ class Walker extends Container {
         head.ellipse(2, hy - 11, 17, 7).fill(o.hatColour)
         head.rect(1, hy - 21, 2, 4).fill(o.hatColour)
         break
+      case 'cap':
+        head.ellipse(0, hy - 9, 15, 8).fill(o.hatColour)
+        head.ellipse(9, hy - 6, 12, 3).fill(o.hatColour)
+        break
+      case 'afro':
+        head.circle(0, hy - 6, 22).fill(0x140a06)
+        head.circle(0, hy + 2, 13).fill(SKIN)
+        break
+      case 'bucket':
+        head.poly([-12, hy - 6, 12, hy - 6, 9, hy - 22, -9, hy - 22]).fill(o.hatColour)
+        head.ellipse(0, hy - 6, 19, 4).fill(o.hatColour)
+        // round glasses
+        head.circle(-5, hy + 1, 4).circle(6, hy + 1, 4).stroke({ color: INK, width: 1.5 })
+        break
+      case 'bun':
+        head.ellipse(0, hy - 7, 15, 9).fill(0x0e0806)
+        head.circle(0, hy - 20, 9).fill(0x0e0806)
+        head.rect(-12, hy - 22, 24, 2).fill(o.hatColour)
+        break
       case 'scarf':
         head.poly([-15, hy - 4, 0, hy - 18, 15, hy - 4, 12, hy + 12, -12, hy + 12]).fill(o.hatColour)
         // big sunglasses, at night, obviously
@@ -127,13 +136,20 @@ class Walker extends Container {
       arm.position.set(0, shoulder + 8)
     }
     this.armR.tint = 0xb0a0a0
-    if (o.baguette) {
+    if (o.carry === 'baguette') {
       // tucked under the front arm, sticking out both sides
       const b = new Graphics().roundRect(-34, 0, 74, 9, 4).fill(0xc88a3a)
       b.rect(-20, 2, 6, 1.5).rect(-4, 2, 6, 1.5).rect(12, 2, 6, 1.5).fill(0x7a4a1a)
       b.position.set(0, shoulder + 34)
       b.rotation = -0.25
       this.body.addChild(b)
+    } else if (o.carry === 'briefcase' || o.carry === 'bag') {
+      // swings with the hand
+      const b =
+        o.carry === 'briefcase'
+          ? new Graphics().rect(-14, 92, 28, 20).fill(0x2a160c).rect(-5, 88, 10, 4).fill(INK)
+          : new Graphics().roundRect(-12, 90, 24, 26, 4).fill(0xb03a1e).rect(-1, 78, 2, 14).fill(INK)
+      this.armR.addChild(b)
     }
     if (o.umbrella) {
       const u = new Graphics()
@@ -220,13 +236,13 @@ function poodle() {
 export class People extends Container {
   private walkers: Walker[] = []
 
-  constructor(seed: number) {
+  constructor(seed: number, outfits: Outfit[]) {
     super()
     const rng = createRng(seed)
     this.sortableChildren = true
-    OUTFITS.forEach((o, i) => {
+    outfits.forEach((o, i) => {
       const w = new Walker(o, rng)
-      w.x = (i / OUTFITS.length) * (WORLD.width + 800) - 400 + range(rng, -80, 80)
+      w.x = (i / outfits.length) * (WORLD.width + 800) - 400 + range(rng, -80, 80)
       w.y = range(rng, GROUND + 26, CURB - 6)
       w.scale.set(range(rng, 0.46, 0.52))
       w.zIndex = w.y

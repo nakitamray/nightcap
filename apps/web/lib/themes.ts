@@ -1,3 +1,5 @@
+// same list as packages/scene/src/themes/types.ts and the check constraint on
+// houses.theme. kept separate so server pages don't import the whole renderer.
 export const THEMES = ['paris', 'new-york', 'venice', 'tokyo'] as const
 export type Theme = (typeof THEMES)[number]
 

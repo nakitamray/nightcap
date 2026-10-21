@@ -12,7 +12,7 @@ const MARGIN = 400
 export class Reflection extends Container {
   private rt: RenderTexture
   private sprite: Sprite
-  private filter = new WetFilter()
+  private filter: WetFilter
   private matrix = new Matrix()
   private frame = 0
   every = 2
@@ -20,8 +20,10 @@ export class Reflection extends Container {
   constructor(
     private source: Container,
     resolution = 0.4,
+    strength?: number,
   ) {
     super()
+    this.filter = new WetFilter(strength)
     this.rt = RenderTexture.create({
       width: WORLD.width + MARGIN * 2,
       height: REFLECT_DEPTH,

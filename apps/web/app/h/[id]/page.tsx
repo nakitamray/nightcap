@@ -3,6 +3,7 @@ import { HouseView } from '@/components/HouseView'
 import type { Member } from '@/lib/house'
 import { currentUserId, supabaseServer } from '@/lib/supabase/server'
 import type { HouseRow } from '@/lib/supabase/types'
+import { isTheme } from '@/lib/themes'
 
 export const metadata = { title: 'Nightcap' }
 
@@ -34,5 +35,14 @@ export default async function HousePage({ params }: { params: Promise<{ id: stri
   }
 
   const marquee = house.marquee.length ? house.marquee : [house.name.toUpperCase()]
-  return <HouseView houseId={house.id} houseName={house.name} userId={userId} initialRooms={members} marquee={marquee} />
+  return (
+    <HouseView
+      houseId={house.id}
+      houseName={house.name}
+      userId={userId}
+      initialRooms={members}
+      marquee={marquee}
+      theme={isTheme(house.theme) ? house.theme : 'paris'}
+    />
+  )
 }

@@ -57,3 +57,44 @@
 .hint[data-hidden='true'] {
   opacity: 0;
 }
+
+.themes {
+  position: absolute;
+  right: 28px;
+  bottom: 24px;
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 1s ease 1.2s;
+}
+
+.themes[data-ready='true'] {
+  opacity: 1;
+}
+
+.themes button {
+  padding: 2px 6px;
+  border: 0;
+  background: none;
+  font-size: 13px;
+  font-style: italic;
+  color: var(--muted);
+  cursor: pointer;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.8);
+}
+
+.themes button + button::before {
+  content: '·';
+  margin-right: 10px;
+  color: var(--muted);
+  font-style: normal;
+}
+
+.themes button:hover {
+  color: var(--paper);
+}
+
+.themes button[aria-pressed='true'] {
+  color: var(--amber);
+  font-style: normal;
+}

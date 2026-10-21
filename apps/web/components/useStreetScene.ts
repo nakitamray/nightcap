@@ -1,6 +1,6 @@
 'use client'
 
-import type { Rooms, StreetScene, WindowEvent } from '@nightcap/scene'
+import type { Rooms, StreetScene, ThemeId, WindowEvent } from '@nightcap/scene'
 import { useEffect, useRef, useState, type RefObject } from 'react'
 
 /**
@@ -12,11 +12,12 @@ export function useStreetScene(
   host: RefObject<HTMLDivElement | null>,
   rooms: Rooms,
   marquee: string[],
+  theme: ThemeId,
   onWindowClick: (index: number) => void,
 ) {
   const sceneRef = useRef<StreetScene | null>(null)
   const clickRef = useRef(onWindowClick)
-  const initial = useRef({ rooms, marquee })
+  const initial = useRef({ rooms, marquee, theme })
   const [hover, setHover] = useState<WindowEvent | null>(null)
   const [ready, setReady] = useState(false)
 

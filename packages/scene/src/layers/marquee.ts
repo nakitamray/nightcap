@@ -13,6 +13,15 @@ interface Bulb {
 const BULB_GAP = 17
 const ROTATE_EVERY = 6
 
+/** colours of the sign; the default is the red-and-brass Paris one */
+export interface MarqueeLook {
+  board?: number
+  face?: number
+  trim?: number
+  /** the little sunburst fan on top */
+  fan?: boolean
+}
+
 // The lit sign over the front door. First line is the house name, the rest
 // are the group calendar and take turns on the second line.
 export class Marquee extends Container {
@@ -23,9 +32,12 @@ export class Marquee extends Container {
   private lineIndex = 0
   private lineClock = 0
 
-  constructor(lights: Container) {
+  constructor(lights: Container, look: MarqueeLook = {}) {
     super()
     const { x, y, width: w, height: h } = MARQUEE
+    const boardColour = look.board ?? palette.red
+    const face = look.face ?? 0x6b1a10
+    const trim = look.trim ?? 0xb8742e
 
     // chains back to the wall
     const chains = new Graphics()
@@ -37,19 +49,21 @@ export class Marquee extends Container {
     const board = new Graphics()
     // underside of the canopy, then the face
     board.poly([x - 14, y + h, x + w + 14, y + h, x + w - 6, y + h + 8, x + 6, y + h + 8]).fill(0x2a0d08)
-    board.roundRect(x - 14, y - 8, w + 28, h + 16, 6).fill(palette.red)
-    board.roundRect(x - 6, y, w + 12, h, 4).fill(0x6b1a10)
+    board.roundRect(x - 14, y - 8, w + 28, h + 16, 6).fill(boardColour)
+    board.roundRect(x - 6, y, w + 12, h, 4).fill(face)
     board.roundRect(x + 12, y + 12, w - 24, h - 24, 3).fill(0x140a08)
-    board.roundRect(x + 12, y + 12, w - 24, h - 24, 3).stroke({ color: 0xb8742e, width: 2 })
-    // little deco fan on top
+    board.roundRect(x + 12, y + 12, w - 24, h - 24, 3).stroke({ color: trim, width: 2 })
     const cx = x + w / 2
-    board.moveTo(cx - 46, y - 8).arc(cx, y - 8, 46, Math.PI, 0).fill(palette.red)
-    for (let i = 1; i < 8; i++) {
-      const a = Math.PI + (i / 8) * Math.PI
-      board
-        .moveTo(cx, y - 8)
-        .lineTo(cx + Math.cos(a) * 42, y - 8 + Math.sin(a) * 42)
-        .stroke({ color: 0xb8742e, width: 2 })
+    if (look.fan ?? true) {
+      // little deco fan on top
+      board.moveTo(cx - 46, y - 8).arc(cx, y - 8, 46, Math.PI, 0).fill(boardColour)
+      for (let i = 1; i < 8; i++) {
+        const a = Math.PI + (i / 8) * Math.PI
+        board
+          .moveTo(cx, y - 8)
+          .lineTo(cx + Math.cos(a) * 42, y - 8 + Math.sin(a) * 42)
+          .stroke({ color: trim, width: 2 })
+      }
     }
     this.addChild(board)
 
