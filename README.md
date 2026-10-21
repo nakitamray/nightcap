@@ -55,9 +55,18 @@ How it fits together:
   has the house open.
 - `/h/<id>/room` is your room. Click anything to change it: bed (colours,
   and which wall), paint, window shape and curtains, up to two pictures,
-  four lamps, a rug, the desk, a light strip round the ceiling. The record
+  six old lamps, a rug, the desk, a light strip round the ceiling. The rest
+  (shelves, plants, candles, the cat, a neon sign for the city) comes with
+  the room. The record
   on the wall connects Spotify and spins while you're listening; the map
   poster pins where you are (to the nearest town) next to everyone else.
+
+### dev mode
+
+`/dev` lets you try every city on your own, with no Supabase and no friends
+needed: the demo street with two empty rooms, claim one, go inside, change
+everything. It saves to your browser only. It's on whenever you run
+`pnpm dev`; set `NEXT_PUBLIC_DEV_MODE=1` to keep it on a deployed build.
 
 Privacy is enforced in the database with row level security, not in the
 ui: you can only read a house, its rooms and its people if you live there.
@@ -77,8 +86,8 @@ the app is in development mode, add each friend's Spotify email under
 ## layout
 
 ```
-apps/web          next.js app -- pages, overlay ui, the room (svg), fonts
-packages/scene    the street itself, pixi.js + a couple of custom shaders
+apps/web          next.js app -- pages, overlay ui, fonts
+packages/scene    the street and the rooms, pixi.js + a couple of custom shaders
 ```
 
 The scene is framework-free. `StreetScene.create(el, { rooms, marquee })`
@@ -87,10 +96,13 @@ mounts it, `setRooms()` updates it, and it emits `window:hover` /
 
 Everything is seeded, so the street looks the same every time you load it.
 
-The room is plain svg in React rather than pixi, since it's mostly flat
-shapes that need to be clickable. `lib/perspective.ts` is a tiny one-point
-projection (room coordinates in, screen points out) and the furniture is
-boxes run through it. The layout is saved as json on your membership and
+The room (`packages/scene/src/room`) is drawn the same way as the street:
+flat colour, ink lines, glows with bloom, the paper pass over the top. It's
+one-point perspective (`projection.ts`: room coordinates in, screen points
+out) with the furniture as boxes run through it and the small things drawn
+flat. The street itself (`StreetWorld`) runs live behind the window glass, so
+people walk past while you're in your room. Night is a multiply layer cut
+away wherever a lamp, candle or the window throws light. The layout is saved as json on your membership and
 always read back through `readLayout`, which fills gaps and fixes anything
 impossible (the desk can't share a wall with the bed).
 

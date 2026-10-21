@@ -1,10 +1,18 @@
 'use client'
 
 import { useState, type ReactNode } from 'react'
-import { supabaseBrowser } from '@/lib/supabase/browser'
-import { ART_COUNT, deskCanGoRight, MAX_FRAMES, SWATCHES, type Layout } from '@/lib/room'
-import { ART_NAMES } from './art'
-import type { Thing } from './RoomScene'
+import type { Thing } from '@nightcap/scene'
+import {
+  ART_COUNT,
+  ART_NAMES,
+  deskCanGoRight,
+  LAMP_NAMES,
+  LAMP_STYLES,
+  MAX_FRAMES,
+  SWATCHES,
+  type Layout,
+} from '@/lib/room'
+import type { Found, RoomStore } from '@/lib/roomStore'
 import type { Track } from './RoomView'
 import styles from './Room.module.css'
 
@@ -19,10 +27,11 @@ interface Props {
   layout: Layout
   onChange: (layout: Layout) => void
   onClose: () => void
-  spotify: 'off' | 'unlinked' | 'linked'
+  spotify: 'off' | 'unlinked' | 'linked' | 'dev'
   track: Track | null
+  onFakePlay?: () => void
   houseId: string
-  userId: string
+  store: RoomStore
   place: Place
   onPlace: (place: Place) => void
 }
@@ -55,7 +64,18 @@ export function Panel(props: Props) {
   )
 }
 
-function Body({ thing, layout, onChange, spotify, track, houseId, userId, place, onPlace }: Props) {
+function Body({
+  thing,
+  layout,
+  onChange,
+  spotify,
+  track,
+  onFakePlay,
+  houseId,
+  store,
+  place,
+  onPlace,
+}: Props) {
   const set = <K extends keyof Layout>(key: K, value: Layout[K]) =>
     onChange({ ...layout, [key]: value })
 
@@ -63,6 +83,16 @@ function Body({ thing, layout, onChange, spotify, track, houseId, userId, place,
     case 'bed':
       return (
         <>
+          <Row label="frame">
+            <Choice
+              value={layout.bed.style}
+              options={[
+                ['iron', 'iron'],
+                ['wood', 'wooden'],
+              ]}
+              onPick={(style) => set('bed', { ...layout.bed, style })}
+            />
+          </Row>
           <Row label="where it goes">
             <Choice
               value={layout.bed.spot}
@@ -231,12 +261,7 @@ function Body({ thing, layout, onChange, spotify, track, houseId, userId, place,
         <Row label="style">
           <Choice
             value={layout.lamp}
-            options={[
-              ['desk', 'desk lamp'],
-              ['arc', 'floor lamp'],
-              ['lantern', 'paper lantern'],
-              ['mushroom', 'mushroom'],
-            ]}
+            options={LAMP_STYLES.map((l) => [l, LAMP_NAMES[l] ?? l])}
             onPick={(lamp) => set('lamp', lamp)}
           />
         </Row>
@@ -321,10 +346,10 @@ function Body({ thing, layout, onChange, spotify, track, houseId, userId, place,
       )
 
     case 'vinyl':
-      return <Record spotify={spotify} track={track} houseId={houseId} />
+      return <Record spotify={spotify} track={track} houseId={houseId} onFakePlay={onFakePlay} />
 
     case 'map':
-      return <Location userId={userId} place={place} onPlace={onPlace} />
+      return <Location store={store} place={place} onPlace={onPlace} />
   }
 }
 
@@ -396,11 +421,25 @@ function Record({
   spotify,
   track,
   houseId,
+  onFakePlay,
 }: {
   spotify: Props['spotify']
   track: Track | null
   houseId: string
+  onFakePlay?: () => void
 }) {
+  if (spotify === 'dev') {
+    return (
+      <>
+        <p className={styles.hint}>
+          dev mode: no spotify here, but you can see what it looks like.
+        </p>
+        <button type="button" className={styles.button} onClick={onFakePlay}>
+          {track ? 'stop the record' : 'pretend something’s playing'}
+        </button>
+      </>
+    )
+  }
   if (spotify === 'off') {
     return <p className={styles.hint}>spotify isn&apos;t hooked up on this site yet.</p>
   }
@@ -454,19 +493,12 @@ function Record({
   )
 }
 
-interface Found {
-  city: string
-  lat: number
-  lon: number
-  zone?: string
-}
-
 function Location({
-  userId,
+  store,
   place,
   onPlace,
 }: {
-  userId: string
+  store: RoomStore
   place: Place
   onPlace: (p: Place) => void
 }) {
@@ -475,11 +507,8 @@ function Location({
 
   async function save(found: Found) {
     const zone = found.zone ?? Intl.DateTimeFormat().resolvedOptions().timeZone
-    const { error } = await supabaseBrowser()
-      .from('profiles')
-      .update({ city: found.city, lat: found.lat, lon: found.lon, time_zone: zone })
-      .eq('id', userId)
-    if (error) return setStatus('couldn’t save that, try again')
+    if (!(await store.savePlace({ ...found, zone })))
+      return setStatus('couldn’t save that, try again')
     onPlace({ city: found.city, lat: found.lat, lon: found.lon })
     setStatus('')
   }

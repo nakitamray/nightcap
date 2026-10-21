@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { DEV_MODE } from '@/lib/dev'
 import { AuthForm } from './AuthForm'
 import { WindowCardFrame } from './WindowCardFrame'
 import { WindowWallBackground } from './WindowWallBackground'
@@ -17,6 +18,11 @@ export function AuthScreen(props: { mode: 'signin' | 'signup'; next?: string; ve
       <Link className={styles.demo} href="/demo">
         just looking? see the demo street
       </Link>
+      {DEV_MODE && (
+        <Link className={styles.demo} href="/dev">
+          dev mode: every city, just you
+        </Link>
+      )}
     </main>
   )
 }

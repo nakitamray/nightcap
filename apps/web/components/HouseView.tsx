@@ -6,10 +6,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Member } from '@/lib/house'
 import type { Theme } from '@/lib/themes'
 import { supabaseBrowser } from '@/lib/supabase/browser'
+import { ClaimCard } from './ClaimCard'
 import { InviteButton } from './InviteButton'
 import styles from './HouseView.module.css'
 import streetStyles from './Street.module.css'
 import { useStreetScene } from './useStreetScene'
+import { useWindowClicks } from './useWindowClicks'
 import { WindowCard } from './WindowCard'
 
 interface Props {
@@ -69,36 +71,20 @@ export function HouseView({
     [members, myRoom, supabase, houseId, userId],
   )
 
-  // one click on your window does the curtains, two goes inside. the single
-  // click waits a beat so a double doesn't flap the curtains on the way in
   const [claiming, setClaiming] = useState<number | null>(null)
   const [claimError, setClaimError] = useState('')
-  const pending = useRef<{ index: number; timer: ReturnType<typeof setTimeout> } | null>(null)
 
-  const onWindowClick = useCallback(
+  const goInside = useCallback(
     (index: number) => {
-      const last = pending.current
-      if (last && last.index === index) {
-        clearTimeout(last.timer)
-        pending.current = null
-        if (index === myRoom) router.push(`/h/${houseId}/room`)
-        else if (!members[index]) {
-          setClaimError('')
-          setClaiming(index)
-        }
-        return
-      }
-      if (last) clearTimeout(last.timer)
-      pending.current = {
-        index,
-        timer: setTimeout(() => {
-          pending.current = null
-          toggleCurtains(index)
-        }, 320),
+      if (index === myRoom) router.push(`/h/${houseId}/room`)
+      else if (!members[index]) {
+        setClaimError('')
+        setClaiming(index)
       }
     },
-    [myRoom, members, router, houseId, toggleCurtains],
+    [myRoom, members, router, houseId],
   )
+  const onWindowClick = useWindowClicks(toggleCurtains, goInside)
 
   async function claim() {
     if (claiming === null) return
@@ -174,21 +160,12 @@ export function HouseView({
       )}
 
       {claiming !== null && (
-        <div className={styles.claim} role="dialog" aria-label="claim this room">
-          <p>this one&apos;s empty.</p>
-          <p className={styles.small}>
-            {myRoom >= 0 ? 'moving here gives up your old room.' : 'make it yours?'}
-          </p>
-          {claimError && <p className={styles.small}>{claimError}</p>}
-          <div className={styles.claimButtons}>
-            <button type="button" className={styles.button} onClick={claim}>
-              claim it
-            </button>
-            <button type="button" className={styles.button} onClick={() => setClaiming(null)}>
-              not this one
-            </button>
-          </div>
-        </div>
+        <ClaimCard
+          movingHouse={myRoom >= 0}
+          error={claimError}
+          onClaim={claim}
+          onCancel={() => setClaiming(null)}
+        />
       )}
 
       <nav className={styles.controls} data-ready={ready}>

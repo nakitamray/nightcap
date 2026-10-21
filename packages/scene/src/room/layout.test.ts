@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_LAYOUT, readLayout, settle } from './room'
+import { DEFAULT_LAYOUT, readLayout, settle } from './layout'
 
 describe('readLayout', () => {
   it('gives the default room for nothing', () => {

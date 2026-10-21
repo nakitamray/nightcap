@@ -1,13 +1,12 @@
 'use client'
 
+import type { Pin, ThemeId, Thing } from '@nightcap/scene'
 import Link from 'next/link'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { supabaseBrowser } from '@/lib/supabase/browser'
 import { settle, type Layout } from '@/lib/room'
-import type { Theme } from '@/lib/themes'
+import { localStore, supabaseStore } from '@/lib/roomStore'
 import { Panel, type Place } from './Panel'
-import { RoomScene, type Thing } from './RoomScene'
-import type { Pin } from './WorldMap'
+import { useRoomScene } from './useRoomScene'
 import styles from './Room.module.css'
 
 export interface Track {
@@ -21,23 +20,30 @@ interface Props {
   houseId: string
   houseName: string
   userId: string
-  theme: Theme
+  theme: ThemeId
   initialLayout: Layout
   place: Place
   housemates: Pin[]
-  spotify: 'off' | 'unlinked' | 'linked'
+  spotify: 'off' | 'unlinked' | 'linked' | 'dev'
+  /** dev mode: save to this browser instead of the database */
+  dev?: boolean
+  backHref?: string
 }
 
 const THINGS: [Thing, string][] = [
   ['bed', 'bed'],
   ['wall', 'walls'],
   ['window', 'window'],
-  ['frames', 'frames'],
+  ['frames', 'pictures'],
   ['lamp', 'lamp'],
   ['rug', 'rug'],
   ['desk', 'desk'],
   ['led', 'lights'],
+  ['vinyl', 'record'],
+  ['map', 'map'],
 ]
+
+const FAKE_TRACK: Track = { title: 'La Vie en rose', artist: 'Édith Piaf', art: null, url: null }
 
 export function RoomView({
   houseId,
@@ -48,18 +54,20 @@ export function RoomView({
   place: initialPlace,
   housemates,
   spotify,
+  dev = false,
+  backHref,
 }: Props) {
-  const supabase = useMemo(() => supabaseBrowser(), [])
+  const store = useMemo(
+    () => (dev ? localStore(`${theme}`) : supabaseStore(houseId, userId)),
+    [dev, theme, houseId, userId],
+  )
+  const hostRef = useRef<HTMLDivElement>(null)
   const [layout, setLayout] = useState(initialLayout)
   const [open, setOpen] = useState<Thing | null>(null)
   const [saved, setSaved] = useState<'saved' | 'saving' | 'error'>('saved')
   const [place, setPlace] = useState(initialPlace)
   const [track, setTrack] = useState<Track | null>(null)
   const first = useRef(true)
-
-  function change(next: Layout) {
-    setLayout(settle(next))
-  }
 
   // save a moment after the last change rather than on every click
   useEffect(() => {
@@ -68,16 +76,12 @@ export function RoomView({
       return
     }
     setSaved('saving')
-    const t = setTimeout(async () => {
-      const { error } = await supabase
-        .from('memberships')
-        .update({ layout })
-        .eq('house_id', houseId)
-        .eq('user_id', userId)
-      setSaved(error ? 'error' : 'saved')
-    }, 700)
+    const t = setTimeout(
+      async () => setSaved((await store.saveLayout(layout)) ? 'saved' : 'error'),
+      700,
+    )
     return () => clearTimeout(t)
-  }, [layout, supabase, houseId, userId])
+  }, [layout, store])
 
   // what's on the record player
   useEffect(() => {
@@ -106,19 +110,18 @@ export function RoomView({
     [housemates, place],
   )
 
+  const ready = useRoomScene(
+    hostRef,
+    { layout, theme, seed: houseId, playing: !!track, pins },
+    setOpen,
+  )
+
   return (
     <main className={styles.page}>
-      <RoomScene
-        layout={layout}
-        theme={theme}
-        seed={houseId}
-        playing={!!track}
-        pins={pins}
-        onPick={setOpen}
-      />
+      <div ref={hostRef} className={styles.scene} data-ready={ready} />
 
       <header className={styles.top}>
-        <Link className={styles.button} href={`/h/${houseId}`}>
+        <Link className={styles.button} href={backHref ?? `/h/${houseId}`}>
           back to {houseName}
         </Link>
         <span className={styles.saved} aria-live="polite">
@@ -136,12 +139,13 @@ export function RoomView({
         <Panel
           thing={open}
           layout={layout}
-          onChange={change}
+          onChange={(next) => setLayout(settle(next))}
           onClose={() => setOpen(null)}
           spotify={spotify}
           track={track}
+          onFakePlay={() => setTrack((t) => (t ? null : FAKE_TRACK))}
           houseId={houseId}
-          userId={userId}
+          store={store}
           place={place}
           onPlace={setPlace}
         />

@@ -1,15 +1,12 @@
-import { AdvancedBloomFilter } from 'pixi-filters'
-import { Application, Container, type PointData } from 'pixi.js'
+import { Application, type PointData } from 'pixi.js'
 import { Emitter } from './emitter'
 import { PaperFilter } from './filters/PaperFilter'
 import { loadDisplayFont } from './fonts'
 import { fitWorld } from './layout'
 import type { BaseHouse } from './layers/house-base'
-import { Rain } from './layers/rain'
-import { Reflection } from './layers/reflection'
 import type { RoomWindow } from './layers/window'
 import { palette } from './palette'
-import { themes, type BuiltTheme } from './themes'
+import { StreetWorld } from './street-world'
 import type { Rooms, SceneEvents, SceneOptions, WindowEvent } from './types'
 
 const DEFAULT_SEED = 1931
@@ -17,15 +14,9 @@ const DEFAULT_SEED = 1931
 export class StreetScene {
   readonly events = new Emitter<SceneEvents>()
 
-  private world = new Container()
-  private upper = new Container()
-  private lights = new Container()
-  private street!: BuiltTheme
+  private world!: StreetWorld
   private house!: BaseHouse
-  private rain!: Rain
-  private reflection!: Reflection
   private paper = new PaperFilter()
-  private bloom: AdvancedBloomFilter | null = null
 
   private time = 0
   private pointerX = 0
@@ -61,41 +52,13 @@ export class StreetScene {
 
   private build() {
     const { app, options } = this
-    const seed = options.seed ?? DEFAULT_SEED
-    const reduced = options.reducedMotion ?? false
-
-    const street = (this.street = themes[options.theme ?? 'paris'].build({
-      seed,
-      lights: this.lights,
-      reducedMotion: reduced,
-    }))
-    this.house = street.house
-    this.upper.addChild(...street.backdrop, street.house, ...street.props, this.lights, ...street.front)
-
-    this.bloom = new AdvancedBloomFilter({
-      threshold: street.bloomThreshold ?? 0.42,
-      bloomScale: 0.8,
-      brightness: 1,
-      blur: 5,
-      quality: 4,
+    this.world = new StreetWorld({
+      theme: options.theme ?? 'paris',
+      seed: options.seed ?? DEFAULT_SEED,
+      reducedMotion: options.reducedMotion ?? false,
     })
-    this.lights.filters = [this.bloom]
+    this.house = this.world.house
 
-    this.reflection = new Reflection(this.upper, 0.4, street.reflection)
-    const drops = street.rain ?? 160
-    this.rain = new Rain(seed + 4, reduced ? Math.round(drops / 3) : drops)
-
-    // people, cars and boats are on the pavement, road or water, below the
-    // line the reflection mirrors around, so they live outside `upper`
-    this.world.addChild(
-      this.upper,
-      street.ground,
-      this.reflection,
-      street.pools,
-      street.people,
-      ...street.foreground,
-      this.rain,
-    )
     app.stage.addChild(this.world)
 
     app.stage.filters = [this.paper]
@@ -155,7 +118,7 @@ export class StreetScene {
     this.world.position.set(fit.x, fit.y)
     this.paper.setScreen(width, height)
     // rain has to start above whatever slice of sky is showing
-    this.rain.setTop(-fit.y / fit.scale - 100)
+    this.world.setRainTop(-fit.y / fit.scale - 100)
   }
 
   private tick(deltaMs: number) {
@@ -165,12 +128,8 @@ export class StreetScene {
     const t = this.time
     const reduced = this.options.reducedMotion ?? false
 
-    this.street.update(t, dt, this.pointerX, reduced)
-    this.house.update(t, dt, reduced)
-    this.street.people.update(dt, reduced)
-    this.rain.update(reduced ? dt * 0.4 : dt)
+    this.world.update(this.app.renderer, t, dt, this.pointerX, reduced)
     this.paper.time = t
-    this.reflection.update(this.app.renderer, t)
 
     this.watchPerformance(deltaMs)
   }
@@ -180,8 +139,7 @@ export class StreetScene {
     this.frameMs += (deltaMs - this.frameMs) * 0.02
     if (this.degraded || this.time < 4 || this.frameMs < 28) return
     this.degraded = true
-    this.lights.filters = []
-    this.reflection.every = 4
+    this.world.degrade()
   }
 
   setRooms(rooms: Rooms) {
@@ -213,7 +171,6 @@ export class StreetScene {
     if (this.destroyed) return
     this.destroyed = true
     this.events.clear()
-    this.reflection.destroy()
     this.app.destroy({ removeView: true }, { children: true })
   }
 }

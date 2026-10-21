@@ -9,34 +9,16 @@
 .scene {
   position: absolute;
   inset: 0;
-  width: 100%;
-  height: 100%;
-  overflow: visible;
+  opacity: 0;
+  transition: opacity 0.8s ease;
 }
 
-.hit {
-  cursor: pointer;
-  transition: filter 0.2s ease;
+.scene[data-ready='true'] {
+  opacity: 1;
 }
 
-.hit:hover {
-  filter: brightness(1.18) saturate(1.05);
-}
-
-.spin {
-  animation: spin 5s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .spin {
-    animation: none;
-  }
+.scene canvas {
+  display: block;
 }
 
 .top {
