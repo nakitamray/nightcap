@@ -14,17 +14,34 @@ interface Props {
   /** draw the frame and sill around the glass */
   framed?: boolean
   className?: string
+  /** just the view, cropped to fill the box -- for putting inside another svg */
+  view?: { x: number; y: number; width: number; height: number }
 }
 
 const W = 200
 const H = 260
 
-export function CityWindow({ theme, seed, shape = defaultShape(theme), framed = true, className }: Props) {
+export function CityWindow({
+  theme,
+  seed,
+  shape = defaultShape(theme),
+  framed = true,
+  className,
+  view,
+}: Props) {
   const rng = makeRng(seed + theme)
   const id = `cw-${hash(seed + theme + shape).toString(36)}`
   const look = LOOKS[theme]
   return (
-    <svg className={className} viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`a window over ${theme.replace('-', ' ')}`}>
+    <svg
+      className={className}
+      viewBox={view ? `16 16 ${W - 32} ${H - 40}` : `0 0 ${W} ${H}`}
+      // keep the skyline when it's cropped into a wider window
+      preserveAspectRatio={view ? 'xMidYMax slice' : undefined}
+      {...view}
+      role="img"
+      aria-label={`a window over ${theme.replace('-', ' ')}`}
+    >
       <defs>
         <linearGradient id={`${id}-sky`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="#03061a" />
@@ -48,7 +65,7 @@ export function CityWindow({ theme, seed, shape = defaultShape(theme), framed = 
         ))}
         <circle cx={look.moon[0]} cy={look.moon[1]} r={34} fill={`url(#${id}-moon)`} />
         <circle cx={look.moon[0]} cy={look.moon[1]} r={13} fill="#f6dfae" />
-        <Skyline theme={theme} rng={rng} />
+        <Skyline theme={theme} seed={seed} />
       </g>
       {framed && <Glazing shape={shape} theme={theme} />}
       {framed && <rect x={0} y={H - 22} width={W} height={10} fill={look.sill} />}
@@ -60,7 +77,10 @@ export function defaultShape(theme: Theme): WindowShape {
   return theme === 'venice' ? 'gothic' : theme === 'paris' ? 'arch' : 'rect'
 }
 
-const LOOKS: Record<Theme, { frame: string; sill: string; horizon: string; moon: [number, number] }> = {
+const LOOKS: Record<
+  Theme,
+  { frame: string; sill: string; horizon: string; moon: [number, number] }
+> = {
   paris: { frame: '#b8a582', sill: '#9a8669', horizon: '#3a1a2a', moon: [150, 62] },
   'new-york': { frame: '#4a2a1c', sill: '#5a3622', horizon: '#4a1e18', moon: [58, 58] },
   venice: { frame: '#8a3a32', sill: '#c8b89a', horizon: '#2a1a3a', moon: [146, 70] },
@@ -116,9 +136,11 @@ function Balconette() {
       {xs.map((x) => (
         <line key={x} x1={x} x2={x} y1={H - 62} y2={H - 24} />
       ))}
-      {xs.filter((_, i) => i % 2 === 0).map((x) => (
-        <ellipse key={`o${x}`} cx={x + 4} cy={H - 43} rx={4} ry={9} />
-      ))}
+      {xs
+        .filter((_, i) => i % 2 === 0)
+        .map((x) => (
+          <ellipse key={`o${x}`} cx={x + 4} cy={H - 43} rx={4} ry={9} />
+        ))}
     </g>
   )
 }
@@ -136,10 +158,21 @@ function Shutters() {
 
 type Rng = () => number
 
-function Skyline({ theme, rng }: { theme: Theme; rng: Rng }) {
+// makes its own rng: react can render a component twice, and a shared one
+// would come out different the second time
+function Skyline({ theme, seed }: { theme: Theme; seed: string }) {
+  const rng = makeRng(`${seed}${theme}-skyline`)
   const base = theme === 'venice' ? 200 : 240
-  const blocks = buildings(rng, base, theme === 'tokyo' ? [60, 150] : [40, 110], theme === 'tokyo' ? 14 : 22)
-  const lit = theme === 'tokyo' ? ['#e8f0ff', '#a8e0f0', '#ffd27a', '#ff8ab0'] : ['#ffc46a', '#ffa040', '#ffe0a0']
+  const blocks = buildings(
+    rng,
+    base,
+    theme === 'tokyo' ? [60, 150] : [40, 110],
+    theme === 'tokyo' ? 14 : 22,
+  )
+  const lit =
+    theme === 'tokyo'
+      ? ['#e8f0ff', '#a8e0f0', '#ffd27a', '#ff8ab0']
+      : ['#ffc46a', '#ffa040', '#ffe0a0']
   return (
     <g>
       {theme === 'paris' && <Eiffel x={150} base={base} />}
@@ -148,11 +181,30 @@ function Skyline({ theme, rng }: { theme: Theme; rng: Rng }) {
       {theme === 'venice' && <Campanile x={60} base={base} />}
       {blocks.map((b, i) => (
         <g key={i}>
-          <rect x={b.x} y={b.top} width={b.w} height={base - b.top + 40} fill={theme === 'tokyo' ? '#161828' : '#120c14'} />
-          {theme === 'paris' && <path d={`M${b.x - 2},${b.top} L${b.x + 5},${b.top - 9} L${b.x + b.w - 5},${b.top - 9} L${b.x + b.w + 2},${b.top} Z`} fill="#1a1a2a" />}
+          <rect
+            x={b.x}
+            y={b.top}
+            width={b.w}
+            height={base - b.top + 40}
+            fill={theme === 'tokyo' ? '#161828' : '#120c14'}
+          />
+          {theme === 'paris' && (
+            <path
+              d={`M${b.x - 2},${b.top} L${b.x + 5},${b.top - 9} L${b.x + b.w - 5},${b.top - 9} L${b.x + b.w + 2},${b.top} Z`}
+              fill="#1a1a2a"
+            />
+          )}
           {theme === 'new-york' && i % 3 === 0 && <WaterTank x={b.x + b.w / 2} y={b.top} />}
           {b.windows.map(([wx, wy], j) => (
-            <rect key={j} x={wx} y={wy} width={3} height={4} fill={lit[(i + j) % lit.length]} opacity={0.85} />
+            <rect
+              key={j}
+              x={wx}
+              y={wy}
+              width={3}
+              height={4}
+              fill={lit[(i + j) % lit.length]}
+              opacity={0.85}
+            />
           ))}
         </g>
       ))}
@@ -181,7 +233,10 @@ function Eiffel({ x, base }: { x: number; base: number }) {
   const top = base - 170
   return (
     <g>
-      <path d={`M${x - 34},${base} Q${x - 8},${base - 60} ${x - 3},${top} L${x + 3},${top} Q${x + 8},${base - 60} ${x + 34},${base} Z`} fill="#b8601c" />
+      <path
+        d={`M${x - 34},${base} Q${x - 8},${base - 60} ${x - 3},${top} L${x + 3},${top} Q${x + 8},${base - 60} ${x + 34},${base} Z`}
+        fill="#b8601c"
+      />
       <path d={`M${x - 20},${base} Q${x},${base - 50} ${x + 20},${base}`} fill="#03061a" />
       <rect x={x - 14} y={base - 74} width={28} height={4} fill="#ffb24a" />
       <rect x={x - 8} y={base - 118} width={16} height={3} fill="#ffb24a" />
@@ -201,7 +256,15 @@ function EmpireState({ x, base }: { x: number; base: number }) {
       <rect x={x - 5} y={base - 182} width={10} height={10} fill="#ffd27a" />
       <rect x={x - 1.5} y={base - 206} width={3} height={24} />
       {Array.from({ length: 14 }, (_, i) => (
-        <rect key={i} x={x - 16 + (i % 4) * 9} y={base - 112 + Math.floor(i / 4) * 12} width={3} height={5} fill="#ffc46a" opacity={0.8} />
+        <rect
+          key={i}
+          x={x - 16 + (i % 4) * 9}
+          y={base - 112 + Math.floor(i / 4) * 12}
+          width={3}
+          height={5}
+          fill="#ffc46a"
+          opacity={0.8}
+        />
       ))}
     </g>
   )
@@ -211,9 +274,19 @@ function TokyoTower({ x, base }: { x: number; base: number }) {
   const top = base - 180
   return (
     <g>
-      <path d={`M${x - 30},${base} L${x - 3},${top} L${x + 3},${top} L${x + 30},${base} Z`} fill="#e8401e" />
+      <path
+        d={`M${x - 30},${base} L${x - 3},${top} L${x + 3},${top} L${x + 30},${base} Z`}
+        fill="#e8401e"
+      />
       {[0.25, 0.45, 0.65].map((t) => (
-        <rect key={t} x={x - 30 * (1 - t) - 2} y={base - (base - top) * t} width={60 * (1 - t) + 4} height={4} fill="#fff0e0" />
+        <rect
+          key={t}
+          x={x - 30 * (1 - t) - 2}
+          y={base - (base - top) * t}
+          width={60 * (1 - t) + 4}
+          height={4}
+          fill="#fff0e0"
+        />
       ))}
       <rect x={x - 10} y={base - 108} width={20} height={8} fill="#fff0e0" />
       <rect x={x - 1} y={top - 20} width={2} height={20} fill="#e8401e" />
@@ -239,7 +312,15 @@ function Canal({ base }: { base: number }) {
     <g>
       <rect x={0} y={base} width={W} height={H - base} fill="#060c1a" />
       {Array.from({ length: 9 }, (_, i) => (
-        <rect key={i} x={(i * 37) % (W - 30)} y={base + 8 + i * 4} width={18 + (i % 3) * 10} height={1.4} fill="#ffb84a" opacity={0.6} />
+        <rect
+          key={i}
+          x={(i * 37) % (W - 30)}
+          y={base + 8 + i * 4}
+          width={18 + (i % 3) * 10}
+          height={1.4}
+          fill="#ffb84a"
+          opacity={0.6}
+        />
       ))}
     </g>
   )
