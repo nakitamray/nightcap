@@ -53,21 +53,21 @@ export class Neighbors extends Container {
     const lit: LitRect[] = []
 
     // far left: the café building
-    const cafe: Block = { x: -500, width: 1060, top: 470, tone: 0x5a5244, bay: 96, litChance: 0.25, base: GROUND - 170 }
+    const cafe: Block = { x: -500, width: 1060, top: 470, tone: 0x5a5244, bay: 96, litChance: 0.5, base: GROUND - 170 }
     lit.push(...this.block(g, rng, cafe))
 
     // left neighbour
-    const left: Block = { x: 560, width: HOUSE.x - 560, top: 300, tone: palette.neighbor, bay: 90, litChance: 0.3, base: GROUND - 200 }
+    const left: Block = { x: 560, width: HOUSE.x - 560, top: 300, tone: palette.neighbor, bay: 90, litChance: 0.5, base: GROUND - 200 }
     lit.push(...this.block(g, rng, left))
     this.plainGround(g, left)
 
     // right neighbour, with the club downstairs
-    const right: Block = { x: HOUSE.x + HOUSE.width, width: 290, top: 420, tone: 0x534b3f, bay: 96, litChance: 0.35, base: GROUND - 200 }
+    const right: Block = { x: HOUSE.x + HOUSE.width, width: 290, top: 420, tone: 0x534b3f, bay: 96, litChance: 0.5, base: GROUND - 200 }
     lit.push(...this.block(g, rng, right))
     this.clubFront(g, lights, right.x + 26, GROUND - 190, right.width - 52)
 
     // far right: a big block running off the edge of the world
-    const far: Block = { x: right.x + right.width, width: 1100, top: 400, tone: palette.neighborDark, bay: 92, litChance: 0.2, base: GROUND - 200 }
+    const far: Block = { x: right.x + right.width, width: 1100, top: 400, tone: palette.neighborDark, bay: 92, litChance: 0.5, base: GROUND - 200 }
     lit.push(...this.block(g, rng, far))
     this.plainGround(g, far)
 

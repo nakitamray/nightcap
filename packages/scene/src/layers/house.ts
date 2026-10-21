@@ -3,7 +3,7 @@ import { DISPLAY_FONT } from '../fonts'
 import { DOOR, FLOOR_H, GROUND, GROUND_FLOOR, HOUSE, MAX_ROOMS, SHOPFRONTS, windowSlots, type Rect } from '../layout'
 import { palette } from '../palette'
 import { chance, createRng, int, pick, range, type Rng } from '../rng'
-import { glowTexture } from '../textures'
+import { dotTexture, glowTexture } from '../textures'
 import type { Rooms } from '../types'
 import { balconySlab, ironRail } from './ironwork'
 import { Marquee } from './marquee'
@@ -51,6 +51,7 @@ export class House extends Container {
       if (w.slot.row === 0 && chance(rng, 0.5)) this.flowerPots(balconies, w.slot.x + range(rng, -6, w.slot.width - 30), w.slot.y + w.slot.height + 2, rng)
     }
     this.addChild(balconies)
+    this.addChild(this.festoon(lights, this.windows[8]!.slot.y - 8, 28))
 
     this.addShopSigns()
     this.addStreetNumber()
@@ -66,6 +67,17 @@ export class House extends Container {
     this.doorGlow.alpha = 0.4
     this.doorGlow.blendMode = 'add'
     lights.addChild(this.doorGlow)
+    // shop and lamp light washing up the stone from below
+    for (let ux = HOUSE.x + 40; ux < HOUSE.x + HOUSE.width; ux += 130) {
+      const up = new Sprite(glowTexture())
+      up.anchor.set(0.5)
+      up.position.set(ux, GROUND_FLOOR.y - 30)
+      up.scale.set(2.2, 2.8)
+      up.tint = palette.amberDeep
+      up.alpha = 0.16
+      up.blendMode = 'add'
+      lights.addChild(up)
+    }
     for (const shop of SHOPFRONTS) {
       const g = new Sprite(glowTexture())
       g.anchor.set(0.5)
@@ -291,6 +303,40 @@ export class House extends Container {
       for (let l = 0; l < 4; l++) g.circle(px + 6 + range(rng, -6, 6), y - 18 - range(rng, 0, 8), 4).fill(0x1d2a1a)
       for (let f = 0; f < 3; f++) g.circle(px + 6 + range(rng, -6, 6), y - 20 - range(rng, 0, 9), 2.5).fill(palette.red)
     }
+  }
+
+  /** a string of bulbs looping between the bays, like there's always a party upstairs */
+  private festoon(lights: Container, y: number, sag: number) {
+    const c = new Container()
+    const wire = new Graphics()
+    const bays = 4
+    const bayW = HOUSE.width / bays
+    for (let i = 0; i < bays; i++) {
+      const x0 = HOUSE.x + i * bayW
+      wire.moveTo(x0, y).quadraticCurveTo(x0 + bayW / 2, y + sag * 2, x0 + bayW, y)
+      for (let t = 0.06; t < 1; t += 0.11) {
+        // a point on the same curve
+        const bx = x0 + bayW * t
+        const by = y + sag * 4 * t * (1 - t) + 4
+        const bulb = new Sprite(dotTexture())
+        bulb.anchor.set(0.5)
+        bulb.position.set(bx, by)
+        bulb.scale.set(0.1)
+        bulb.tint = 0xffdc8a
+        c.addChild(bulb)
+        const glow = new Sprite(glowTexture())
+        glow.anchor.set(0.5)
+        glow.position.set(bx, by)
+        glow.scale.set(0.2)
+        glow.tint = 0xffb84a
+        glow.alpha = 0.6
+        glow.blendMode = 'add'
+        lights.addChild(glow)
+      }
+    }
+    wire.stroke({ color: palette.ink, width: 1.5 })
+    c.addChildAt(wire, 0)
+    return c
   }
 
   setRooms(rooms: Rooms) {

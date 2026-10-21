@@ -315,7 +315,7 @@ export class RoomWindow extends Container {
     const drawnDim = 0.55 + this.open * 0.45
     this.interior.alpha = this.light
     this.hotspot.alpha = 0.55 * L
-    this.halo.alpha = L * 0.5 * drawnDim * (this.hovered ? 1.25 : 1)
+    this.halo.alpha = L * 0.65 * drawnDim * (this.hovered ? 1.3 : 1)
     this.spill.alpha = L * 0.45
 
     // curtains: open = bunched at the sides, drawn = meeting in the middle

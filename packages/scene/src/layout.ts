@@ -57,9 +57,10 @@ export const SHOPFRONTS: Rect[] = [
   { x: 1392, y: 972, width: 150, height: 104 },
 ]
 
+// close enough to the house that their light lands on the stone
 export const LAMPPOSTS = [
-  { x: 690, top: 730 },
-  { x: 1720, top: 730 },
+  { x: 770, top: 720 },
+  { x: 1630, top: 720 },
 ] as const
 
 export const MORRIS_COLUMN = { x: 568, width: 60, top: GROUND - 240 } as const
@@ -93,17 +94,19 @@ export interface Fit {
   y: number
 }
 
+/** what the camera frames: the house from the dormers down to the kerb */
+export const FOCUS: Rect = { x: HOUSE.x - 150, y: 50, width: HOUSE.width + 300, height: 1110 }
+
 /**
- * Scale the world so the house always fits. On wide screens we fit to height
- * and let the sides spill; on narrow ones we fit to the house plus some
- * breathing room and let the sky/street extend instead.
+ * Scale the world so the focus box fills the screen, centred. Anything around
+ * it (neighbours, sky, street) spills off the edges. Never show past the
+ * bottom of the world.
  */
 export function fitWorld(viewWidth: number, viewHeight: number): Fit {
-  const safeWidth = HOUSE.width + 520
-  const scale = Math.min(viewHeight / WORLD.height, viewWidth / safeWidth)
-  const x = viewWidth / 2 - (WORLD.width / 2) * scale
-  // anchor the street to the bottom of the screen
-  const y = viewHeight - WORLD.height * scale
+  const scale = Math.min(viewHeight / FOCUS.height, viewWidth / FOCUS.width)
+  const x = viewWidth / 2 - (FOCUS.x + FOCUS.width / 2) * scale
+  const centred = viewHeight / 2 - (FOCUS.y + FOCUS.height / 2) * scale
+  const y = Math.max(centred, viewHeight - WORLD.height * scale)
   return { scale, x, y }
 }
 

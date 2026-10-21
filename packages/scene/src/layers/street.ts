@@ -59,7 +59,7 @@ export class Lampposts extends Container {
       g.rect(x - 22, top + 70, 44, 4).fill(ink)
       g.circle(x - 22, top + 72, 3).circle(x + 22, top + 72, 3).fill(ink)
       // lantern: glass panes, flaring out to the cap
-      g.poly([x - 9, top + 50, x + 9, top + 50, x + 17, top + 10, x - 17, top + 10]).fill(palette.lampWhite)
+      g.poly([x - 9, top + 50, x + 9, top + 50, x + 17, top + 10, x - 17, top + 10]).fill(0xffe08a)
       g.moveTo(x, top + 50).lineTo(x, top + 10).stroke({ color: ink, width: 2 })
       g.poly([x - 9, top + 50, x + 9, top + 50, x + 17, top + 10, x - 17, top + 10]).stroke({ color: ink, width: 2.5 })
       g.poly([x - 22, top + 10, x + 22, top + 10, x + 10, top - 6, x - 10, top - 6]).fill(ink)
@@ -69,27 +69,42 @@ export class Lampposts extends Container {
       const glow = new Sprite(glowTexture())
       glow.anchor.set(0.5)
       glow.position.set(x, top + 30)
-      glow.scale.set(1.5)
-      glow.tint = palette.lampWhite
+      glow.scale.set(0.9)
+      glow.tint = palette.sodium
       glow.blendMode = 'add'
-      glow.alpha = 0.8
+      glow.alpha = 0.9
+      // big soft orange halo, and the light it throws on the wall behind
+      const halo = new Sprite(glowTexture())
+      halo.anchor.set(0.5)
+      halo.position.set(x, top + 30)
+      halo.scale.set(3.2)
+      halo.tint = 0xff7a22
+      halo.alpha = 0.2
+      halo.blendMode = 'add'
+      const wash = new Sprite(glowTexture())
+      wash.anchor.set(0.5)
+      wash.position.set(x, top + 200)
+      wash.scale.set(3, 4)
+      wash.tint = 0xff8a30
+      wash.alpha = 0.12
+      wash.blendMode = 'add'
       const cone = new Sprite(coneTexture())
       cone.anchor.set(0.5, 0)
       cone.position.set(x, top + 40)
-      cone.scale.set(1.3, (GROUND - top - 40) / 256)
-      cone.tint = palette.lampWhite
-      cone.alpha = 0.2
+      cone.scale.set(1.4, (GROUND - top - 40) / 256)
+      cone.tint = palette.sodium
+      cone.alpha = 0.26
       cone.blendMode = 'add'
-      lights.addChild(cone, glow)
+      lights.addChild(wash, halo, cone, glow)
       this.lanterns.push(glow)
 
       const pool = new Sprite(glowTexture())
       pool.anchor.set(0.5)
       pool.position.set(x, GROUND + 26)
-      pool.scale.set(2.2, 0.5)
-      pool.tint = palette.amber
+      pool.scale.set(2.8, 0.6)
+      pool.tint = 0xffa63a
       pool.blendMode = 'add'
-      pool.alpha = 0.5
+      pool.alpha = 0.6
       this.pools.addChild(pool)
     }
     this.addChild(g)
@@ -97,7 +112,7 @@ export class Lampposts extends Container {
 
   update(time: number) {
     this.lanterns.forEach((l, i) => {
-      l.alpha = 0.78 + Math.sin(time * 9 + i * 3) * 0.015 + Math.sin(time * 2.3 + i) * 0.03
+      l.alpha = 0.7 + Math.sin(time * 9 + i * 3) * 0.015 + Math.sin(time * 2.3 + i) * 0.03
     })
   }
 }
@@ -168,4 +183,30 @@ export class PlaneTree extends Container {
   update(time: number) {
     this.crown.rotation = Math.sin(time * 0.5) * 0.006 + Math.sin(time * 1.3) * 0.003
   }
+}
+
+/** two people under one red umbrella, feet at the origin */
+export function couple() {
+  const g = new Graphics()
+  const ink = palette.ink
+  // him
+  g.circle(-14, -176, 11).fill(ink)
+  g.poly([-26, -164, -4, -164, 0, -60, -6, 0, -14, 0, -18, -60, -30, -70]).fill(ink)
+  // her, leaning in, red dress
+  g.circle(12, -170, 10).fill(ink)
+  g.poly([2, -160, 20, -158, 26, -96, 34, 0, -4, 0, 4, -96]).fill(0xb3261a)
+  g.poly([2, -160, 20, -158, 18, -120, 4, -120]).fill(ink)
+  // umbrella
+  g.rect(-2, -250, 3, 100).fill(ink)
+  g.moveTo(-70, -228)
+    .bezierCurveTo(-60, -290, 60, -290, 70, -228)
+    .lineTo(46, -236)
+    .lineTo(24, -226)
+    .lineTo(0, -236)
+    .lineTo(-24, -226)
+    .lineTo(-46, -236)
+    .closePath()
+    .fill(0xc0301e)
+  g.circle(0, -282, 3).fill(ink)
+  return g
 }

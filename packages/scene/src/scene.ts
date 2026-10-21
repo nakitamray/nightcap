@@ -3,14 +3,14 @@ import { Application, Container, type PointData } from 'pixi.js'
 import { Emitter } from './emitter'
 import { PaperFilter } from './filters/PaperFilter'
 import { loadDisplayFont } from './fonts'
-import { fitWorld } from './layout'
+import { CURB, fitWorld } from './layout'
 import { House } from './layers/house'
 import { Neighbors } from './layers/neighbors'
 import { Rain } from './layers/rain'
 import { Reflection } from './layers/reflection'
 import { Sky } from './layers/sky'
 import { Skyline } from './layers/skyline'
-import { Lampposts, morrisColumn, Pavement, PlaneTree } from './layers/street'
+import { couple, Lampposts, morrisColumn, Pavement, PlaneTree } from './layers/street'
 import type { RoomWindow } from './layers/window'
 import { palette } from './palette'
 import type { Rooms, SceneEvents, SceneOptions, WindowEvent } from './types'
@@ -92,9 +92,14 @@ export class StreetScene {
     this.lights.filters = [this.bloom]
 
     this.reflection = new Reflection(this.upper)
-    this.rain = new Rain(seed + 4, reduced ? 120 : 420)
+    this.rain = new Rain(seed + 4, reduced ? 50 : 160)
 
-    this.world.addChild(this.upper, new Pavement(seed + 5), this.reflection, this.lamps.pools, this.rain)
+    // standing on the pavement, so not part of the reflected world
+    const lovers = couple()
+    lovers.position.set(1700, CURB - 12)
+    lovers.scale.set(0.62)
+
+    this.world.addChild(this.upper, new Pavement(seed + 5), this.reflection, this.lamps.pools, lovers, this.rain)
     app.stage.addChild(this.world)
 
     app.stage.filters = [this.paper]

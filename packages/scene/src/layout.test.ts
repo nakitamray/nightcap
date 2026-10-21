@@ -52,7 +52,7 @@ describe('windowSlots', () => {
 })
 
 describe('fitWorld', () => {
-  it('keeps the whole house on screen at common sizes', () => {
+  it('keeps every window on screen at common sizes', () => {
     for (const [w, h] of [
       [1920, 1080],
       [1440, 900],
@@ -63,16 +63,25 @@ describe('fitWorld', () => {
       const fit = fitWorld(w, h)
       const left = fit.x + HOUSE.x * fit.scale
       const right = fit.x + (HOUSE.x + HOUSE.width) * fit.scale
-      const top = fit.y + HOUSE.y * fit.scale
       expect(left).toBeGreaterThanOrEqual(0)
       expect(right).toBeLessThanOrEqual(w)
-      expect(top).toBeGreaterThanOrEqual(0)
+      for (const s of windowSlots()) {
+        expect(fit.y + s.y * fit.scale).toBeGreaterThanOrEqual(0)
+        expect(fit.y + (s.y + s.height) * fit.scale).toBeLessThanOrEqual(h)
+      }
+      // the street is in frame
+      expect(fit.y + GROUND * fit.scale).toBeLessThan(h)
     }
   })
 
-  it('pins the bottom of the world to the bottom of the screen', () => {
-    const fit = fitWorld(1000, 1400)
-    expect(fit.y + WORLD.height * fit.scale).toBeCloseTo(1400)
-    expect(fit.y + GROUND * fit.scale).toBeLessThan(1400)
+  it('never shows past the bottom of the world', () => {
+    for (const [w, h] of [
+      [1000, 1400],
+      [1920, 1080],
+      [600, 1200],
+    ] as const) {
+      const fit = fitWorld(w, h)
+      expect(fit.y + WORLD.height * fit.scale).toBeGreaterThanOrEqual(h - 0.001)
+    }
   })
 })

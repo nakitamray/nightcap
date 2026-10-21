@@ -6,6 +6,7 @@ import { filterVertex } from './vertex'
 //    reads as fibres instead of TV static)
 //  - slightly uneven ink, like a riso print that didn't quite cover
 //  - lifted blacks, so the darks read as printed ink
+//  - a warm grade on everything lamp-lit
 //  - vignette
 const fragment = `precision highp float;
 in vec2 vTextureCoord;
@@ -55,8 +56,12 @@ void main(void) {
   c += grain * uGrain * (0.35 + c * 0.9);
 
   // lift the blacks a touch so nothing is ever flat #000 -- ink on paper, not a void
-  vec3 paperDark = vec3(0.025, 0.03, 0.06);
+  vec3 paperDark = vec3(0.02, 0.022, 0.05);
   c = paperDark + c * (1.0 - paperDark);
+
+  // warm the mids and highlights toward lamplight; the deep blues stay put
+  float lumi = dot(c, vec3(0.299, 0.587, 0.114));
+  c = mix(c, c * vec3(1.12, 0.97, 0.78), smoothstep(0.08, 0.5, lumi));
 
   float d = distance(uv, vec2(0.5, 0.55));
   c *= 1.0 - smoothstep(0.35, 0.95, d) * uVignette;

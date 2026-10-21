@@ -34,13 +34,29 @@ export class Sky extends Container {
       end: { x: 0, y: 1 },
       colorStops: [
         { offset: 0, color: palette.skyTop },
-        { offset: 0.62, color: palette.skyTop },
-        { offset: 0.86, color: palette.skyMid },
+        { offset: 0.7, color: palette.skyTop },
+        { offset: 0.88, color: palette.skyMid },
         { offset: 1, color: palette.skyLow },
       ],
       textureSpace: 'local',
     })
     this.addChild(new Graphics().rect(-400, top, WORLD.width + 800, GROUND - top).fill(gradient))
+
+    // the rest of the city glowing red-orange low behind the rooftops
+    for (const [x, sx, sy, a, tint] of [
+      [WORLD.width / 2, 14, 3.2, 0.5, 0xff4a1e],
+      [WORLD.width * 0.2, 6, 2.2, 0.45, 0xff8a2a],
+      [WORLD.width * 0.8, 6, 2.2, 0.45, 0xff8a2a],
+    ] as const) {
+      const glow = new Sprite(glowTexture())
+      glow.anchor.set(0.5)
+      glow.position.set(x, GROUND - 120)
+      glow.scale.set(sx, sy)
+      glow.tint = tint
+      glow.alpha = a
+      glow.blendMode = 'add'
+      this.addChild(glow)
+    }
 
     this.addStars(rng, top)
     this.addMoon(rng)
@@ -80,8 +96,8 @@ export class Sky extends Container {
     halo.anchor.set(0.5)
     halo.position.set(MOON.x, MOON.y)
     halo.scale.set(3.4)
-    halo.tint = 0xffe2b0
-    halo.alpha = 0.32
+    halo.tint = 0xffc070
+    halo.alpha = 0.4
     halo.blendMode = 'add'
     this.addChild(halo)
 

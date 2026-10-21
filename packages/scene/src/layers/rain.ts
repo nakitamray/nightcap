@@ -59,7 +59,7 @@ export class Rain extends Container {
     const near = rng()
     d.speed = range(rng, 900, 1300) * (0.7 + near * 0.5)
     d.s.scale.set(0.6 + near * 0.5, range(rng, 0.7, 1.4) * (0.7 + near * 0.6))
-    d.s.alpha = 0.08 + near * 0.22
+    d.s.alpha = 0.06 + near * 0.16
     d.s.x = range(rng, -300, WORLD.width + 300)
     d.s.y = anywhere ? range(rng, this.top, WORLD.height) : this.top - range(rng, 0, 200)
     // some drops end on the sidewalk, most on the road
