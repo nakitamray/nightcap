@@ -22,12 +22,16 @@ export const nyWindow: WindowStyle = {
         .stroke(INK)
     } else {
       // flat hood on two brackets
-      g.rect(-20, -28, w + 40, 10).fill(ny.brownstoneLight).stroke(INK)
+      g.rect(-20, -28, w + 40, 10)
+        .fill(ny.brownstoneLight)
+        .stroke(INK)
       g.rect(-16, -18, w + 32, 8).fill(ny.brownstone)
       for (const bx of [-16, w + 8]) g.rect(bx, -10, 8, 16).fill(ny.brownstoneLight)
     }
     // sill
-    g.rect(-14, h + 4, w + 28, 9).fill(ny.brownstoneLight).stroke(INK)
+    g.rect(-14, h + 4, w + 28, 9)
+      .fill(ny.brownstoneLight)
+      .stroke(INK)
   },
 
   bars(g, { width: w, height: h }) {
@@ -35,7 +39,10 @@ export const nyWindow: WindowStyle = {
     // meeting rail where the two sashes overlap
     g.rect(0, h * 0.5 - 3, w, 6).fill(0x1a0f0b)
     g.rect(w / 2 - 1.5, 0, 3, h).fill(0x1a0f0b)
-    g.poly([w * 0.08, h * 0.38, w * 0.22, h * 0.26, w * 0.27, h * 0.31, w * 0.13, h * 0.43]).fill({ color: 0xe6ecff, alpha: 0.06 })
+    g.poly([w * 0.08, h * 0.38, w * 0.22, h * 0.26, w * 0.27, h * 0.31, w * 0.13, h * 0.43]).fill({
+      color: 0xe6ecff,
+      alpha: 0.06,
+    })
   },
 
   curtains: [0x5a1a12, 0xd8622e],

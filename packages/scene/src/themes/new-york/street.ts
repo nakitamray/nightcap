@@ -18,22 +18,49 @@ export class Pavement extends Container {
     const rng = createRng(seed)
     const g = new Graphics()
     g.rect(-500, GROUND, WORLD.width + 1000, CURB - GROUND).fill(0x1a1716)
-    for (let x = -500; x < WORLD.width + 500; x += 90) g.rect(x, GROUND, 2, CURB - GROUND).fill({ color: palette.ink, alpha: 0.6 })
+    for (let x = -500; x < WORLD.width + 500; x += 90)
+      g.rect(x, GROUND, 2, CURB - GROUND).fill({ color: palette.ink, alpha: 0.6 })
     g.rect(-500, GROUND + 22, WORLD.width + 1000, 1.5).fill({ color: palette.ink, alpha: 0.4 })
     g.rect(-500, CURB - 7, WORLD.width + 1000, 7).fill(0x3a3430)
     g.rect(-500, CURB, WORLD.width + 1000, STREET_BOTTOM - CURB).fill(0x0b0a0c)
     // patches and cracks
     for (let i = 0; i < 40; i++) {
-      g.rect(range(rng, -400, WORLD.width + 400), range(rng, CURB + 10, CURB + 300), range(rng, 30, 140), range(rng, 6, 26)).fill({
+      g.rect(
+        range(rng, -400, WORLD.width + 400),
+        range(rng, CURB + 10, CURB + 300),
+        range(rng, 30, 140),
+        range(rng, 6, 26),
+      ).fill({
         color: 0x141214,
         alpha: 0.8,
       })
     }
     // manhole
-    g.ellipse(1250, CURB + 52, 46, 9).fill(0x1c1a1a)
-    g.ellipse(1250, CURB + 52, 38, 6.5).stroke({ color: 0x2e2a28, width: 2 })
+    g.ellipse(640, CURB + 52, 46, 9).fill(0x1c1a1a)
+    g.ellipse(640, CURB + 52, 38, 6.5).stroke({ color: 0x2e2a28, width: 2 })
+    // the orange and white con ed stack over it, steaming away all night
+    const sx = 640
+    const stackTop = CURB - 110
+    const base = CURB + 52
+    g.rect(sx - 12, stackTop, 24, base - stackTop).fill(0xe8641e)
+    for (let sy = stackTop + 10; sy < base - 8; sy += 26) g.rect(sx - 12, sy, 24, 12).fill(0xf2e2c8)
+    g.rect(sx - 15, stackTop - 6, 30, 8).fill(0xe8641e)
+    g.rect(sx - 12, stackTop, 24, base - stackTop).stroke({
+      color: 0x07080d,
+      width: 1.5,
+      alpha: 0.7,
+    })
+    // the cone it sits in
+    g.poly([sx - 26, base, sx - 12, base - 40, sx + 12, base - 40, sx + 26, base])
+      .fill(0xe8641e)
+      .stroke({ color: 0x07080d, width: 1.5, alpha: 0.7 })
+    g.rect(sx - 19, base - 22, 38, 8).fill(0xf2e2c8)
     this.addChild(g)
-    this.steam = new Smoke(seed + 1, { x: 1250, y: CURB + 40 }, { tint: 0xe0b890, strength: 0.4, rise: 300, count: 26 })
+    this.steam = new Smoke(
+      seed + 1,
+      { x: sx, y: stackTop - 6 },
+      { tint: 0xf6e6d6, strength: 0.75, rise: 420, count: 34 },
+    )
     this.addChild(this.steam)
   }
 
@@ -53,9 +80,20 @@ export class CobraLamps extends Container {
     for (const x of xs) {
       const top = 690
       const hx = x + 96
-      g.poly([x - 10, GROUND + 26, x + 10, GROUND + 26, x + 6, GROUND - 20, x - 6, GROUND - 20]).fill(0x14161a)
+      g.poly([
+        x - 10,
+        GROUND + 26,
+        x + 10,
+        GROUND + 26,
+        x + 6,
+        GROUND - 20,
+        x - 6,
+        GROUND - 20,
+      ]).fill(0x14161a)
       g.rect(x - 4, top, 8, GROUND - top).fill(0x14161a)
-      g.moveTo(x, top + 6).bezierCurveTo(x, top - 40, x + 50, top - 40, hx - 20, top - 22).stroke({ color: 0x14161a, width: 6 })
+      g.moveTo(x, top + 6)
+        .bezierCurveTo(x, top - 40, x + 50, top - 40, hx - 20, top - 22)
+        .stroke({ color: 0x14161a, width: 6 })
       g.ellipse(hx, top - 20, 34, 9).fill(0x14161a)
       g.ellipse(hx + 2, top - 14, 24, 5).fill(0xffd27a)
 
@@ -98,7 +136,8 @@ export class CobraLamps extends Container {
   update(time: number) {
     this.heads.forEach((h, i) => {
       // sodium lamps hum and every so often one sulks
-      h.alpha = 0.85 + Math.sin(time * 7 + i * 4) * 0.02 - (Math.sin(time * 0.31 + i * 9) > 0.995 ? 0.5 : 0)
+      h.alpha =
+        0.85 + Math.sin(time * 7 + i * 4) * 0.02 - (Math.sin(time * 0.31 + i * 9) > 0.995 ? 0.5 : 0)
     })
   }
 }
@@ -156,7 +195,10 @@ export class PassingCab extends Container {
   private rng: () => number
   private speed = 0
 
-  constructor(seed: number, private lane: number) {
+  constructor(
+    seed: number,
+    private lane: number,
+  ) {
     super()
     this.rng = createRng(seed)
     this.beam.anchor.set(0, 0.5)

@@ -29,7 +29,7 @@ export const ROW = {
   bodega: { x: 40, width: 430, top: 420 },
   left: { x: 470, width: 490, top: 330 },
   right: { x: 1440, width: 470, top: 206 },
-  prewar: { x: 1910, width: 700, top: 40 },
+  prewar: { x: 1910, width: 700, top: 270 },
 } as const
 
 export const TREES = [
