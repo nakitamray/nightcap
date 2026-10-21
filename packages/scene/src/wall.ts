@@ -14,15 +14,30 @@ const INK = 0x07080d
 type Shape = 'rect' | 'arch' | 'french' | 'grid' | 'shutters'
 type Life = 'sax' | 'dinner' | 'reader' | 'sill' | 'desk' | 'dance' | 'cat' | 'party' | 'plants' | 'books' | 'kiss'
 
-const LIGHTS: [number, number, number][] = [
-  [0xd8582a, 0xf5823a, 0xffad5c],
-  [0xc9692a, 0xf2a24c, 0xffd07a],
-  [0x8e1a12, 0xc8301e, 0xe8582a],
-  [0xc89a2a, 0xf0c050, 0xffe08a],
-  [0xa8582a, 0xe08a4a, 0xf8c890],
+// every colour a room can be lit at night: lamps, tvs, coloured shades,
+// fairy lights. warm ones still win, but not by much.
+const LIGHTS: { weight: number; stops: [number, number, number] }[] = [
+  { weight: 3, stops: [0xd8582a, 0xf5823a, 0xffad5c] },
+  { weight: 2, stops: [0xc89a2a, 0xf0c050, 0xffe08a] },
+  { weight: 2, stops: [0x8e1a12, 0xc8301e, 0xe8582a] },
+  { weight: 2, stops: [0x1a2a6a, 0x3a5ab0, 0x8aa8e8] },
+  { weight: 2, stops: [0x0f4a4a, 0x2a8a80, 0x8ad0c0] },
+  { weight: 2, stops: [0x3a1a5a, 0x7040a0, 0xc09ae0] },
+  { weight: 1, stops: [0x1a4a2a, 0x3a8a4a, 0xa8d890] },
+  { weight: 2, stops: [0x8a2a5a, 0xd0608a, 0xf6b0c8] },
+  { weight: 1, stops: [0x3a5a5a, 0x7a9a92, 0xb8d0c4] },
 ]
-// the odd cool window, like someone's watching tv
-const COOL: [number, number, number] = [0x3a5a5a, 0x7a9a92, 0xb8d0c4]
+
+function pickLight(rng: Rng) {
+  const total = LIGHTS.reduce((n, l) => n + l.weight, 0)
+  let r = rng() * total
+  for (const l of LIGHTS) {
+    r -= l.weight
+    if (r < 0) return l.stops
+  }
+  return LIGHTS[0]!.stops
+}
+
 const FRAMES = [0x2a1810, 0x1d3324, 0x1c2840, 0x6e5e4a, 0x4a1612, 0x1a1210]
 
 interface Pane {
@@ -107,8 +122,7 @@ export class WindowWall {
   private addPane(rng: Rng, x: number, y: number, w: number, h: number) {
     const shape: Shape = pick(rng, ['rect', 'rect', 'arch', 'french', 'grid', 'shutters'] as const)
     const frame = pick(rng, FRAMES)
-    const cool = rng() < 0.08
-    const light = cool ? COOL : pick(rng, LIGHTS)
+    const light = pickLight(rng)
     const life: Life = pick(rng, ['sax', 'dinner', 'reader', 'sill', 'desk', 'dance', 'cat', 'party', 'plants', 'books', 'kiss'] as const)
 
     const root = new Container()

@@ -1,4 +1,5 @@
 import { LoginForm } from './LoginForm'
+import { WindowCardFrame } from '@/components/WindowCardFrame'
 import { WindowWallBackground } from '@/components/WindowWallBackground'
 import styles from '@/components/NightCard.module.css'
 
@@ -13,11 +14,11 @@ export default async function LoginPage({
   return (
     <main className={styles.page}>
       <WindowWallBackground />
-      <div className={styles.card}>
+      <WindowCardFrame>
         <h1 className={styles.title}>NIGHTCAP</h1>
         <p className={styles.lede}>make a home</p>
         <LoginForm next={safeNext(next)} linkError={error === 'link'} />
-      </div>
+      </WindowCardFrame>
     </main>
   )
 }

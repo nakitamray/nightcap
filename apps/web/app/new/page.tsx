@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { supabaseServer } from '@/lib/supabase/server'
 import { isTheme, THEME_NAMES, THEMES } from '@/lib/themes'
+import { WindowCardFrame } from '@/components/WindowCardFrame'
 import { WindowWallBackground } from '@/components/WindowWallBackground'
 import styles from '@/components/NightCard.module.css'
 
@@ -23,7 +24,7 @@ export default async function NewHouse({ searchParams }: { searchParams: Promise
   return (
     <main className={styles.page}>
       <WindowWallBackground />
-      <div className={styles.card}>
+      <WindowCardFrame>
         <h1 className={styles.title}>NEW HOUSE</h1>
         <p className={styles.lede}>you get the first room. everyone else gets a link.</p>
         <form className={styles.form} action={createHouse}>
@@ -46,7 +47,7 @@ export default async function NewHouse({ searchParams }: { searchParams: Promise
             move in
           </button>
         </form>
-      </div>
+      </WindowCardFrame>
     </main>
   )
 }

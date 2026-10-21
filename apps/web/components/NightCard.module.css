@@ -42,47 +42,116 @@
   position: relative;
   z-index: 2;
   width: min(440px, 100%);
-  padding: 38px 36px 34px;
-  color: #2a0e08;
+  margin-bottom: 40px;
+  padding: 58px 40px 40px;
+  color: #f4ead2;
   text-align: center;
-  background: radial-gradient(120% 90% at 50% 10%, #ffe6b0 0%, #f6b860 55%, #dd7a2e 100%);
-  border: 12px solid #2a1810;
+  /* a deep blue room: lamp off, just the night coming in */
+  background:
+    radial-gradient(90% 60% at 50% 0%, rgba(120, 150, 230, 0.28), transparent 70%),
+    linear-gradient(#162457 0%, #0d1638 55%, #070b22 100%);
+  border: 3px solid #1b120c;
+  outline: 1px solid rgba(214, 170, 110, 0.45);
+  outline-offset: -8px;
   box-shadow:
-    inset 0 0 0 2px #4a2a18,
-    inset 0 0 40px rgba(120, 40, 10, 0.25),
-    0 0 0 2px #120a06,
-    0 0 120px 30px rgba(255, 140, 50, 0.32),
-    0 40px 90px rgba(0, 0, 0, 0.7);
+    0 0 0 1px #3a2616,
+    0 0 70px 10px rgba(70, 110, 220, 0.25),
+    0 30px 80px rgba(0, 0, 0, 0.7);
 }
 
-/* a little iron balcony under the window */
-.card::after {
+/* transom bar and two little top panes */
+.card::before {
   content: '';
   position: absolute;
-  left: -26px;
-  right: -26px;
+  left: 8px;
+  right: 8px;
+  top: 8px;
+  height: 34px;
+  border-bottom: 3px solid #1b120c;
+  background: linear-gradient(90deg, transparent calc(50% - 1.5px), #1b120c calc(50% - 1.5px), #1b120c calc(50% + 1.5px), transparent calc(50% + 1.5px));
+  opacity: 0.9;
+}
+
+/* curtains tied back at the sides */
+.curtain {
+  position: absolute;
+  top: 42px;
+  width: 34px;
+  height: 120px;
+  background: linear-gradient(90deg, #6e1a12, #a8301e 45%, #6e1a12);
+  pointer-events: none;
+}
+
+.curtain[data-side='left'] {
+  left: 8px;
+  border-bottom-right-radius: 100% 80%;
+}
+
+.curtain[data-side='right'] {
+  right: 8px;
+  border-bottom-left-radius: 100% 80%;
+}
+
+/* the sill, with a box of geraniums */
+.sill {
+  position: absolute;
+  left: -14px;
+  right: -14px;
+  bottom: -14px;
+  height: 11px;
+  background: #3a2616;
+  border: 1px solid #1b120c;
+}
+
+.flowers {
+  position: absolute;
+  left: 18%;
+  right: 18%;
   bottom: -40px;
-  height: 30px;
-  border-top: 4px solid #07080d;
-  border-bottom: 4px solid #07080d;
-  background: repeating-linear-gradient(90deg, #07080d 0 2px, transparent 2px 10px);
+  height: 26px;
+  background: #4a1a10;
+  border: 1px solid #1b120c;
+}
+
+.flowers::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  top: -14px;
+  height: 18px;
+  background:
+    radial-gradient(circle at 6% 40%, #e0402a 0 4px, transparent 5px),
+    radial-gradient(circle at 22% 20%, #f06a3a 0 4px, transparent 5px),
+    radial-gradient(circle at 40% 45%, #e0402a 0 4px, transparent 5px),
+    radial-gradient(circle at 58% 15%, #ff8a5a 0 4px, transparent 5px),
+    radial-gradient(circle at 76% 40%, #e0402a 0 4px, transparent 5px),
+    radial-gradient(circle at 93% 25%, #f06a3a 0 4px, transparent 5px),
+    radial-gradient(ellipse at 50% 100%, #1d3a1a 0 60%, transparent 62%);
 }
 
 .title {
+  position: relative;
   margin: 0;
   font-family: var(--font-display);
   font-size: 52px;
   line-height: 1;
   font-weight: normal;
-  color: #8e1a10;
+  color: #ffbf6a;
   letter-spacing: 0.04em;
+  text-shadow: 0 0 22px rgba(255, 150, 60, 0.45);
 }
 
 .lede {
-  margin: 10px 0 26px;
-  font-family: var(--font-sign);
-  font-size: 18px;
-  color: #5a1a10;
+  position: relative;
+  margin: 12px 0 28px;
+  font-family: var(--font-body);
+  font-size: 22px;
+  font-style: italic;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #c9d6ff;
+  transform: rotate(-2deg);
 }
 
 .form {
@@ -95,11 +164,11 @@
   display: grid;
   gap: 6px;
   font-size: 18px;
-  color: #2a0e08;
+  color: #f4ead2;
 }
 
 .hint {
-  color: #7a3a1a;
+  color: #93a3d6;
   font-size: 14px;
 }
 
@@ -109,10 +178,10 @@
   padding: 10px 12px;
   font-family: var(--font-body);
   font-size: 19px;
-  color: #1a0a06;
-  background: rgba(255, 246, 228, 0.72);
+  color: #f4ead2;
+  background: rgba(4, 8, 28, 0.55);
   border: 0;
-  border-bottom: 2px solid #2a1810;
+  border-bottom: 2px solid rgba(214, 170, 110, 0.7);
   border-radius: 0;
   outline: none;
   transition: background 0.2s ease;
@@ -120,7 +189,8 @@
 
 .input:focus,
 .select:focus {
-  background: rgba(255, 250, 240, 0.96);
+  background: rgba(4, 8, 28, 0.85);
+  border-bottom-color: #ffbf6a;
 }
 
 .button {
@@ -131,10 +201,10 @@
   letter-spacing: 0.04em;
   color: #fff1d8;
   background: #8e2416;
-  border: 2px solid #2a0e08;
+  border: 1px solid #1b120c;
   border-radius: 0;
   cursor: pointer;
-  box-shadow: 0 3px 0 #2a0e08;
+  box-shadow: 0 3px 0 #1b120c;
   transition:
     background 0.2s ease,
     transform 0.1s ease;
@@ -146,7 +216,7 @@
 
 .button:active {
   transform: translateY(2px);
-  box-shadow: 0 1px 0 #2a0e08;
+  box-shadow: 0 1px 0 #1b120c;
 }
 
 .button:disabled {
@@ -158,23 +228,25 @@
   margin: 18px 0 0;
   font-size: 18px;
   line-height: 1.5;
-  color: #2a0e08;
+  color: #f4ead2;
 }
 
 .error {
   margin: 0;
   font-size: 16px;
-  color: #8e1a10;
+  color: #ff9a7a;
 }
 
 .link {
-  color: #8e1a10;
+  color: #ffbf6a;
 }
 
 @media (max-width: 480px) {
   .card {
-    padding: 30px 22px 28px;
-    border-width: 9px;
+    padding: 52px 24px 30px;
+  }
+  .curtain {
+    width: 22px;
   }
   .title {
     font-size: 42px;
