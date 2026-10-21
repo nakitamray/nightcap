@@ -31,7 +31,11 @@ export class Canal extends Container {
     const g = new Graphics()
     // big grey trachyte slabs, istrian stone edge
     g.rect(-500, GROUND, WORLD.width + 1000, CURB - GROUND).fill(0x1c1814)
-    for (let x = -500; x < WORLD.width + 500; x += 70) g.rect(x + (Math.floor(x / 70) % 2) * 20, GROUND, 2, CURB - GROUND).fill({ color: palette.ink, alpha: 0.6 })
+    for (let x = -500; x < WORLD.width + 500; x += 70)
+      g.rect(x + (Math.floor(x / 70) % 2) * 20, GROUND, 2, CURB - GROUND).fill({
+        color: palette.ink,
+        alpha: 0.6,
+      })
     g.rect(-500, GROUND + 24, WORLD.width + 1000, 1.5).fill({ color: palette.ink, alpha: 0.5 })
     g.rect(-500, CURB - 8, WORLD.width + 1000, 8).fill(vn.istria)
     g.rect(-500, CURB, WORLD.width + 1000, 12).fill(0x14100c)
@@ -48,7 +52,9 @@ export class Canal extends Container {
       const y = range(rng, CURB + 16, CURB + 280)
       // nearer the viewer, the ripples get longer and brighter
       const near = (y - CURB) / 280
-      g.moveTo(0, 0).quadraticCurveTo(w / 2, -2.5, w, 0).stroke({ color: 0x4a5a78, width: 1.2 + near, alpha: range(rng, 0.25, 0.6) })
+      g.moveTo(0, 0)
+        .quadraticCurveTo(w / 2, -2.5, w, 0)
+        .stroke({ color: 0x4a5a78, width: 1.2 + near, alpha: range(rng, 0.25, 0.6) })
       g.position.set(range(rng, -400, WORLD.width + 400), y)
       this.addChild(g)
       this.ripples.push({ g, y, speed: range(rng, 8, 22) * (0.6 + near), phase: rng() * 10 })
@@ -89,7 +95,8 @@ export function mooringPoles(xs: number[], stripes: number[]) {
     const top = GROUND - 140
     const bottom = CURB + 200
     g.rect(x - 7, top, 14, bottom - top).fill(0xe8dcc8)
-    for (let sy = top + 10; sy < CURB; sy += 26) g.poly([x - 7, sy, x + 7, sy - 10, x + 7, sy + 4, x - 7, sy + 14]).fill(colour)
+    for (let sy = top + 10; sy < CURB; sy += 26)
+      g.poly([x - 7, sy, x + 7, sy - 10, x + 7, sy + 4, x - 7, sy + 14]).fill(colour)
     g.rect(x - 7, CURB - 10, 14, bottom - CURB + 10).fill({ color: 0x1a120e, alpha: 0.7 })
     g.ellipse(x, top - 2, 10, 5).fill(0xd9a54a)
     g.circle(x, top - 8, 6).fill(0xd9a54a)
@@ -186,37 +193,4 @@ export class Gondola extends Container {
     this.lantern.position.set(this.x0 + 236 * this.boat.scale.x, line - 70 + bob)
     this.lantern.alpha = 0.75 + Math.sin(time * 6) * 0.04
   }
-}
-
-/** a little stone bridge with steps up and over a side canal, lantern on top */
-export function bridge(x: number, w: number) {
-  const g = new Graphics()
-  const crown = GROUND - 90
-  const stone = vn.istriaDark
-  // the arch, with dark water showing through underneath
-  g.moveTo(x, CURB + 20)
-    .lineTo(x, GROUND - 20)
-    .quadraticCurveTo(x + w / 2, crown - 50, x + w, GROUND - 20)
-    .lineTo(x + w, CURB + 20)
-    .lineTo(x + w - 40, CURB + 20)
-    .quadraticCurveTo(x + w / 2, crown + 20, x + 40, CURB + 20)
-    .closePath()
-    .fill(stone)
-  g.moveTo(x, GROUND - 20).quadraticCurveTo(x + w / 2, crown - 50, x + w, GROUND - 20).stroke({ color: vn.istria, width: 6 })
-  // steps up each side
-  for (let i = 0; i < 6; i++) {
-    const t = i / 6
-    const sx = x + t * (w / 2 - 30)
-    g.rect(sx, GROUND - 20 - t * 60, 18, 4).fill(vn.istria)
-    g.rect(x + w - sx + x - 18, GROUND - 20 - t * 60, 18, 4).fill(vn.istria)
-  }
-  // iron railing following the curve
-  g.moveTo(x, GROUND - 60).quadraticCurveTo(x + w / 2, crown - 100, x + w, GROUND - 60).stroke({ color: palette.ink, width: 3 })
-  for (let t = 0; t <= 1; t += 0.06) {
-    const px = x + w * t
-    const top = (1 - t) * (1 - t) * (GROUND - 60) + 2 * (1 - t) * t * (crown - 100) + t * t * (GROUND - 60)
-    const base = (1 - t) * (1 - t) * (GROUND - 20) + 2 * (1 - t) * t * (crown - 50) + t * t * (GROUND - 20)
-    g.rect(px - 0.75, top, 1.5, base - top).fill(palette.ink)
-  }
-  return g
 }

@@ -1,9 +1,19 @@
 import { Container } from 'pixi.js'
 import { People } from '../../layers/people'
 import { Sky } from '../../layers/sky'
-import { CURB } from '../../layout'
+import { CURB, GROUND } from '../../layout'
 import type { Theme } from '../types'
-import { bridge, Canal, Gondola, mooringPoles } from './canal'
+import {
+  bacaroCrowd,
+  festoons,
+  fruitBarge,
+  lionFlag,
+  rialto,
+  Vaporetto,
+  vaporettoStop,
+  WaterTaxi,
+} from './bustle'
+import { Canal, Gondola, mooringPoles } from './canal'
 import { House } from './house'
 import { Neighbors } from './neighbors'
 import { veniceOutfits } from './people'
@@ -19,22 +29,40 @@ export const venice: Theme = {
     const canal = new Canal(seed + 5)
     const people = new People(seed + 10, veniceOutfits)
 
+    // the canal is never empty: gondolas both ways, the water bus, a taxi tearing past
     const gondola = new Gondola(CURB + 62)
-    // a second one further out, heading the other way
     const another = new Gondola(CURB + 30, { speed: -40, start: 2000, scale: 0.72 })
+    const third = new Gondola(CURB + 44, { speed: 30, start: 1100, scale: 0.8 })
+    const bus = new Vaporetto(CURB + 16, { speed: -22, start: 1400, scale: 0.52 })
+    const taxi = new WaterTaxi(CURB + 92, { speed: 170, start: -400, scale: 0.72 })
     const poles = mooringPoles([640, 672, 1720, 1752], [0xb02418, 0x1e3a6a])
     const water = new Container()
-    water.addChild(another, gondola, poles)
+    water.addChild(
+      bus,
+      another,
+      third,
+      fruitBarge(330, lights),
+      vaporettoStop(1560, lights),
+      gondola,
+      poles,
+      taxi,
+    )
+    const boats = [gondola, another, third]
+
+    // the fondamenta: a crowd outside the bacaro, bulbs strung along the water
+    const crowd = bacaroCrowd(830, 1030, lights)
+    const strung = festoons([-60, 300, 700, 1080, 1320, 1700], GROUND - 150, lights)
+    const flag = lionFlag(560, 470)
 
     return {
       house,
       backdrop: [sky, skyline, neighbors],
-      props: [bridge(1900, 420)],
+      props: [rialto(1860, 560, lights), flag.node],
       front: [],
       ground: canal,
       pools: new Container(),
       people,
-      foreground: [water],
+      foreground: [crowd, strung.node, water],
       // the canal is a mirror on a still night
       reflection: 1.35,
       rain: 0,
@@ -44,8 +72,12 @@ export const venice: Theme = {
         skyline.update(time, reducedMotion ? 0 : pointerX)
         neighbors.update(time, dt)
         canal.update(time, dt)
-        gondola.update(reducedMotion ? dt * 0.3 : dt, time)
-        another.update(reducedMotion ? dt * 0.3 : dt, time + 2)
+        const d = reducedMotion ? dt * 0.3 : dt
+        boats.forEach((b, i) => b.update(d, time + i * 2))
+        bus.update(d, time)
+        taxi.update(d, time)
+        strung.update(time)
+        flag.update(time)
       },
     }
   },
