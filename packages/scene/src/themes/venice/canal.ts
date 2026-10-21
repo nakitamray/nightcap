@@ -1,15 +1,29 @@
 import { Container, Graphics, Sprite } from 'pixi.js'
 import { CURB, GROUND, WORLD } from '../../layout'
 import { palette } from '../../palette'
-import { createRng, range } from '../../rng'
+import { createRng, pick, range } from '../../rng'
 import { glowTexture } from '../../textures'
 import { vn } from './parts'
 
 const WATER_BOTTOM = WORLD.height + 700
 
 /** the fondamenta (stone walkway) along the houses and the canal in front */
+interface Ripple {
+  g: Graphics
+  y: number
+  speed: number
+  phase: number
+}
+
+interface Glint {
+  s: Sprite
+  speed: number
+  phase: number
+}
+
 export class Canal extends Container {
-  private ripples: Graphics[] = []
+  private ripples: Ripple[] = []
+  private glints: Glint[] = []
 
   constructor(seed: number) {
     super()
@@ -27,22 +41,43 @@ export class Canal extends Container {
     g.rect(-500, CURB + 4, WORLD.width + 1000, 6).fill({ color: 0x1a2a18, alpha: 0.8 })
     this.addChild(g)
 
-    // a few long horizontal ripple lines that drift
-    for (let i = 0; i < 26; i++) {
-      const r = new Graphics()
-      const w = range(rng, 60, 240)
-      r.rect(0, 0, w, 1.5).fill({ color: 0x3a4a60, alpha: range(rng, 0.25, 0.55) })
-      r.position.set(range(rng, -400, WORLD.width + 400), range(rng, CURB + 20, CURB + 260))
-      this.addChild(r)
-      this.ripples.push(r)
+    // lots of short ripples, drifting with the current and bobbing on the swell
+    for (let i = 0; i < 90; i++) {
+      const g = new Graphics()
+      const w = range(rng, 30, 160)
+      const y = range(rng, CURB + 16, CURB + 280)
+      // nearer the viewer, the ripples get longer and brighter
+      const near = (y - CURB) / 280
+      g.moveTo(0, 0).quadraticCurveTo(w / 2, -2.5, w, 0).stroke({ color: 0x4a5a78, width: 1.2 + near, alpha: range(rng, 0.25, 0.6) })
+      g.position.set(range(rng, -400, WORLD.width + 400), y)
+      this.addChild(g)
+      this.ripples.push({ g, y, speed: range(rng, 8, 22) * (0.6 + near), phase: rng() * 10 })
+    }
+    // warm glints where the windows and lanterns land on the water
+    for (let i = 0; i < 46; i++) {
+      const s = new Sprite(glowTexture())
+      s.anchor.set(0.5)
+      s.position.set(range(rng, -200, WORLD.width + 200), range(rng, CURB + 20, CURB + 240))
+      s.scale.set(range(rng, 0.08, 0.2), range(rng, 0.02, 0.04))
+      s.tint = pick(rng, [0xffb84a, 0xff8a3a, 0xffd890])
+      s.blendMode = 'add'
+      this.addChild(s)
+      this.glints.push({ s, speed: range(rng, 6, 16), phase: rng() * 10 })
     }
   }
 
   update(time: number, dt: number) {
-    this.ripples.forEach((r, i) => {
-      r.x += Math.sin(time * 0.4 + i) * 6 * dt + 4 * dt
-      if (r.x > WORLD.width + 400) r.x = -400
-    })
+    for (const r of this.ripples) {
+      r.g.x += r.speed * dt
+      r.g.y = r.y + Math.sin(time * 1.3 + r.phase) * 2.5
+      r.g.scale.x = 0.8 + Math.sin(time * 0.9 + r.phase) * 0.2
+      if (r.g.x > WORLD.width + 400) r.g.x = -400
+    }
+    for (const gl of this.glints) {
+      gl.s.x += gl.speed * dt
+      if (gl.s.x > WORLD.width + 200) gl.s.x = -200
+      gl.s.alpha = Math.max(0, Math.sin(time * 2.2 + gl.phase)) * 0.7
+    }
   }
 }
 
@@ -72,14 +107,24 @@ export class Gondola extends Container {
   private oar = new Graphics()
   private oarReflection = new Graphics()
   private lantern = new Sprite(glowTexture())
-  private x0 = 380
-  private speed = 54
+  private x0: number
+  private speed: number
   private phase = 0
 
-  constructor(private waterline: number) {
+  /** negative speed rows the other way */
+  constructor(
+    private waterline: number,
+    opts: { speed?: number; start?: number; scale?: number } = {},
+  ) {
     super()
+    this.speed = opts.speed ?? 54
+    this.x0 = opts.start ?? 380
+    this.scale.set(opts.scale ?? 1)
+    const dir = Math.sign(this.speed) || 1
+    this.boat.scale.x = dir
+    this.reflection.scale.x = dir
     this.reflection.addChild(this.drawBoat(new Graphics()), this.oarReflection)
-    this.reflection.scale.set(1, -0.55)
+    this.reflection.scale.y = -0.55
     this.reflection.alpha = 0.25
     this.boat.addChild(this.drawBoat(new Graphics()), this.oar)
     this.lantern.anchor.set(0.5)
@@ -123,10 +168,13 @@ export class Gondola extends Container {
 
   update(dt: number, time: number) {
     this.x0 += this.speed * dt
-    if (this.x0 > WORLD.width + 600) this.x0 = -900
+    const reach = (WORLD.width + 900) / this.scale.x
+    if (this.speed > 0 && this.x0 > reach) this.x0 = -900
+    if (this.speed < 0 && this.x0 < -900) this.x0 = reach
     const bob = Math.sin(time * 1.4) * 2
-    this.boat.position.set(this.x0, this.waterline + bob)
-    this.reflection.position.set(this.x0, this.waterline + 4 - bob * 0.5)
+    const line = this.waterline / this.scale.y
+    this.boat.position.set(this.x0, line + bob)
+    this.reflection.position.set(this.x0, line + 4 - bob * 0.5)
     // the long stroke: blade forward, push back, lift and recover
     this.phase += dt * 0.9
     const sweep = Math.sin(this.phase * Math.PI)
@@ -135,7 +183,7 @@ export class Gondola extends Container {
       o.clear().moveTo(-190, -94).lineTo(blade.x, blade.y).stroke({ color: palette.ink, width: 3 })
       o.ellipse(blade.x, blade.y, 5, 10).fill(palette.ink)
     }
-    this.lantern.position.set(this.x0 + 236, this.waterline - 70 + bob)
+    this.lantern.position.set(this.x0 + 236 * this.boat.scale.x, line - 70 + bob)
     this.lantern.alpha = 0.75 + Math.sin(time * 6) * 0.04
   }
 }

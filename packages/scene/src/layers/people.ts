@@ -36,8 +36,9 @@ export interface Outfit {
 class Walker extends Container {
   private legL = new Graphics()
   private legR = new Graphics()
-  private armL = new Graphics()
-  private armR = new Graphics()
+  private armL = new Container()
+  private armR = new Container()
+  private umbrellaUp = false
   private body = new Container()
   private dog: Graphics | null = null
   private leash: Graphics | null = null
@@ -131,11 +132,11 @@ class Walker extends Container {
     this.body.addChild(head)
 
     for (const arm of [this.armL, this.armR]) {
-      arm.poly([-6, 0, 6, 0, 5, 92, -5, 92]).fill(o.coat)
-      arm.circle(0, 96, 5).fill(SKIN)
+      arm.addChild(new Graphics().poly([-6, 0, 6, 0, 5, 92, -5, 92]).fill(o.coat).circle(0, 96, 5).fill(SKIN))
       arm.position.set(0, shoulder + 8)
     }
-    this.armR.tint = 0xb0a0a0
+    // the far arm is a shade darker
+    this.armR.children[0]!.tint = 0xb0a0a0
     if (o.carry === 'baguette') {
       // tucked under the front arm, sticking out both sides
       const b = new Graphics().roundRect(-34, 0, 74, 9, 4).fill(0xc88a3a)
@@ -166,6 +167,7 @@ class Walker extends Container {
       // held up from the hand
       u.position.set(0, 96)
       this.armL.addChild(u)
+      this.umbrellaUp = true
       u.rotation = 0.1
     }
     this.addChild(this.armR, this.body, this.armL)
@@ -193,7 +195,7 @@ class Walker extends Container {
     this.armL.rotation = -swing * 0.22
     this.armR.rotation = swing * 0.22
     // umbrella arm stays up
-    if (this.armL.children.length) this.armL.rotation = -0.9 + swing * 0.03
+    if (this.umbrellaUp) this.armL.rotation = -0.9 + swing * 0.03
     this.body.y = -Math.abs(Math.cos(this.phase)) * 3
 
     if (this.dog && this.leash) {

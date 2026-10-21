@@ -3,10 +3,10 @@ import { palette } from '../../palette'
 
 export const vn = {
   // plaster at night: what's ochre, rose and terracotta by day
-  ochre: 0x5a3a1a,
-  rose: 0x5a2a26,
-  terracotta: 0x5e2618,
-  plaster: 0x5a2c1e,
+  ochre: 0x785218,
+  rose: 0x6c282c,
+  terracotta: 0x743418,
+  plaster: 0x742e28,
   brick: 0x3e160e,
   istria: 0x7a6a58,
   istriaDark: 0x4a3e32,
@@ -16,6 +16,20 @@ export const vn = {
 }
 
 export const INK = { color: palette.ink, width: 1.5, alpha: 0.7 }
+
+/** venetian plaster after dark: every house on the canal a different one */
+export const PLASTERS = [
+  0x6b282b, // rose
+  0x78521c, // ochre
+  0x733318, // terracotta
+  0x2a4944, // verdigris
+  0x73412b, // salmon
+  0x5f542b, // butter
+  0x521c17, // oxblood
+  0x49334a, // mauve
+  0x7c4420, // apricot
+  0x39465f, // faded blue
+]
 
 /**
  * A pointed gothic arch window outline. `a` is how far down the sides the arch

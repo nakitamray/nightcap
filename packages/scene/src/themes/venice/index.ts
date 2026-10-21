@@ -20,9 +20,11 @@ export const venice: Theme = {
     const people = new People(seed + 10, veniceOutfits)
 
     const gondola = new Gondola(CURB + 62)
+    // a second one further out, heading the other way
+    const another = new Gondola(CURB + 30, { speed: -40, start: 2000, scale: 0.72 })
     const poles = mooringPoles([640, 672, 1720, 1752], [0xb02418, 0x1e3a6a])
     const water = new Container()
-    water.addChild(gondola, poles)
+    water.addChild(another, gondola, poles)
 
     return {
       house,
@@ -43,6 +45,7 @@ export const venice: Theme = {
         neighbors.update(time, dt)
         canal.update(time, dt)
         gondola.update(reducedMotion ? dt * 0.3 : dt, time)
+        another.update(reducedMotion ? dt * 0.3 : dt, time + 2)
       },
     }
   },
