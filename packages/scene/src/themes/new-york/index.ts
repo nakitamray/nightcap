@@ -1,7 +1,10 @@
-import { Container } from 'pixi.js'
+import { Container, Graphics } from 'pixi.js'
 import { People } from '../../layers/people'
 import { Sky } from '../../layers/sky'
-import { CURB } from '../../layout'
+import { CURB, GROUND } from '../../layout'
+import { PlaneTree } from '../paris/street'
+import { stoopSitters, treePit } from './details'
+import { TREES } from './layout'
 import type { Theme } from '../types'
 import { House } from './house'
 import { Neighbors } from './neighbors'
@@ -17,15 +20,23 @@ export const newYork: Theme = {
     const skyline = new Manhattan(seed + 1)
     const neighbors = new Neighbors(seed + 2, lights)
     const house = new House(seed + 3, lights)
-    const lamps = new CobraLamps(lights, [640, 1660])
+    const lamps = new CobraLamps(lights, [620, 1760])
     const ground = new Pavement(seed + 5)
 
     const plug = hydrant()
-    plug.position.set(1610, CURB - 8)
+    plug.position.set(1700, CURB - 8)
     const furniture = new Container()
-    furniture.addChild(plug)
+    const pits = new Graphics()
+    for (const t of TREES) treePit(pits, t.x, CURB - 6)
+    furniture.addChild(pits, plug)
+
+    // the upper west side is mostly trees, at street level
+    const trees = TREES.map((t, i) => new PlaneTree(seed + 20 + i, t.x, t.scale))
 
     const people = new People(seed + 10, newYorkOutfits)
+    const sitters = stoopSitters()
+    sitters.y = GROUND - 1090
+    people.addStanding(sitters)
 
     const parked = new Container()
     const left = checkerCab()
@@ -40,7 +51,7 @@ export const newYork: Theme = {
       house,
       backdrop: [sky, skyline, neighbors],
       props: [lamps],
-      front: [],
+      front: trees,
       ground,
       pools: lamps.pools,
       people,
@@ -51,6 +62,7 @@ export const newYork: Theme = {
         skyline.update(time, reducedMotion ? 0 : pointerX)
         neighbors.update(time, dt)
         lamps.update(time)
+        if (!reducedMotion) for (const t of trees) t.update(time)
         ground.update(time, reducedMotion ? dt * 0.3 : dt)
         passing.update(reducedMotion ? 0 : dt)
       },

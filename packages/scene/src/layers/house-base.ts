@@ -1,5 +1,5 @@
 import { Container } from 'pixi.js'
-import { MAX_ROOMS, windowSlots } from '../layout'
+import { MAX_ROOMS, windowSlots, type Rect, type WindowSlot } from '../layout'
 import type { Rooms } from '../types'
 import { Marquee, type MarqueeLook } from './marquee'
 import { RoomWindow, type WindowStyle } from './window'
@@ -13,14 +13,14 @@ export abstract class BaseHouse extends Container {
   windows: RoomWindow[] = []
   marquee!: Marquee
 
-  protected addWindows(lights: Container, style: WindowStyle) {
-    this.windows = windowSlots().map((slot) => new RoomWindow(slot, lights, style))
+  protected addWindows(lights: Container, style: WindowStyle, slots: WindowSlot[] = windowSlots()) {
+    this.windows = slots.map((slot) => new RoomWindow(slot, lights, style))
     this.addChild(...this.windows)
     return this.windows
   }
 
-  protected addMarquee(lights: Container, look?: MarqueeLook) {
-    this.marquee = new Marquee(lights, look)
+  protected addMarquee(lights: Container, look?: MarqueeLook, rect?: Rect) {
+    this.marquee = new Marquee(lights, look, rect)
     this.addChild(this.marquee)
     return this.marquee
   }

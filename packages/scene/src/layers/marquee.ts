@@ -1,6 +1,6 @@
 import { Container, Graphics, Sprite, Text } from 'pixi.js'
 import { DISPLAY_FONT } from '../fonts'
-import { MARQUEE } from '../layout'
+import { MARQUEE, type Rect } from '../layout'
 import { palette } from '../palette'
 import { coneTexture, glowTexture } from '../textures'
 
@@ -32,9 +32,13 @@ export class Marquee extends Container {
   private lineIndex = 0
   private lineClock = 0
 
-  constructor(lights: Container, look: MarqueeLook = {}) {
+  constructor(
+    lights: Container,
+    look: MarqueeLook = {},
+    private rect: Rect = MARQUEE,
+  ) {
     super()
-    const { x, y, width: w, height: h } = MARQUEE
+    const { x, y, width: w, height: h } = rect
     const boardColour = look.board ?? palette.red
     const face = look.face ?? 0x6b1a10
     const trim = look.trim ?? 0xb8742e
@@ -130,7 +134,7 @@ export class Marquee extends Container {
   }
 
   private fitLine() {
-    const max = MARQUEE.width - 60
+    const max = this.rect.width - 60
     this.line.scale.set(1)
     if (this.line.width > max) this.line.scale.set(max / this.line.width)
     this.title.scale.set(1)

@@ -1,22 +1,24 @@
 import { Container, Graphics, Sprite, Text } from 'pixi.js'
 import { SIGN_FONT } from '../../fonts'
 import { BaseHouse } from '../../layers/house-base'
-import { ironRail } from '../../layers/ironwork'
 import { glow } from '../../layers/neon'
-import { DOOR, FLOOR_H, FIRST_ROW_Y, GROUND, GROUND_FLOOR, HOUSE, SHOPFRONTS } from '../../layout'
+import { GROUND, gridSlots } from '../../layout'
 import { palette } from '../../palette'
-import { chance, createRng, pick, range, type Rng } from '../../rng'
-import { brickWall, ny, waterTower } from './parts'
+import { createRng, range, type Rng } from '../../rng'
+import { areaway, stoop, windowExtras } from './details'
+import { NY_DOOR, NY_GRID, NY_HOUSE, NY_MARQUEE, PARLOR } from './layout'
+import { ny } from './parts'
 import { nyWindow } from './window'
 
-const CORNICE = HOUSE.y - 36
-const STOOP_TOP = GROUND - 52
+const INK = palette.ink
+const LINE = { color: INK, width: 1.5, alpha: 0.7 }
 
-// A Brooklyn brownstone: red-brown brick, a heavy bracketed cornice, a water
-// tank on the roof, and a high stoop with iron rails up to the front door.
+// Our brownstone: tall and narrow, four floors of rooms over a parlor floor,
+// a bracketed cornice, a high stoop with iron rails, and every window with
+// somebody's stuff in it.
 export class House extends BaseHouse {
-  /** text and lanterns drawn while building the shell, kept in front of it */
   private signs = new Container()
+  private bulbs = new Container()
   private doorGlow: Sprite
 
   constructor(seed: number, lights: Container) {
@@ -24,159 +26,142 @@ export class House extends BaseHouse {
     const rng = createRng(seed)
 
     const shell = new Graphics()
-    this.drawRoof(shell)
-    brickWall(shell, HOUSE.x, CORNICE, HOUSE.width, GROUND_FLOOR.y - CORNICE, rng)
+    this.drawFacade(shell, rng)
     this.drawCornice(shell)
-    this.drawCourses(shell)
-    this.drawBase(shell, lights)
+    this.drawParlor(shell, lights)
+    this.drawGarden(shell, lights)
     this.addChild(shell, this.signs)
 
-    this.addWindows(lights, nyWindow)
+    this.addWindows(lights, nyWindow, gridSlots(NY_GRID))
 
-    const boxes = new Graphics()
-    for (const w of this.windows) {
-      if (w.slot.row > 0 && chance(rng, 0.5)) this.windowBox(boxes, w.slot.x, w.slot.y + w.slot.height + 13, w.slot.width, rng)
-    }
-    this.addChild(boxes)
+    // everyone's window is a bit different
+    const extras = new Graphics()
+    const kinds = ['ac', 'box', 'fairy', 'plants', 'ac', 'flag', 'box', 'none', 'fairy', 'ac', 'plants', 'box'] as const
+    this.windows.forEach((w, i) => {
+      const { x, y, width, height } = w.slot
+      windowExtras(extras, lights, this.bulbs, rng, x, y, width, height, kinds[i % kinds.length])
+    })
+    this.addChild(extras, this.bulbs)
 
-    this.addChild(this.drawStoop())
-    this.addMarquee(lights, { board: 0x7a1810, face: 0x3e0c08, trim: 0xd9a54a, fan: false })
+    const steps = new Graphics()
+    stoop(steps, NY_DOOR.x + NY_DOOR.width / 2, PARLOR.floor, NY_DOOR.width)
+    areaway(steps, NY_HOUSE.x + 6, 160)
+    areaway(steps, NY_HOUSE.x + NY_HOUSE.width - 166, 160)
+    this.addChild(steps)
 
-    this.doorGlow = glow(lights, DOOR.x + DOOR.width / 2, STOOP_TOP - 50, 0.9, 1.1, palette.amber, 0.45)
-    for (let ux = HOUSE.x + 40; ux < HOUSE.x + HOUSE.width; ux += 130) {
-      glow(lights, ux, GROUND_FLOOR.y - 30, 2.2, 2.8, palette.amberDeep, 0.14)
+    this.addMarquee(lights, { board: 0x7a1810, face: 0x3e0c08, trim: 0xd9a54a, fan: false }, NY_MARQUEE)
+
+    this.doorGlow = glow(lights, NY_DOOR.x + NY_DOOR.width / 2, NY_DOOR.y + 60, 0.8, 1.2, palette.amber, 0.45)
+    for (let ux = NY_HOUSE.x + 40; ux < NY_HOUSE.x + NY_HOUSE.width; ux += 110) {
+      glow(lights, ux, PARLOR.top + 40, 1.8, 2.6, palette.amberDeep, 0.13)
     }
   }
 
-  private drawRoof(g: Graphics) {
-    const { x, width: w } = HOUSE
-    waterTower(g, x + w - 200, CORNICE - 30, 1.15)
-    g.rect(x + 60, CORNICE - 70, 34, 70).rect(x + 300, CORNICE - 56, 26, 56).fill(ny.brickDark)
-    g.rect(x + 56, CORNICE - 76, 42, 8).rect(x + 296, CORNICE - 62, 34, 8).fill(ny.brownstone)
-    // parapet behind the cornice
-    g.rect(x, CORNICE - 30, w, 30).fill(ny.brickDark)
+  private drawFacade(g: Graphics, rng: Rng) {
+    const { x, y, width: w } = NY_HOUSE
+    // brownstone: soft red-brown sandstone in big smooth blocks
+    g.rect(x, y, w, PARLOR.floor - y).fill(ny.brownstone)
+    for (let by = y + 40; by < PARLOR.floor; by += 26) {
+      g.rect(x, by, w, 1.2).fill({ color: INK, alpha: 0.22 })
+      const off = ((by - y) / 26) % 2 ? 40 : 0
+      for (let bx = x + off; bx < x + w; bx += 80) g.rect(bx, by, 1.2, 26).fill({ color: INK, alpha: 0.14 })
+    }
+    // weathering: the stone flakes and darkens in patches
+    for (let i = 0; i < 26; i++) {
+      g.ellipse(range(rng, x, x + w), range(rng, y + 40, PARLOR.floor), range(rng, 10, 40), range(rng, 6, 20)).fill({
+        color: i % 2 ? ny.brownstoneLight : ny.brownstoneDark,
+        alpha: range(rng, 0.08, 0.2),
+      })
+    }
+    // a belt course under each floor of rooms
+    for (let row = 1; row <= NY_GRID.rows; row++) {
+      const sy = NY_GRID.firstRowY + row * NY_GRID.floorH - 20
+      g.rect(x, sy, w, 5).fill({ color: ny.brownstoneLight, alpha: 0.6 })
+    }
+    // party walls -- the edges where the neighbours butt right up against us
+    g.rect(x - 3, y, 6, GROUND - y).rect(x + w - 3, y, 6, GROUND - y).fill(ny.brownstoneDark)
   }
 
   private drawCornice(g: Graphics) {
-    const { x, width: w } = HOUSE
-    const y = CORNICE
-    // painted pressed-metal cornice, the brownstone's party hat
-    g.rect(x - 22, y - 22, w + 44, 18).fill(ny.cornice)
-    g.rect(x - 16, y - 4, w + 32, 10).fill(0x2a1c18)
-    g.rect(x - 10, y + 6, w + 20, 26).fill(ny.cornice)
-    // frieze panels
-    for (let px = x + 20; px < x + w - 40; px += 92) g.rect(px, y + 11, 60, 16).stroke({ color: 0x3a2a22, width: 1.5 })
-    // scroll brackets
-    for (let bx = x - 4; bx <= x + w - 10; bx += (w + 8) / 6) {
-      g.rect(bx, y - 4, 14, 40).fill(ny.cornice)
-      g.circle(bx + 7, y + 34, 6).fill(ny.cornice)
-      g.rect(bx + 3, y + 2, 8, 2).fill({ color: 0x4a3a30, alpha: 0.8 })
+    const { x, y, width: w } = NY_HOUSE
+    // chimney pots and the parapet behind
+    g.rect(x + 40, y - 60, 30, 60).rect(x + w - 90, y - 50, 24, 50).fill(ny.brickDark)
+    g.rect(x + 36, y - 66, 38, 7).rect(x + w - 94, y - 56, 32, 7).fill(ny.cornice)
+    // big pressed-metal cornice on scroll brackets
+    g.rect(x - 16, y, w + 32, 18).fill(ny.cornice).stroke(LINE)
+    g.rect(x - 10, y + 18, w + 20, 8).fill(0x2a1c18)
+    g.rect(x - 4, y + 26, w + 8, 22).fill(ny.cornice)
+    for (let px = x + 20; px < x + w - 50; px += 74) g.rect(px, y + 30, 50, 14).stroke({ color: 0x3a2a22, width: 1.5 })
+    for (let bx = x - 4; bx <= x + w - 10; bx += (w - 6) / 5) {
+      g.rect(bx, y + 18, 13, 36).fill(ny.cornice)
+      g.circle(bx + 6.5, y + 52, 6).fill(ny.cornice)
     }
-    // dentils
-    for (let dx = x - 18; dx < x + w + 18; dx += 11) g.rect(dx, y - 4, 6, 6).fill(0x2e221c)
+    for (let dx = x - 12; dx < x + w + 12; dx += 10) g.rect(dx, y + 18, 5, 5).fill(0x2e221c)
   }
 
-  private drawCourses(g: Graphics) {
-    const { x, width: w } = HOUSE
-    for (let row = 1; row < 3; row++) {
-      const sy = FIRST_ROW_Y + row * FLOOR_H - 34
-      g.rect(x, sy, w, 5).fill({ color: ny.brownstoneLight, alpha: 0.7 })
-    }
-    g.rect(x - 8, GROUND_FLOOR.y - 6, w + 16, 12).fill(ny.brownstoneLight)
-  }
-
-  private drawBase(g: Graphics, lights: Container) {
-    const { x, y, width: w } = GROUND_FLOOR
-    // brownstone basement, rusticated
-    g.rect(x, y + 6, w, GROUND - y - 6).fill(ny.brownstone)
-    for (let gy = y + 30; gy < GROUND; gy += 22) g.rect(x, gy, w, 3).fill({ color: palette.ink, alpha: 0.45 })
-
-    // garden-level windows behind iron grilles
-    for (const shop of SHOPFRONTS) {
-      const wx = shop.x + 14
-      const wy = shop.y - 6
-      const ww = shop.width - 28
-      const wh = 80
-      g.rect(wx - 8, wy - 8, ww + 16, wh + 14).fill(ny.brownstoneLight)
-      g.rect(wx, wy, ww, wh).fill(0xd87a2e)
-      g.rect(wx, wy, ww, wh * 0.4).fill({ color: 0xffb050, alpha: 0.5 })
-      // plants on the sill inside
-      for (let p = 0; p < 4; p++) {
-        const px = wx + 14 + p * ((ww - 28) / 3)
-        g.rect(px - 6, wy + wh - 16, 12, 14).fill(palette.ink)
-        g.ellipse(px, wy + wh - 22, 9, 10).fill(palette.ink)
+  /** the parlor floor: tall windows, the front door, its carved hood */
+  private drawParlor(g: Graphics, lights: Container) {
+    const top = PARLOR.top + 56
+    const h = PARLOR.floor - top - 14
+    for (const cx of [NY_GRID.x + NY_GRID.width / 6, NY_GRID.x + (NY_GRID.width * 5) / 6]) {
+      const w = 92
+      const x = cx - w / 2
+      g.rect(x - 10, top - 10, w + 20, h + 18).fill(ny.brownstoneDark).stroke(LINE)
+      g.rect(x, top, w, h).fill(0xe0782e)
+      g.rect(x, top, w, h * 0.35).fill({ color: 0xffb860, alpha: 0.55 })
+      // a piano in one, a fern in the other
+      if (cx < 1200) {
+        g.rect(x + 10, top + h - 34, 50, 34).fill(INK)
+        g.rect(x + 12, top + h - 38, 46, 4).fill(INK)
+      } else {
+        g.rect(x + w - 30, top + h - 20, 16, 20).fill(INK)
+        for (let l = 0; l < 7; l++) g.ellipse(x + w - 22 + (l - 3) * 5, top + h - 32, 3, 14).fill(INK)
       }
-      for (let bx = wx + 6; bx < wx + ww; bx += 12) g.rect(bx, wy, 2.5, wh).fill(palette.ink)
-      g.rect(wx, wy + wh / 2, ww, 2.5).fill(palette.ink)
-      glow(lights, wx + ww / 2, wy + wh / 2, (ww * 2) / 256, (wh * 2) / 256, palette.amber, 0.4)
+      g.rect(x + w / 2 - 2, top, 4, h).rect(x, top + h * 0.3, w, 3).fill(0x1a0f0b)
+      g.rect(x, top, w, h).stroke({ color: 0x1a0f0b, width: 5 })
+      // carved hood
+      g.rect(x - 18, top - 28, w + 36, 12).fill(ny.brownstoneLight).stroke(LINE)
+      g.moveTo(x - 14, top - 16).lineTo(x + w + 14, top - 16).lineTo(x + w + 6, top - 8).lineTo(x - 6, top - 8).closePath().fill(ny.brownstone)
+      glow(lights, cx, top + h / 2, (w * 2) / 256, (h * 1.8) / 256, palette.amber, 0.45)
     }
 
-    // the front door, up at the top of the stoop
-    const d = DOOR
-    const top = d.y + 2
-    const h = STOOP_TOP - top
-    g.rect(d.x - 18, top - 16, d.width + 36, h + 16).fill(ny.brownstoneLight)
-    g.rect(d.x - 18, top - 16, d.width + 36, h + 16).stroke({ color: palette.ink, width: 1.5, alpha: 0.7 })
-    g.rect(d.x, top, d.width, 22).fill(0xf0a050)
+    // front door: double doors with glass panels, a transom, a pediment over it
+    const d = NY_DOOR
+    g.rect(d.x - 16, d.y - 14, d.width + 32, d.height + 14).fill(ny.brownstoneLight).stroke(LINE)
+    g.poly([d.x - 26, d.y - 14, d.x + d.width / 2, d.y - 46, d.x + d.width + 26, d.y - 14]).fill(ny.brownstoneLight).stroke(LINE)
+    g.rect(d.x, d.y, d.width, 22).fill(0xf0a050)
     const number = new Text({ text: '214', style: { fontFamily: SIGN_FONT, fontSize: 13, fill: 0x2a140a }, resolution: 3 })
     number.anchor.set(0.5)
-    number.position.set(d.x + d.width / 2, top + 11)
+    number.position.set(d.x + d.width / 2, d.y + 11)
     this.signs.addChild(number)
-    g.rect(d.x, top + 22, d.width, h - 22).fill(0x2a120a)
-    for (const px of [d.x + 6, d.x + d.width / 2 + 4]) {
-      g.rect(px, top + 30, d.width / 2 - 10, 34).fill({ color: palette.amber, alpha: 0.8 })
-      g.rect(px, top + 70, d.width / 2 - 10, h - 80).stroke({ color: 0x4a2414, width: 2 })
+    g.rect(d.x, d.y + 22, d.width, d.height - 22).fill(0x1e0c06)
+    for (const px of [d.x + 5, d.x + d.width / 2 + 3]) {
+      g.rect(px, d.y + 30, d.width / 2 - 8, 50).fill({ color: palette.amber, alpha: 0.85 })
+      g.rect(px, d.y + 88, d.width / 2 - 8, d.height - 100).stroke({ color: 0x4a2414, width: 2 })
     }
-    g.rect(d.x + d.width / 2 - 1.5, top + 22, 3, h - 22).fill(palette.ink)
-    g.circle(d.x + d.width / 2 - 7, top + 76, 2.5).circle(d.x + d.width / 2 + 7, top + 76, 2.5).fill(palette.gold)
+    g.rect(d.x + d.width / 2 - 1.5, d.y + 22, 3, d.height - 22).fill(INK)
+    g.circle(d.x + d.width / 2 - 6, d.y + 86, 2.5).circle(d.x + d.width / 2 + 6, d.y + 86, 2.5).fill(palette.gold)
+    // a wreath, because someone in the house always does that
+    g.circle(d.x + d.width / 4, d.y + 52, 9).stroke({ color: 0x1d3a1a, width: 5 })
+    g.circle(d.x + d.width / 4, d.y + 60, 2.5).fill(palette.red)
   }
 
-  /** steps down to the pavement, iron rails either side, newel posts at the bottom */
-  private drawStoop() {
-    const g = new Graphics()
-    const cx = DOOR.x + DOOR.width / 2
-    const steps = 5
-    const stepH = (GROUND - STOOP_TOP) / steps
-    for (let i = 0; i < steps; i++) {
-      const half = DOOR.width / 2 + 14 + i * 14
-      const y = STOOP_TOP + i * stepH
-      g.rect(cx - half, y, half * 2, stepH).fill(i % 2 ? ny.brownstone : ny.brownstoneLight)
-      g.rect(cx - half, y, half * 2, 2).fill({ color: 0x7a5232, alpha: 0.6 })
+  /** the garden level, half below the street, behind the areaway railings */
+  private drawGarden(g: Graphics, lights: Container) {
+    const { x, width: w } = NY_HOUSE
+    g.rect(x, PARLOR.floor, w, GROUND - PARLOR.floor).fill(ny.brownstoneDark)
+    for (let gy = PARLOR.floor + 20; gy < GROUND; gy += 20) g.rect(x, gy, w, 2).fill({ color: INK, alpha: 0.4 })
+    g.rect(x - 6, PARLOR.floor - 4, w + 12, 8).fill(ny.brownstoneLight)
+    for (const cx of [x + 80, x + w - 80]) {
+      g.rect(cx - 40, PARLOR.floor + 18, 80, 56).fill(0xc0602a)
+      for (let bx = cx - 38; bx < cx + 40; bx += 9) g.rect(bx, PARLOR.floor + 18, 2, 56).fill(INK)
+      g.rect(cx - 40, PARLOR.floor + 18, 80, 56).stroke({ color: ny.brownstoneLight, width: 4 })
+      glow(lights, cx, PARLOR.floor + 46, 0.7, 0.5, palette.amberDeep, 0.35)
     }
-    for (const side of [-1, 1]) {
-      const topX = cx + side * (DOOR.width / 2 + 10)
-      const botX = cx + side * (DOOR.width / 2 + 14 + steps * 14)
-      const railTop = STOOP_TOP - 38
-      const railBot = GROUND - 40
-      g.moveTo(topX, railTop).lineTo(botX, railBot).stroke({ color: ny.iron, width: 3 })
-      for (let t = 0; t <= 1; t += 0.12) {
-        const bx = topX + (botX - topX) * t
-        const by = railTop + (railBot - railTop) * t
-        g.rect(bx - 0.75, by, 1.5, STOOP_TOP + (GROUND - STOOP_TOP) * t - by).fill(ny.iron)
-      }
-      // newel post with a curl at the bottom
-      g.rect(botX - 4, railBot - 6, 8, GROUND - railBot + 6).fill(ny.iron)
-      g.circle(botX, railBot - 10, 6).fill(ny.iron)
-    }
-    // areaway railings in front of the garden windows
-    ironRail(HOUSE.x + 6, GROUND - 46, cx - DOOR.width / 2 - 100 - HOUSE.x - 6, 46, g)
-    ironRail(cx + DOOR.width / 2 + 100, GROUND - 46, HOUSE.x + HOUSE.width - 6 - (cx + DOOR.width / 2 + 100), 46, g)
-    // bins by the rail, lids on
-    for (const bx of [HOUSE.x + 250, HOUSE.x + HOUSE.width - 300]) {
-      g.roundRect(bx, GROUND - 52, 34, 52, 3).fill(0x2a2826)
-      g.rect(bx - 3, GROUND - 56, 40, 6).fill(0x3a3634)
-      for (let r = 1; r < 4; r++) g.rect(bx, GROUND - 52 + r * 13, 34, 1.5).fill({ color: palette.ink, alpha: 0.5 })
-    }
-    return g
-  }
-
-  private windowBox(g: Graphics, x: number, y: number, w: number, rng: Rng) {
-    g.rect(x - 4, y, w + 8, 14).fill(0x2a120c)
-    const flower = pick(rng, [palette.red, palette.burnt, 0xd9a441])
-    for (let i = 0; i < 8; i++) {
-      const fx = x + 4 + (i / 7) * (w - 8)
-      g.ellipse(fx, y - 4, 6, 8).fill(0x1b2416)
-      if (chance(rng, 0.7)) g.circle(fx + range(rng, -3, 3), y - 9 - range(rng, 0, 5), 3).fill(flower)
+    // bins under the stoop
+    for (const bx of [x + 150, x + w - 184]) {
+      g.roundRect(bx, GROUND - 46, 30, 46, 3).fill(0x2a2826)
+      g.rect(bx - 3, GROUND - 50, 36, 6).fill(0x3a3634)
     }
   }
 

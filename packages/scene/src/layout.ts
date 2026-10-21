@@ -73,23 +73,52 @@ export function bayCenter(col: number) {
   return HOUSE.x + (HOUSE.width * (col + 0.5)) / COLS
 }
 
-export function windowSlots(): WindowSlot[] {
+/** how a house lays out its twelve rooms; streets can make theirs taller or wider */
+export interface WindowGrid {
+  x: number
+  width: number
+  cols: number
+  rows: number
+  firstRowY: number
+  floorH: number
+  windowW: number
+  windowH: number
+}
+
+export const PARIS_GRID: WindowGrid = {
+  x: HOUSE.x,
+  width: HOUSE.width,
+  cols: COLS,
+  rows: ROWS,
+  firstRowY: FIRST_ROW_Y,
+  floorH: FLOOR_H,
+  windowW: WINDOW_W,
+  windowH: WINDOW_H,
+}
+
+export function gridSlots(grid: WindowGrid): WindowSlot[] {
+  if (grid.cols * grid.rows !== MAX_ROOMS) throw new Error(`a house has ${MAX_ROOMS} rooms, not ${grid.cols * grid.rows}`)
   const slots: WindowSlot[] = []
-  for (let row = 0; row < ROWS; row++) {
-    for (let col = 0; col < COLS; col++) {
+  for (let row = 0; row < grid.rows; row++) {
+    for (let col = 0; col < grid.cols; col++) {
+      const centre = grid.x + (grid.width * (col + 0.5)) / grid.cols
       slots.push({
-        index: row * COLS + col,
+        index: row * grid.cols + col,
         row,
         col,
         balcony: row === 1 ? 'rail' : 'continuous',
-        x: bayCenter(col) - WINDOW_W / 2,
-        y: FIRST_ROW_Y + row * FLOOR_H,
-        width: WINDOW_W,
-        height: WINDOW_H,
+        x: centre - grid.windowW / 2,
+        y: grid.firstRowY + row * grid.floorH,
+        width: grid.windowW,
+        height: grid.windowH,
       })
     }
   }
   return slots
+}
+
+export function windowSlots(): WindowSlot[] {
+  return gridSlots(PARIS_GRID)
 }
 
 export interface Fit {
