@@ -15,16 +15,17 @@ type Shape = 'rect' | 'arch' | 'french' | 'grid' | 'shutters'
 type Life = 'sax' | 'dinner' | 'reader' | 'sill' | 'desk' | 'dance' | 'cat' | 'party' | 'plants' | 'books' | 'kiss'
 
 // every colour a room can be lit at night: lamps, tvs, coloured shades,
-// fairy lights. warm ones still win, but not by much.
+// fairy lights -- all about as likely as each other.
 const LIGHTS: { weight: number; stops: [number, number, number] }[] = [
-  { weight: 3, stops: [0xd8582a, 0xf5823a, 0xffad5c] },
-  { weight: 2, stops: [0xc89a2a, 0xf0c050, 0xffe08a] },
-  { weight: 2, stops: [0x8e1a12, 0xc8301e, 0xe8582a] },
-  { weight: 2, stops: [0x1a2a6a, 0x3a5ab0, 0x8aa8e8] },
-  { weight: 1, stops: [0x0f3a4a, 0x2a6a8a, 0x8ab8d0] },
-  { weight: 2, stops: [0x3a1a5a, 0x7040a0, 0xc09ae0] },
-  { weight: 2, stops: [0x8a2a5a, 0xd0608a, 0xf6b0c8] },
-  { weight: 1, stops: [0x2a2a4a, 0x5a5a8a, 0xb0b0d8] },
+  { weight: 1, stops: [0xd8582a, 0xf5823a, 0xffad5c] },
+  { weight: 1, stops: [0xc89a2a, 0xf0c050, 0xffe08a] },
+  { weight: 1, stops: [0x8e1a12, 0xc8301e, 0xe8582a] },
+  { weight: 1, stops: [0x8a2a5a, 0xd0608a, 0xf6b0c8] },
+  { weight: 1, stops: [0x3a1a5a, 0x7040a0, 0xc09ae0] },
+  { weight: 1, stops: [0x1a2a6a, 0x3a5ab0, 0x8aa8e8] },
+  { weight: 1, stops: [0x0f4a4a, 0x2a8a80, 0x8ad0c0] },
+  { weight: 1, stops: [0x1a4a2a, 0x3a8a4a, 0xa8d890] },
+  { weight: 1, stops: [0x5a5a3a, 0xa8a878, 0xe8e8c8] },
 ]
 
 function pickLight(rng: Rng) {
@@ -37,7 +38,7 @@ function pickLight(rng: Rng) {
   return LIGHTS[0]!.stops
 }
 
-const FRAMES = [0x2a1810, 0x1c2840, 0x6e5e4a, 0x4a1612, 0x1a1210, 0x3a2a3e]
+const FRAMES = [0x2a1810, 0x1c2840, 0x6e5e4a, 0x4a1612, 0x1d3324, 0x3a2a3e]
 
 interface Pane {
   root: Container

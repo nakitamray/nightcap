@@ -19,7 +19,14 @@
     U+00D5-00D6, U+00DC, U+00E4, U+00F5-00F6, U+00FC, U+0160-0161, U+017D-017E;
 }
 
-/* body text: instructions, labels, cards */
+/* body text: instructions, labels, cards. cap sizun doesn't have @ ' & or
+   brackets, so livonia sits behind it and fills in just those */
+@font-face {
+  font-family: 'Cap Sizun';
+  src: url('/fonts/CapSizun.woff2') format('woff2');
+  font-display: swap;
+}
+
 @font-face {
   font-family: 'Livonia';
   src: url('/fonts/Livonia.woff') format('woff');
@@ -44,7 +51,7 @@
 
   --font-display: 'Nightcap Display', serif;
   --font-sign: 'Nightcap Sign', Georgia, serif;
-  --font-body: 'Livonia', Georgia, serif;
+  --font-body: 'Cap Sizun', 'Livonia', Georgia, serif;
 
   color-scheme: dark;
 }
@@ -70,6 +77,15 @@ body {
 button {
   font: inherit;
   color: inherit;
+}
+
+/* cap sizun is all capitals, and its lowercase l is spaced like a W --
+   showing everything uppercase uses the capital L, which is spaced right */
+body,
+input,
+select,
+button {
+  text-transform: uppercase;
 }
 
 .sr-only {
