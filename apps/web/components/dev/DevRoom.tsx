@@ -1,8 +1,9 @@
 'use client'
 
-import { useSyncExternalStore } from 'react'
+import { useState, useSyncExternalStore } from 'react'
 import { RoomView } from '@/components/room/RoomView'
-import { readLayout } from '@/lib/room'
+import styles from '@/components/room/Room.module.css'
+import { readLayout, VARIANTS } from '@/lib/room'
 import { readLocal, type Found } from '@/lib/roomStore'
 import type { Theme } from '@/lib/themes'
 import { THEME_NAMES } from '@/lib/themes'
@@ -27,7 +28,13 @@ export function DevRoom({ theme }: { theme: Theme }) {
     () => false,
   )
   if (!mounted) return null
-  const layout = readLayout(readLocal(`nightcap:dev:${theme}:layout`))
+  // whichever window you claimed on the dev street, or a free one
+  return <Room theme={theme} start={readLocal<number>(`nightcap:dev:${theme}:room`) ?? 2} />
+}
+
+function Room({ theme, start }: { theme: Theme; start: number }) {
+  const [room, setRoom] = useState(start)
+  const layout = readLayout(readLocal(`nightcap:dev:${theme}:${room}:layout`), room)
   const place = readLocal<Found>('nightcap:dev:place')
   return (
     <RoomView
@@ -36,11 +43,28 @@ export function DevRoom({ theme }: { theme: Theme }) {
       houseName={`the ${THEME_NAMES[theme]} street`}
       userId="dev"
       theme={theme}
+      room={room}
       initialLayout={layout}
       place={{ city: place?.city ?? '', lat: place?.lat ?? null, lon: place?.lon ?? null }}
       housemates={FRIENDS}
       spotify="dev"
       backHref={`/dev/${theme}`}
+      // every room in the house is laid out differently; flick through them here
+      extra={
+        <select
+          className={styles.button}
+          value={room}
+          onChange={(e) => setRoom(Number(e.target.value))}
+          aria-label="try another room"
+        >
+          {VARIANTS.map((v, i) => (
+            <option key={i} value={i}>
+              room {i + 1}: {v.name}
+            </option>
+          ))}
+        </select>
+      }
+      key={room}
     />
   )
 }

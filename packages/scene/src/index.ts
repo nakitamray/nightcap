@@ -8,23 +8,4 @@ export type { ThemeId } from './themes/types'
 export { RoomScene } from './room/room-scene'
 export type { RoomOptions } from './room/room-scene'
 export type { Pin, Thing } from './room/context'
-export {
-  ART_COUNT,
-  DEFAULT_LAYOUT,
-  deskCanGoRight,
-  LAMP_STYLES,
-  MAX_FRAMES,
-  readLayout,
-  settle,
-} from './room/layout'
-export type {
-  BedSpot,
-  BedStyle,
-  Frame,
-  LampStyle,
-  Layout as RoomLayout,
-  PaneShape,
-  RugShape,
-  Side,
-} from './room/layout'
-export { ART_NAMES } from './room/art'
+export * from './layout-entry'

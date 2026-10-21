@@ -7,7 +7,14 @@ import type { Layout } from '@/lib/room'
 /** mounts the room once, then pushes layout / record / pins changes into it */
 export function useRoomScene(
   host: RefObject<HTMLDivElement | null>,
-  opts: { layout: Layout; theme: ThemeId; seed: string; playing: boolean; pins: Pin[] },
+  opts: {
+    layout: Layout
+    theme: ThemeId
+    seed: string
+    room: number
+    playing: boolean
+    pins: Pin[]
+  },
   onPick: (thing: Thing) => void,
 ) {
   const sceneRef = useRef<RoomScene | null>(null)

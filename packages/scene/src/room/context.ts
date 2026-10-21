@@ -2,11 +2,22 @@ import { Container, Graphics } from 'pixi.js'
 import type { Rng } from '../rng'
 import type { ThemeId } from '../themes/types'
 import type { Layout } from './layout'
+import type { Plan } from './plan'
 import { project, scaleAt, type P3 } from './projection'
 
 /** the things in a room you can click on to change */
 export type Thing =
-  'bed' | 'wall' | 'window' | 'frames' | 'lamp' | 'rug' | 'desk' | 'led' | 'vinyl' | 'map'
+  | 'bed'
+  | 'wall'
+  | 'window'
+  | 'posters'
+  | 'shelves'
+  | 'lamp'
+  | 'rug'
+  | 'desk'
+  | 'led'
+  | 'vinyl'
+  | 'map'
 
 /** a pool of light, for the night-time shading pass (view units) */
 export interface Light {
@@ -34,6 +45,7 @@ export class Ctx {
 
   constructor(
     readonly layout: Layout,
+    readonly plan: Plan,
     readonly theme: ThemeId,
     readonly rng: Rng,
     readonly back: Container,

@@ -254,9 +254,9 @@ function banker(g: Graphics, lit: Graphics) {
 
 /** a big red paper lantern hanging from the beam */
 function lantern(ctx: Ctx) {
-  const p: P3 = [-50, 214, 250]
+  const p: P3 = [-50, 320, 250]
   const { x, y, s } = at(p)
-  const [, cy] = project([p[0], ROOM.ceiling - 16, p[2]])
+  const [, cy] = project([p[0], ROOM.ceiling, p[2]])
   const g = ctx.layer('lamp')
   const lit = new Graphics()
   ctx.lights.addChild(lit)

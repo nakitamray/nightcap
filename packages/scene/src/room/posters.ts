@@ -1,20 +1,41 @@
 import type { Graphics } from 'pixi.js'
 
-// Little paintings for the frames, each on a 100x100 square.
-export const ART_NAMES = ['sunset', 'cut-outs', 'mountains', 'still life', 'portrait', 'stripes']
+import { Text } from 'pixi.js'
+import { SIGN_FONT } from '../fonts'
 
-export function paintArt(g: Graphics, index: number) {
-  switch (index % ART_NAMES.length) {
+// Posters and prints for the walls, each drawn on a 100 x 140 sheet.
+export const POSTER_NAMES = [
+  'sunset',
+  'cut-outs',
+  'mountains',
+  'still life',
+  'portrait',
+  'stripes',
+  'jazz night',
+  'moon phases',
+  'film still',
+  'botanical',
+  'pressed fern',
+  'travel poster',
+  'calligraphy',
+  'bauhaus',
+  'mushrooms',
+  'the cat',
+]
+export const POSTER_H = 140
+
+export function paintPoster(g: Graphics, index: number) {
+  g.rect(0, 0, 100, POSTER_H).fill(0xf2e2bd)
+  switch (index % POSTER_NAMES.length) {
     case 0:
       g.rect(0, 0, 100, 60).fill(0xe8803a)
       g.rect(0, 28, 100, 32).fill(0xd8502a)
       g.circle(50, 58, 18).fill(0xf6d06a)
-      g.rect(0, 58, 100, 42).fill(0x1e2a5a)
+      g.rect(0, 58, 100, 82).fill(0x1e2a5a)
       for (const y of [66, 74, 84])
         g.rect(22 + (y % 3) * 6, y, 60 - (y - 66), 2).fill({ color: 0xf6d06a, alpha: 0.7 })
       break
     case 1:
-      g.rect(0, 0, 100, 100).fill(0xf2e2bd)
       g.moveTo(20, 80)
         .quadraticCurveTo(10, 40, 35, 20)
         .quadraticCurveTo(45, 50, 30, 80)
@@ -28,15 +49,15 @@ export function paintArt(g: Graphics, index: number) {
         .fill(0xe8c25a)
       break
     case 2:
-      g.rect(0, 0, 100, 100).fill(0x141a3a)
+      g.rect(0, 0, 100, 140).fill(0x141a3a)
       g.circle(72, 24, 9).fill(0xf6e0b0)
       g.poly([0, 80, 28, 40, 46, 64, 66, 34, 100, 78, 100, 100, 0, 100]).fill(0x2f4a7a)
       g.poly([28, 40, 22, 49, 34, 49]).poly([66, 34, 59, 44, 73, 44]).fill(0xf2e2bd)
-      g.poly([0, 88, 40, 70, 70, 84, 100, 74, 100, 100, 0, 100]).fill(0x1e3a2a)
+      g.poly([0, 88, 40, 70, 70, 84, 100, 74, 100, 140, 0, 140]).fill(0x1e3a2a)
       break
     case 3:
-      g.rect(0, 0, 100, 100).fill(0x5a2a1c)
-      g.rect(0, 72, 100, 28).fill(0x8a4a2a)
+      g.rect(0, 0, 100, 140).fill(0x5a2a1c)
+      g.rect(0, 72, 100, 68).fill(0x8a4a2a)
       g.moveTo(40, 74)
         .quadraticCurveTo(34, 58, 42, 46)
         .lineTo(58, 46)

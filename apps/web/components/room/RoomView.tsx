@@ -2,8 +2,8 @@
 
 import type { Pin, ThemeId, Thing } from '@nightcap/scene'
 import Link from 'next/link'
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { settle, type Layout } from '@/lib/room'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { settle, VARIANTS, type Layout } from '@/lib/room'
 import { localStore, supabaseStore } from '@/lib/roomStore'
 import { Panel, type Place } from './Panel'
 import { useRoomScene } from './useRoomScene'
@@ -21,6 +21,8 @@ interface Props {
   houseName: string
   userId: string
   theme: ThemeId
+  /** which of the house's twelve rooms this is */
+  room: number
   initialLayout: Layout
   place: Place
   housemates: Pin[]
@@ -28,13 +30,16 @@ interface Props {
   /** dev mode: save to this browser instead of the database */
   dev?: boolean
   backHref?: string
+  /** anything else for the top bar */
+  extra?: ReactNode
 }
 
 const THINGS: [Thing, string][] = [
   ['bed', 'bed'],
   ['wall', 'walls'],
   ['window', 'window'],
-  ['frames', 'pictures'],
+  ['posters', 'posters'],
+  ['shelves', 'bookcases'],
   ['lamp', 'lamp'],
   ['rug', 'rug'],
   ['desk', 'desk'],
@@ -50,16 +55,18 @@ export function RoomView({
   houseName,
   userId,
   theme,
+  room,
   initialLayout,
   place: initialPlace,
   housemates,
   spotify,
   dev = false,
   backHref,
+  extra,
 }: Props) {
   const store = useMemo(
-    () => (dev ? localStore(`${theme}`) : supabaseStore(houseId, userId)),
-    [dev, theme, houseId, userId],
+    () => (dev ? localStore(`${theme}:${room}`) : supabaseStore(houseId, userId)),
+    [dev, theme, room, houseId, userId],
   )
   const hostRef = useRef<HTMLDivElement>(null)
   const [layout, setLayout] = useState(initialLayout)
@@ -112,7 +119,7 @@ export function RoomView({
 
   const ready = useRoomScene(
     hostRef,
-    { layout, theme, seed: houseId, playing: !!track, pins },
+    { layout, theme, seed: houseId, room, playing: !!track, pins },
     setOpen,
   )
 
@@ -124,6 +131,8 @@ export function RoomView({
         <Link className={styles.button} href={backHref ?? `/h/${houseId}`}>
           back to {houseName}
         </Link>
+        <span className={styles.title}>{VARIANTS[room % VARIANTS.length]!.name}</span>
+        {extra}
         <span className={styles.saved} aria-live="polite">
           {saved === 'saving' ? 'saving…' : saved === 'error' ? 'couldn’t save, try again' : ''}
         </span>
@@ -139,7 +148,8 @@ export function RoomView({
         <Panel
           thing={open}
           layout={layout}
-          onChange={(next) => setLayout(settle(next))}
+          onChange={(next) => setLayout(settle(next, room))}
+          room={room}
           onClose={() => setOpen(null)}
           spotify={spotify}
           track={track}

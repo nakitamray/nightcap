@@ -53,11 +53,15 @@ How it fits together:
 - `/h/<id>` is the street. Double click an empty window to claim it (one
   room each). Lights are live presence: a window is lit while that person
   has the house open.
-- `/h/<id>/room` is your room. Click anything to change it: bed (colours,
-  and which wall), paint, window shape and curtains, up to two pictures,
-  six old lamps, a rug, the desk, a light strip round the ceiling. The rest
-  (shelves, plants, candles, the cat, a neon sign for the city) comes with
-  the room. The record
+- `/h/<id>/room` is your room. All twelve rooms in a house are different
+  (`packages/scene/src/room/variants.ts`): the attic library, the lounge,
+  the studio, the greenhouse and so on, each with its own window, desk,
+  shelving, ceiling, floor, plants and furniture. Click anything to change
+  it: the bed (five frames, colours, which wall), paint, window shape and
+  curtains, posters for every free bit of wall, extra bookcases, six old
+  lamps, a rug, the desk, and an led strip in the rooms that don't have
+  fairy lights. `plan.ts` works out where everything goes so nothing
+  overlaps. The record
   on the wall connects Spotify and spins while you're listening; the map
   poster pins where you are (to the nearest town) next to everyone else.
 

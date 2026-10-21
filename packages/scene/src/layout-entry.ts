@@ -2,4 +2,7 @@
 // server code can validate a saved room.
 export * from './room/layout'
 export type { Layout as RoomLayout } from './room/layout'
-export { ART_NAMES } from './room/art'
+export { POSTER_NAMES } from './room/posters'
+export { planRoom } from './room/plan'
+export type { Plan } from './room/plan'
+export { VARIANTS, variantFor } from './room/variants'

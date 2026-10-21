@@ -1,14 +1,19 @@
 // The room's layout lives with the drawing code in @nightcap/scene; this
 // adds the bits only the editor needs.
 export {
-  ART_COUNT,
-  ART_NAMES,
+  BED_STYLES,
   DEFAULT_LAYOUT,
+  defaultLayout,
   deskCanGoRight,
   LAMP_STYLES,
-  MAX_FRAMES,
+  MAX_POSTERS,
+  MAX_SHELVES,
+  planRoom,
+  POSTER_COUNT,
+  POSTER_NAMES,
   readLayout,
   settle,
+  VARIANTS,
 } from '@nightcap/scene/layout'
 export type { LampStyle, RoomLayout as Layout } from '@nightcap/scene/layout'
 
@@ -38,7 +43,17 @@ export const SWATCHES = {
     '#3a7a3a',
     '#1e1a1c',
   ],
-  rug: ['#c8302a', '#2a4a8a', '#2f6b66', '#c88a1a', '#5a2a5a', '#e8603a'],
+  rug: [
+    '#c8302a',
+    '#2a4a8a',
+    '#2f6b66',
+    '#c88a1a',
+    '#5a2a5a',
+    '#e8603a',
+    '#e0d0b8',
+    '#a8b8a0',
+    '#c8a8a0',
+  ],
   led: ['#ff3a6a', '#ff6a2a', '#b05aff', '#3ad8ff', '#5aff9a', '#ffd06a'],
 }
 
@@ -49,4 +64,12 @@ export const LAMP_NAMES: Record<string, string> = {
   floral: 'floral drum',
   banker: 'banker’s',
   lantern: 'paper lantern',
+}
+
+export const BED_NAMES: Record<string, string> = {
+  iron: 'iron',
+  wood: 'wooden',
+  canopy: 'four-poster',
+  brass: 'brass',
+  platform: 'low platform',
 }

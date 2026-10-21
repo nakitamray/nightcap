@@ -1,23 +1,25 @@
 // One-point perspective for the room. Room space: x runs -200 (left wall) to
-// 200 (right wall), y is 0 at the floor up to 280 at the ceiling, z is 0 at
-// the front of the picture and 400 at the back wall. The eye sits in the
-// middle at y=150, so you face the window with a bit of floor and ceiling.
+// 200 (right wall), y is 0 at the floor up to 440 at the (tall) ceiling, z is 0 at
+// the front of the picture and 400 at the back wall. The eye sits low, at
+// y=170, so the room opens up above you.
 //
-// Everything comes out in "view" units, a 1000 x 700 picture that the scene
+// Everything comes out in "view" units, a 1000 x 960 picture that the scene
 // scales to the screen.
 
 import { Matrix } from 'pixi.js'
 
-export const ROOM = { left: -200, right: 200, floor: 0, ceiling: 280, back: 400 }
-export const VIEW = { width: 1000, height: 700 }
+export const ROOM = { left: -200, right: 200, floor: 0, ceiling: 440, back: 400 }
+export const VIEW = { width: 1000, height: 960 }
 /** the walls carry on in front of the picture so wide screens don't get bars */
-export const NEAR = -170
+export const NEAR = -400
 
 const CX = 500
-const HORIZON = 300
-const EYE = 150
-const F = 1000
-const F0 = 400
+const HORIZON = 480
+const EYE = 170
+// a camera a little further back than you'd stand, so the far wall stays
+// big and the room feels open rather than like a corridor
+const F = 1500
+const F0 = 600
 
 export type P3 = readonly [number, number, number]
 export type P2 = [number, number]

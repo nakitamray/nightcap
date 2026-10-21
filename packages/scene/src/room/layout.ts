@@ -3,9 +3,12 @@
 // Anything that comes back from the database goes through readLayout so a
 // half-written or old layout can't break the page.
 
+import { variantFor } from './variants'
+
 export type Side = 'left' | 'right'
 export type BedSpot = 'right' | 'window'
-export type BedStyle = 'iron' | 'wood'
+export type BedStyle = 'iron' | 'wood' | 'canopy' | 'brass' | 'platform'
+export const BED_STYLES: BedStyle[] = ['iron', 'wood', 'canopy', 'brass', 'platform']
 export type PaneShape = 'rect' | 'arch' | 'circle'
 /** table lamps sit on the desk; the lantern hangs from the ceiling */
 export type LampStyle = 'tiffany' | 'fringe' | 'scallop' | 'floral' | 'banker' | 'lantern'
@@ -19,12 +22,6 @@ export const LAMP_STYLES: LampStyle[] = [
 ]
 export type RugShape = 'none' | 'rect' | 'circle' | 'oval' | 'diamond'
 
-export interface Frame {
-  wall: Side
-  /** which little picture is in it */
-  art: number
-}
-
 export interface Layout {
   wall: string
   bed: {
@@ -36,7 +33,10 @@ export interface Layout {
     blanket: string
   }
   window: { shape: PaneShape; curtains: boolean; curtainColor: string }
-  frames: Frame[]
+  /** poster designs, in the order they go up on the walls */
+  posters: number[]
+  /** extra bookcases asked for, on top of what the room comes with */
+  shelves: number
   lamp: LampStyle
   rug: { shape: RugShape; color: string }
   desk: { wall: Side; color: string }
@@ -44,26 +44,34 @@ export interface Layout {
   led: string | null
 }
 
-export const ART_COUNT = 6
-export const MAX_FRAMES = 2
+export const POSTER_COUNT = 16
+export const MAX_POSTERS = 10
+export const MAX_SHELVES = 3
 
-export const DEFAULT_LAYOUT: Layout = {
-  wall: '#2f6b66',
-  bed: {
-    spot: 'right',
-    style: 'iron',
-    frame: '#1e1a1c',
-    sheets: '#f2e2bd',
-    pillows: '#e8603a',
-    blanket: '#c8302a',
-  },
-  window: { shape: 'arch', curtains: true, curtainColor: '#c8302a' },
-  frames: [{ wall: 'left', art: 0 }],
-  lamp: 'tiffany',
-  rug: { shape: 'rect', color: '#c8302a' },
-  desk: { wall: 'left', color: '#6a3a22' },
-  led: null,
+/** how a room starts out, before its owner changes anything */
+export function defaultLayout(room = 0): Layout {
+  const v = variantFor(room).start
+  return {
+    wall: v.wall,
+    bed: {
+      spot: v.spot ?? 'right',
+      style: v.bed,
+      frame: v.frame,
+      sheets: v.sheets,
+      pillows: v.pillows,
+      blanket: v.blanket,
+    },
+    window: { shape: v.shape, curtains: true, curtainColor: v.curtains },
+    posters: v.posters,
+    shelves: 0,
+    lamp: v.lamp,
+    rug: { shape: 'rect', color: v.rug },
+    desk: { wall: v.deskWall ?? 'left', color: v.desk },
+    led: v.led,
+  }
 }
+
+export const DEFAULT_LAYOUT: Layout = defaultLayout(0)
 
 const HEX = /^#[0-9a-f]{6}$/i
 
@@ -82,9 +90,9 @@ function obj(value: unknown): Record<string, unknown> {
 }
 
 /** turns whatever's saved into a layout we can draw, filling gaps with the defaults */
-export function readLayout(raw: unknown): Layout {
+export function readLayout(raw: unknown, room = 0): Layout {
   const r = obj(raw)
-  const d = DEFAULT_LAYOUT
+  const d = defaultLayout(room)
   const bed = obj(r.bed)
   const win = obj(r.window)
   const rug = obj(r.rug)
@@ -94,7 +102,7 @@ export function readLayout(raw: unknown): Layout {
     wall: colour(r.wall, d.wall),
     bed: {
       spot: pick(bed.spot, ['right', 'window'], d.bed.spot),
-      style: pick(bed.style, ['iron', 'wood'], d.bed.style),
+      style: pick(bed.style, BED_STYLES, d.bed.style),
       frame: colour(bed.frame, d.bed.frame),
       sheets: colour(bed.sheets, d.bed.sheets),
       pillows: colour(bed.pillows, d.bed.pillows),
@@ -105,16 +113,10 @@ export function readLayout(raw: unknown): Layout {
       curtains: typeof win.curtains === 'boolean' ? win.curtains : d.window.curtains,
       curtainColor: colour(win.curtainColor, d.window.curtainColor),
     },
-    frames: Array.isArray(r.frames)
-      ? r.frames
-          .map(obj)
-          .map((f) => ({
-            wall: pick(f.wall, ['left', 'right'], 'left'),
-            art:
-              Number.isInteger(f.art) && (f.art as number) >= 0 ? (f.art as number) % ART_COUNT : 0,
-          }))
-          .slice(0, MAX_FRAMES)
-      : d.frames,
+    posters: readPosters(r, d.posters),
+    shelves: Number.isInteger(r.shelves)
+      ? Math.max(0, Math.min(MAX_SHELVES, r.shelves as number))
+      : 0,
     lamp: pick(r.lamp, LAMP_STYLES, d.lamp),
     rug: {
       shape: pick(rug.shape, ['none', 'rect', 'circle', 'oval', 'diamond'], d.rug.shape),
@@ -126,7 +128,23 @@ export function readLayout(raw: unknown): Layout {
     },
     led: r.led === null ? null : colour(r.led, d.led ?? '') || null,
   }
-  return settle(layout)
+  return settle(layout, room)
+}
+
+function readPosters(r: Record<string, unknown>, fallback: number[]) {
+  const ok = (n: unknown): n is number => Number.isInteger(n) && (n as number) >= 0
+  if (Array.isArray(r.posters))
+    return r.posters
+      .filter(ok)
+      .map((n) => n % POSTER_COUNT)
+      .slice(0, MAX_POSTERS)
+  // rooms saved before posters had a couple of framed pictures instead
+  if (Array.isArray(r.frames))
+    return r.frames
+      .map((f) => obj(f).art)
+      .filter(ok)
+      .map((n) => n % POSTER_COUNT)
+  return fallback
 }
 
 /** the desk can only go on the right wall when the bed isn't there */
@@ -135,9 +153,10 @@ export function deskCanGoRight(layout: Layout) {
 }
 
 /** fixes up combinations that can't physically happen */
-export function settle(layout: Layout): Layout {
-  if (layout.desk.wall === 'right' && !deskCanGoRight(layout)) {
-    return { ...layout, desk: { ...layout.desk, wall: 'left' } }
-  }
-  return layout
+export function settle(layout: Layout, room = 0): Layout {
+  let l = layout
+  if (l.desk.wall === 'right' && !deskCanGoRight(l)) l = { ...l, desk: { ...l.desk, wall: 'left' } }
+  // rooms with fairy lights don't get a strip as well
+  if (variantFor(room).fairy && l.led !== null) l = { ...l, led: null }
+  return l
 }

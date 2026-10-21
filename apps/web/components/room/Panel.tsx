@@ -3,12 +3,15 @@
 import { useState, type ReactNode } from 'react'
 import type { Thing } from '@nightcap/scene'
 import {
-  ART_COUNT,
-  ART_NAMES,
+  BED_NAMES,
+  BED_STYLES,
   deskCanGoRight,
   LAMP_NAMES,
   LAMP_STYLES,
-  MAX_FRAMES,
+  MAX_POSTERS,
+  planRoom,
+  POSTER_COUNT,
+  POSTER_NAMES,
   SWATCHES,
   type Layout,
 } from '@/lib/room'
@@ -25,6 +28,8 @@ export interface Place {
 interface Props {
   thing: Thing
   layout: Layout
+  /** which of the house's rooms this is */
+  room: number
   onChange: (layout: Layout) => void
   onClose: () => void
   spotify: 'off' | 'unlinked' | 'linked' | 'dev'
@@ -40,7 +45,8 @@ const TITLES: Record<Thing, string> = {
   bed: 'the bed',
   wall: 'the walls',
   window: 'the window',
-  frames: 'pictures',
+  posters: 'posters',
+  shelves: 'bookcases',
   lamp: 'the lamp',
   rug: 'the rug',
   desk: 'the desk',
@@ -67,6 +73,7 @@ export function Panel(props: Props) {
 function Body({
   thing,
   layout,
+  room,
   onChange,
   spotify,
   track,
@@ -76,6 +83,7 @@ function Body({
   place,
   onPlace,
 }: Props) {
+  const plan = planRoom(layout, room)
   const set = <K extends keyof Layout>(key: K, value: Layout[K]) =>
     onChange({ ...layout, [key]: value })
 
@@ -86,10 +94,7 @@ function Body({
           <Row label="frame">
             <Choice
               value={layout.bed.style}
-              options={[
-                ['iron', 'iron'],
-                ['wood', 'wooden'],
-              ]}
+              options={BED_STYLES.map((b) => [b, BED_NAMES[b] ?? b])}
               onPick={(style) => set('bed', { ...layout.bed, style })}
             />
           </Row>
@@ -186,46 +191,47 @@ function Body({
         </>
       )
 
-    case 'frames':
+    case 'posters': {
+      const spots = plan.posters.length
+      const hung = layout.posters.slice(0, spots)
       return (
         <>
-          {layout.frames.map((f, i) => (
-            <Row key={i} label={`picture ${i + 1}: ${ART_NAMES[f.art]}`}>
+          {hung.map((design, i) => (
+            <Row key={i} label={`${i + 1}. ${POSTER_NAMES[design]}`}>
               <div className={styles.options}>
-                <Choice
-                  value={f.wall}
-                  options={[
-                    ['left', 'left wall'],
-                    ['right', 'right wall'],
-                  ]}
-                  onPick={(wall) =>
-                    set(
-                      'frames',
-                      layout.frames.map((g, j) => (j === i ? { ...g, wall } : g)),
-                    )
-                  }
-                />
                 <button
                   type="button"
                   className={styles.button}
                   onClick={() =>
                     set(
-                      'frames',
-                      layout.frames.map((g, j) =>
-                        j === i ? { ...g, art: (g.art + 1) % ART_COUNT } : g,
+                      'posters',
+                      layout.posters.map((d, j) =>
+                        j === i ? (d + POSTER_COUNT - 1) % POSTER_COUNT : d,
                       ),
                     )
                   }
                 >
-                  swap picture
+                  ‹
                 </button>
                 <button
                   type="button"
                   className={styles.button}
                   onClick={() =>
                     set(
-                      'frames',
-                      layout.frames.filter((_, j) => j !== i),
+                      'posters',
+                      layout.posters.map((d, j) => (j === i ? (d + 1) % POSTER_COUNT : d)),
+                    )
+                  }
+                >
+                  ›
+                </button>
+                <button
+                  type="button"
+                  className={styles.button}
+                  onClick={() =>
+                    set(
+                      'posters',
+                      layout.posters.filter((_, j) => j !== i),
                     )
                   }
                 >
@@ -234,24 +240,60 @@ function Body({
               </div>
             </Row>
           ))}
-          {layout.frames.length < MAX_FRAMES ? (
+          {hung.length < Math.min(spots, MAX_POSTERS) ? (
             <button
               type="button"
               className={styles.button}
-              onClick={() =>
-                set('frames', [
-                  ...layout.frames,
-                  {
-                    wall: layout.frames[0]?.wall === 'left' ? 'right' : 'left',
-                    art: (layout.frames.length * 2 + 1) % ART_COUNT,
-                  },
-                ])
-              }
+              onClick={() => {
+                const unused =
+                  Array.from({ length: POSTER_COUNT }, (_, d) => d).find(
+                    (d) => !hung.includes(d),
+                  ) ?? 0
+                set('posters', [...hung, unused])
+              }}
             >
-              hang a picture
+              put up another
             </button>
-          ) : (
-            <p className={styles.hint}>two&apos;s the limit, the walls are small.</p>
+          ) : null}
+          <p className={styles.hint}>
+            {spots - hung.length > 0
+              ? `room on the walls for ${spots - hung.length} more.`
+              : 'the walls are full. take one down, or move some furniture to free up wall.'}
+          </p>
+        </>
+      )
+    }
+
+    case 'shelves':
+      return (
+        <>
+          <p className={styles.hint}>
+            {layout.shelves === 0
+              ? 'no extra bookcases yet.'
+              : `${layout.shelves} extra bookcase${layout.shelves > 1 ? 's' : ''}.`}{' '}
+            they go against the walls wherever there&apos;s floor, so they might nudge out something
+            the room came with.
+          </p>
+          <div className={styles.options} style={{ marginTop: 12 }}>
+            <button
+              type="button"
+              className={styles.button}
+              disabled={layout.shelves >= plan.maxShelves}
+              onClick={() => set('shelves', layout.shelves + 1)}
+            >
+              add a bookcase
+            </button>
+            <button
+              type="button"
+              className={styles.button}
+              disabled={layout.shelves === 0}
+              onClick={() => set('shelves', layout.shelves - 1)}
+            >
+              take one away
+            </button>
+          </div>
+          {layout.shelves >= plan.maxShelves && (
+            <p className={styles.hint}>that&apos;s all the floor there is.</p>
           )}
         </>
       )
@@ -325,6 +367,10 @@ function Body({
       )
 
     case 'led':
+      if (plan.variant.fairy)
+        return (
+          <p className={styles.hint}>this room has fairy lights strung up instead of a strip.</p>
+        )
       return (
         <Row label="strip colour">
           <div className={styles.options}>

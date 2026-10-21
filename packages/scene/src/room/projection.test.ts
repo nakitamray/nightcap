@@ -3,11 +3,11 @@ import { boxFaces, project } from './projection'
 
 describe('room projection', () => {
   it('puts the middle of the back wall in the middle of the picture', () => {
-    expect(project([0, 150, 400])).toEqual([500, 300])
+    expect(project([0, 170, 400])).toEqual([500, 480])
   })
 
   it('makes far things smaller', () => {
-    expect(project([100, 150, 0])[0]).toBeGreaterThan(project([100, 150, 400])[0])
+    expect(project([100, 170, 0])[0]).toBeGreaterThan(project([100, 170, 400])[0])
   })
 
   it('shows the inside face of a box against a wall', () => {

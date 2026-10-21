@@ -8,16 +8,18 @@ import { StreetWorld } from '../street-world'
 import type { ThemeId } from '../themes/types'
 import { Ctx, type Light, type Pin, type Thing } from './context'
 import {
+  drawFan,
   drawFloorThings,
-  drawFrames,
-  drawHangingPlant,
+  drawHangingPlants,
   drawMap,
-  drawMirror,
   drawNeon,
+  drawPosters,
   drawShelfTop,
   drawShelves,
   drawVinyl,
 } from './decor'
+import { drawExtra } from './extras'
+import { planRoom } from './plan'
 import { drawBed, drawBookshelf, drawDesk, drawRug } from './furniture'
 import { drawLamp } from './lamps'
 import type { Layout } from './layout'
@@ -30,6 +32,8 @@ export interface RoomOptions {
   theme: ThemeId
   /** anything stable, e.g. the house id, so the room's clutter stays put */
   seed: string
+  /** which of the house's twelve rooms this is; each one is laid out differently */
+  room: number
   playing?: boolean
   pins?: Pin[]
   reducedMotion?: boolean
@@ -133,10 +137,13 @@ export class RoomScene {
       }),
     ]
     const o = this.options
+    const plan = planRoom(o.layout, o.room)
+    const rng = createRng(hash(`${o.seed}:${o.room}`))
     const ctx = (this.ctx = new Ctx(
       o.layout,
+      plan,
       o.theme,
-      createRng(hash(o.seed)),
+      rng,
       back,
       lights,
       o.playing ?? false,
@@ -145,22 +152,25 @@ export class RoomScene {
 
     drawShell(ctx)
     drawWindow(ctx, this.street)
-    const { top } = placeStreet(this.street, o.theme)
+    const { top } = placeStreet(this.street, o.theme, plan.variant, o.room)
     this.street.setRainTop(top - 100)
     drawVinyl(ctx)
     drawMap(ctx)
     drawShelves(ctx)
-    drawFrames(ctx)
+    drawPosters(ctx)
     drawNeon(ctx)
     drawRug(ctx)
-    const shelf = drawBookshelf(ctx)
-    drawShelfTop(ctx, shelf)
-    drawFloorThings(ctx)
+    drawBookshelf(ctx)
+    drawShelfTop(ctx)
+    // things against the back half of the walls first, so nearer ones overlap them
+    const pieces = [...plan.pieces].sort((a, b) => b.zone.z0 - a.zone.z0)
+    pieces.filter((p) => p.zone.name === 'back').forEach((p, i) => drawExtra(ctx, p, i))
     drawBed(ctx)
-    const lampAt = drawDesk(ctx)
-    drawLamp(ctx, lampAt)
-    drawHangingPlant(ctx)
-    drawMirror(ctx)
+    drawLamp(ctx, drawDesk(ctx))
+    pieces.filter((p) => p.zone.name !== 'back').forEach((p, i) => drawExtra(ctx, p, i + 3))
+    drawFloorThings(ctx)
+    drawHangingPlants(ctx)
+    drawFan(ctx)
 
     const night = new Sprite(this.shading(ctx.pools))
     night.position.set(SHADE.x, SHADE.y)
@@ -184,7 +194,7 @@ export class RoomScene {
     canvas.width = Math.round(SHADE.width * k)
     canvas.height = Math.round(SHADE.height * k)
     const c = canvas.getContext('2d')!
-    c.fillStyle = 'rgb(62, 50, 104)'
+    c.fillStyle = 'rgb(84, 72, 124)'
     c.fillRect(0, 0, canvas.width, canvas.height)
     c.globalCompositeOperation = 'lighter'
     for (const p of pools) {

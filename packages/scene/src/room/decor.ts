@@ -2,21 +2,28 @@ import { Container, Graphics, Text } from 'pixi.js'
 import { SIGN_FONT } from '../fonts'
 import { glow } from '../layers/neon'
 import type { ThemeId } from '../themes/types'
-import { paintArt } from './art'
 import { at, type Ctx } from './context'
+import { candle } from './extras'
+import { shelfBox } from './furniture'
 import { block, hex, INK, LINE, shade, THIN } from './paint'
+import type { WallSlot } from './plan'
+import { paintPoster, POSTER_H } from './posters'
 import { flat, pictureMatrix, project, ROOM, scaleAt, type P3 } from './projection'
-import { potPlant } from './window'
+import { potPlant, vines } from './soft'
+import { windowReach } from './window'
 
 const { left: L, right: R, back: B } = ROOM
 const BRASS = 0xd9a54a
-const WAX = 0xf6ead0
 
 // -- the record and the map, either side of the window -----------------------
 
 export function drawVinyl(ctx: Ctx) {
-  const [cx, cy] = project([-160, 172, B])
-  const r = 30 * scaleAt(B)
+  // in the gap between the left wall and the curtains
+  const reach = windowReach(ctx.plan.variant)
+  const room = Math.min(30, (198 - reach) / 2 - 4)
+  // high up, so nothing standing in the corner hides it
+  const [cx, cy] = project([-(198 + reach) / 2, 374, B])
+  const r = room * scaleAt(B)
   const g = ctx.layer('vinyl')
   // the sleeve hanging behind it, slightly crooked
   const sleeve = new Graphics()
@@ -57,7 +64,7 @@ export function drawVinyl(ctx: Ctx) {
       notes.addChild(n)
       return { n, phase: i / 3 }
     })
-    ctx.pool([-160, 172, B], 160, 0.6)
+    ctx.pool([-(198 + reach) / 2, 374, B], 160, 0.6)
     ctx.anim.push((t, dt) => {
       disc.rotation += dt * 3.5
       ring.alpha = 0.6 + Math.sin(t * 4) * 0.3
@@ -260,8 +267,10 @@ const LANDS: [number, number][][] = [
 ]
 
 export function drawMap(ctx: Ctx) {
-  const [x0, y0] = project([116, 212, B])
-  const [x1, y1] = project([196, 122, B])
+  const left = windowReach(ctx.plan.variant) + 6
+  const tall = (197 - left) * 1.5
+  const [x0, y0] = project([left, 330 + tall / 2, B])
+  const [x1, y1] = project([197, 330 - tall / 2, B])
   const w = x1 - x0
   const h = y1 - y0
   const g = ctx.layer('map')
@@ -313,87 +322,257 @@ export function drawMap(ctx: Ctx) {
 
 // -- side walls --------------------------------------------------------------
 
-/** frames hang on the side walls; two per wall at most */
-export function drawFrames(ctx: Ctx) {
-  const frames = ctx.layout.frames
-  const area = ctx.container('frames')
-  frames.forEach((f, i) => {
-    const onThisWall = frames.filter((o) => o.wall === f.wall)
-    const slot = onThisWall.indexOf(f)
-    const zc = onThisWall.length === 1 ? 236 : slot === 0 ? 292 : 176
-    const X = f.wall === 'left' ? L + 1 : R - 1
-    const [near, far] = [zc - 36, zc + 36]
-    const ya = 128
-    const yb = 210
-    // facing the left wall, the front of the room is on your left; facing the right wall, the back is
-    const zl = f.wall === 'left' ? near : far
-    const zr = f.wall === 'left' ? far : near
+/** corners of a slot on a side wall, as you'd read it facing that wall */
+function slotCorners(slot: WallSlot, inset = 0) {
+  const X = slot.wall === 'left' ? L + 1 : R - 1
+  // facing the left wall the front of the room is on your left; facing the right wall, the back is
+  const zl = slot.wall === 'left' ? slot.z0 + inset : slot.z1 - inset
+  const zr = slot.wall === 'left' ? slot.z1 - inset : slot.z0 + inset
+  return { X, zl, zr }
+}
+
+/** your posters, one per free spot on the walls, each hung a little differently */
+export function drawPosters(ctx: Ctx) {
+  const area = ctx.container('posters')
+  const slots = ctx.plan.posters
+  const posters = ctx.layout.posters
+  posters.slice(0, slots.length).forEach((design, i) => {
+    const slot = slots[i]!
+    const { X, zl, zr } = slotCorners(slot)
+    // fit a 100 x 140 sheet in the middle of the slot
+    const availZ = slot.z1 - slot.z0 - 14
+    const availY = slot.y1 - slot.y0 - 8
+    const ph = Math.min(availY, (availZ * POSTER_H) / 100)
+    const pw = (ph * 100) / POSTER_H
+    const zc = (zl + zr) / 2
+    const dir = Math.sign(zr - zl)
+    const za = zc - (dir * pw) / 2
+    const zb = zc + (dir * pw) / 2
+    const yc = (slot.y0 + slot.y1) / 2 + ((i * 7) % 3) * 3 - 3
+    const ya = yc - ph / 2
+    const yb = yc + ph / 2
+    const style = (design + i) % 4
     const g = new Graphics()
-    const pad = f.wall === 'left' ? -6 : 6
-    const outer = flat(
-      [X, yb + 6, zl + pad],
-      [X, yb + 6, zr - pad],
-      [X, ya - 6, zr - pad],
-      [X, ya - 6, zl + pad],
-    )
-    g.poly(outer)
-      .fill(i % 2 ? 0x2a1a10 : BRASS)
-      .stroke(LINE)
-    const inner = flat([X, yb, zl], [X, yb, zr], [X, ya, zr], [X, ya, zl])
+    if (style === 0 || style === 3) {
+      // a frame: dark wood or brass
+      const pad = 4
+      g.poly(
+        flat(
+          [X, yb + pad, za - dir * pad],
+          [X, yb + pad, zb + dir * pad],
+          [X, ya - pad, zb + dir * pad],
+          [X, ya - pad, za - dir * pad],
+        ),
+      )
+        .fill(style ? 0xd9a54a : 0x2a1a10)
+        .stroke(LINE)
+    }
     const pic = new Container()
     const art = new Graphics()
-    paintArt(art, f.art)
-    art.setFromMatrix(pictureMatrix([X, yb, zl], [X, yb, zr], [X, ya, zl]))
-    const mask = new Graphics().poly(inner).fill(0xffffff)
+    paintPoster(art, design)
+    const m = pictureMatrix([X, yb, za], [X, yb, zb], [X, ya, za])
+    m.c *= 100 / POSTER_H
+    m.d *= 100 / POSTER_H
+    art.setFromMatrix(m)
+    const mask = new Graphics()
+      .poly(flat([X, yb, za], [X, yb, zb], [X, ya, zb], [X, ya, za]))
+      .fill(0xffffff)
     pic.addChild(art, mask)
     pic.mask = mask
-    const edge = new Graphics().poly(inner).stroke(THIN)
+    const edge = new Graphics()
+      .poly(flat([X, yb, za], [X, yb, zb], [X, ya, zb], [X, ya, za]))
+      .stroke(THIN)
     area.addChild(g, pic, edge)
-    ctx.hit('frames', (h) => h.poly(outer))
+    if (style === 1) {
+      // taped up at the corners
+      const tape = new Graphics()
+      for (const [y, z] of [
+        [yb, za],
+        [yb, zb],
+      ] as [number, number][]) {
+        const [tx, ty] = project([X, y, z])
+        tape.rect(tx - 5, ty - 2.5, 10, 5).fill({ color: 0xf2e2bd, alpha: 0.8 })
+      }
+      area.addChild(tape)
+    } else if (style === 2) {
+      // hung from a bulldog clip on a nail
+      const clip = new Graphics()
+      const [cx, cy] = project([X, yb, zc])
+      clip.rect(cx - 5, cy - 4, 10, 6).fill(0x2a2a2a)
+      clip
+        .moveTo(cx, cy - 4)
+        .lineTo(cx, cy - 10)
+        .stroke({ color: 0x2a2a2a, width: 1 })
+      area.addChild(clip)
+    }
+    ctx.hit('posters', (h) =>
+      h.poly(flat([X, yb + 4, za], [X, yb + 4, zb], [X, ya - 4, zb], [X, ya - 4, za])),
+    )
   })
-  if (frames.length === 0) {
-    // a ghost of where one could go, so there's something to click
-    const g = new Graphics()
-    const spot = flat([L + 1, 210, 272], [L + 1, 210, 200], [L + 1, 128, 200], [L + 1, 128, 272])
-    g.poly(spot).stroke({ color: 0xf2e2bd, width: 1, alpha: 0.35 })
-    area.addChild(g)
-    ctx.hit('frames', (h) => h.poly(spot))
+  // the spots still free get a faint outline, so there's something to click
+  for (const slot of slots.slice(posters.length, posters.length + 1)) {
+    const { X, zl, zr } = slotCorners(slot, 16)
+    const pts = flat(
+      [X, slot.y1 - 10, zl],
+      [X, slot.y1 - 10, zr],
+      [X, slot.y0 + 10, zr],
+      [X, slot.y0 + 10, zl],
+    )
+    area.addChild(new Graphics().poly(pts).stroke({ color: 0xf2e2bd, width: 1, alpha: 0.3 }))
+    ctx.hit('posters', (h) => h.poly(pts))
   }
 }
 
-/** a floating shelf along a side wall, loaded with stuff */
+/** the room's own wall shelving, in its own style, wherever the plan left space */
 export function drawShelves(ctx: Ctx) {
-  for (const wall of ['left', 'right'] as const) {
-    const X = wall === 'left' ? L : R
-    const d = wall === 'left' ? 1 : -1
+  const style = ctx.plan.variant.shelf
+  ctx.plan.shelves.forEach((slot, i) => {
+    const X = slot.wall === 'left' ? L : R
+    const d = slot.wall === 'left' ? 1 : -1
     const g = ctx.layer()
-    const box =
-      wall === 'left'
-        ? { x0: L, x1: L + 22, y0: 240, y1: 245, z0: 104, z1: 304 }
-        : { x0: R - 22, x1: R, y0: 240, y1: 245, z0: 104, z1: 304 }
-    block(g, box, 0x5a3420)
-    // brackets
-    for (const z of [124, 284]) {
-      g.poly(flat([X, 240, z], [X + d * 16, 240, z], [X, 222, z]), true).fill(0x1e1a1c)
-    }
-    const x = X + d * 11
+    const z0 = slot.z0 + 6
+    const z1 = slot.z1 - 6
+    const y = slot.y0
     const items =
-      wall === 'left'
-        ? ['trail', 'books', 'candle', 'jar', 'trinket', 'cactus']
-        : ['books', 'trail', 'candles', 'radio', 'plant']
-    items.forEach((kind, i) => {
-      const z = 116 + (i * 176) / items.length + 10
-      const p: P3 = [x, 245, z]
-      shelfItem(ctx, g, kind, p)
-    })
-  }
+      i % 2
+        ? ['books', 'trail', 'candles', 'radio', 'plant']
+        : ['trail', 'books', 'candle', 'jar', 'trinket', 'cactus']
+    const place = (depth: number, base: number, list: string[], from = z0, to = z1) => {
+      list.forEach((kind, k) =>
+        shelfItem(ctx, g, kind, [
+          X + d * depth,
+          base,
+          from + ((k + 0.5) * (to - from)) / list.length,
+        ]),
+      )
+    }
+    if (style === 'floating') {
+      block(
+        g,
+        slot.wall === 'left'
+          ? { x0: L, x1: L + 22, y0: y, y1: y + 5, z0, z1 }
+          : { x0: R - 22, x1: R, y0: y, y1: y + 5, z0, z1 },
+        0x5a3420,
+      )
+      for (const z of [z0 + 14, z1 - 14])
+        g.poly(flat([X, y, z], [X + d * 16, y, z], [X, y - 18, z]), true).fill(0x1e1a1c)
+      place(11, y + 5, items)
+    } else if (style === 'ledge') {
+      // a narrow picture ledge with little prints and books leaning on the wall
+      block(
+        g,
+        slot.wall === 'left'
+          ? { x0: L, x1: L + 10, y0: y, y1: y + 4, z0, z1 }
+          : { x0: R - 10, x1: R, y0: y, y1: y + 4, z0, z1 },
+        0x3a2418,
+      )
+      const n = Math.max(2, Math.round((z1 - z0) / 40))
+      for (let k = 0; k < n; k++) {
+        const za = z0 + 6 + (k * (z1 - z0 - 12)) / n
+        const zb = za + ((z1 - z0 - 12) / n) * 0.75
+        const top = y + 4 + 30 + (k % 2) * 10
+        const zl = slot.wall === 'left' ? za : zb
+        const zr = slot.wall === 'left' ? zb : za
+        const pic = new Container()
+        const art = new Graphics()
+        paintPoster(art, (k * 5 + i * 3 + 2) % 16)
+        const m = pictureMatrix([X + d * 3, top, zl], [X + d * 3, top, zr], [X + d * 6, y + 4, zl])
+        m.c *= 100 / POSTER_H
+        m.d *= 100 / POSTER_H
+        art.setFromMatrix(m)
+        const mask = new Graphics()
+          .poly(
+            flat(
+              [X + d * 3, top, zl],
+              [X + d * 3, top, zr],
+              [X + d * 6, y + 4, zr],
+              [X + d * 6, y + 4, zl],
+            ),
+          )
+          .fill(0xffffff)
+        pic.addChild(art, mask)
+        pic.mask = mask
+        ctx.back.addChild(pic)
+        ctx.back.addChild(
+          new Graphics()
+            .poly(
+              flat(
+                [X + d * 3, top, zl],
+                [X + d * 3, top, zr],
+                [X + d * 6, y + 4, zr],
+                [X + d * 6, y + 4, zl],
+              ),
+            )
+            .stroke({ color: 0xf2e2bd, width: 2 }),
+        )
+      }
+    } else if (style === 'niches') {
+      // arched alcoves set into the wall, each with something in it
+      const n = Math.max(1, Math.round((z1 - z0) / 60))
+      for (let k = 0; k < n; k++) {
+        const za = z0 + 4 + (k * (z1 - z0)) / n
+        const zb = za + (z1 - z0) / n - 8
+        const r = (zb - za) / 2
+        const pts: P3[] = [
+          [X, y, za],
+          [X, y + 44, za],
+        ]
+        for (let a = 0; a <= 10; a++) {
+          const ang = Math.PI - (a / 10) * Math.PI
+          pts.push([X, y + 44 + Math.sin(ang) * r, (za + zb) / 2 + Math.cos(ang) * r])
+        }
+        pts.push([X, y, zb])
+        g.poly(flat(...pts))
+          .fill(shade(hex(ctx.layout.wall), -0.55))
+          .stroke(LINE)
+        g.poly(flat([X, y, za], [X, y, zb], [X + d * 4, y - 3, zb], [X + d * 4, y - 3, za])).fill(
+          0xe8d8c0,
+        )
+        shelfItem(ctx, g, ['candles', 'plant', 'jar', 'trinket'][(k + i) % 4]!, [
+          X + d * 8,
+          y,
+          (za + zb) / 2,
+        ])
+      }
+    } else {
+      // cubes: a grid of open boxes on the wall
+      const n = Math.max(2, Math.round((z1 - z0) / 46))
+      for (let row = 0; row < 2; row++) {
+        for (let k = 0; k < n; k++) {
+          const za = z0 + (k * (z1 - z0)) / n
+          const zb = za + (z1 - z0) / n
+          const yb = y - 20 + row * 40
+          const box =
+            slot.wall === 'left'
+              ? { x0: L, x1: L + 26, y0: yb, y1: yb + 40, z0: za, z1: zb }
+              : { x0: R - 26, x1: R, y0: yb, y1: yb + 40, z0: za, z1: zb }
+          block(g, box, 0xe8d8c0, THIN)
+          const face = X + d * 26
+          g.poly(
+            flat(
+              [face, yb + 3, za + 3],
+              [face, yb + 3, zb - 3],
+              [face, yb + 37, zb - 3],
+              [face, yb + 37, za + 3],
+            ),
+          ).fill(0x3a2a20)
+          shelfItem(
+            ctx,
+            g,
+            ['books', 'plant', 'candle', 'jar', 'cactus', 'trinket'][(row * n + k + i) % 6]!,
+            [X + d * 13, yb + 3, (za + zb) / 2],
+          )
+        }
+      }
+    }
+  })
 }
 
 function shelfItem(ctx: Ctx, g: Graphics, kind: string, p: P3) {
   const { x, y, s } = at(p)
   switch (kind) {
     case 'trail': {
-      potPlant(ctx, g, p, 0.85, 0)
+      potPlant(ctx, g, p, 0.85, 'pothos', 0)
       // pothos vines spilling down the wall
       for (let v = 0; v < 5; v++) {
         const len = (30 + v * 14) * s
@@ -441,10 +620,10 @@ function shelfItem(ctx: Ctx, g: Graphics, kind: string, p: P3) {
       glow(ctx.lights, x + 5 * s, y - 8.5 * s, 0.1, 0.06, 0xffb04a, 0.6)
       break
     case 'cactus':
-      potPlant(ctx, g, p, 0.8, 1)
+      potPlant(ctx, g, p, 0.8, 'cactus', 1)
       break
     case 'plant':
-      potPlant(ctx, g, p, 0.95, 2)
+      potPlant(ctx, g, p, 0.95, ctx.plan.variant.plants[0]!, 2)
       break
     case 'trinket':
       trinket(g, ctx.theme, x, y, s)
@@ -519,32 +698,6 @@ function trinket(g: Graphics, theme: ThemeId, x: number, y: number, s: number) {
   }
 }
 
-/** a candle with a flame that actually flickers */
-export function candle(ctx: Ctx, g: Graphics, p: P3, height: number) {
-  const { x, y, s } = at(p)
-  const h = height * s
-  g.rect(x - 2.6 * s, y - h, 5.2 * s, h)
-    .fill(WAX)
-    .stroke({ ...THIN, width: 0.6 })
-  g.moveTo(x - 2.6 * s, y - h)
-    .quadraticCurveTo(x - 3.4 * s, y - h + 4 * s, x - 2.2 * s, y - h + 6 * s)
-    .stroke({ color: WAX, width: 1.5 })
-  const flame = new Graphics()
-  flame.ellipse(0, -3 * s, 1.6 * s, 3.4 * s).fill(0xffd27a)
-  flame.ellipse(0, -2 * s, 0.8 * s, 1.6 * s).fill(0xfff6e0)
-  flame.position.set(x, y - h)
-  ctx.lights.addChild(flame)
-  const halo = glow(ctx.lights, x, y - h - 3 * s, (24 * s) / 128, (30 * s) / 128, 0xffa040, 0.8)
-  ctx.pool([p[0], p[1] + height, p[2]], 70, 0.45)
-  const seed = ctx.rng() * 10
-  ctx.anim.push((t) => {
-    const f = Math.sin(t * 11 + seed) * 0.5 + Math.sin(t * 17.3 + seed * 2) * 0.5
-    flame.scale.set(1 + f * 0.08, 1 + f * 0.18)
-    flame.rotation = f * 0.08
-    if (halo) halo.alpha = 0.7 + f * 0.12
-  })
-}
-
 /** a neon sign on the right wall, local to the city, buzzing on and off */
 const NEON: Record<ThemeId, { text: string; colour: number; font: string }> = {
   paris: { text: 'amour', colour: 0xff4a9a, font: SIGN_FONT },
@@ -558,10 +711,12 @@ const NEON: Record<ThemeId, { text: string; colour: number; font: string }> = {
 }
 
 export function drawNeon(ctx: Ctx) {
+  const slot = ctx.plan.neon
+  if (!slot) return
   const n = NEON[ctx.theme]
-  const X = R - 1
-  const [z0, z1] = [30, 136]
-  const [y0, y1] = [148, 206]
+  const X = slot.wall === 'left' ? L + 1 : R - 1
+  const [z0, z1] = [slot.z0 + 6, slot.z1 - 6]
+  const [y0, y1] = [slot.y0 + 6, slot.y1 - 6]
   const back = new Graphics()
   // the backing board it's mounted on
   back
@@ -580,7 +735,11 @@ export function drawNeon(ctx: Ctx) {
     c.addChild(t)
     t.position.set(50, 50)
     t.scale.set(Math.min(90 / t.width, 70 / t.height))
-    c.setFromMatrix(pictureMatrix([X, y1, z1], [X, y1, z0], [X, y0, z1]))
+    c.setFromMatrix(
+      slot.wall === 'left'
+        ? pictureMatrix([X, y1, z0], [X, y1, z1], [X, y0, z0])
+        : pictureMatrix([X, y1, z1], [X, y1, z0], [X, y0, z1]),
+    )
     c.alpha = alpha
     return c
   }
@@ -601,65 +760,12 @@ export function drawNeon(ctx: Ctx) {
   })
 }
 
-/** a tall arched mirror leaning against the left wall near the front */
-export function drawMirror(ctx: Ctx) {
-  const X = L + 3
-  const [z0, z1] = [8, 92]
-  const bottom = 4
-  const top = 214
-  const arch = (inset: number) => {
-    const pts: P3[] = [[X, bottom + inset, z0 + inset]]
-    const r = (z1 - z0) / 2 - inset
-    const cz = (z0 + z1) / 2
-    const spring = top - r - inset
-    pts.push([X, spring, z0 + inset])
-    for (let i = 0; i <= 12; i++) {
-      const a = Math.PI - (i / 12) * Math.PI
-      pts.push([X, spring + Math.sin(a) * r, cz + Math.cos(a) * r])
-    }
-    pts.push([X, bottom + inset, z1 - inset])
-    return flat(...pts)
-  }
-  const g = ctx.layer()
-  g.poly(arch(0)).fill(BRASS).stroke(LINE)
-  const wallC = hex(ctx.layout.wall)
-  g.poly(arch(6)).fill(shade(wallC, -0.35))
-  // what it reflects: a slice of the room and a smear of lamplight
-  const refl = new Graphics()
-  const mask = new Graphics().poly(arch(6)).fill(0xffffff)
-  const [mx, my] = project([X, 110, 50])
-  refl.rect(mx - 200, my - 400, 400, 800).fill({ color: 0x3a2a4a, alpha: 0.4 })
-  refl.circle(mx + 10, my - 30, 30).fill({ color: 0xffb04a, alpha: 0.25 })
-  for (let i = 0; i < 3; i++) {
-    refl
-      .poly([
-        mx - 60 + i * 30,
-        my + 200,
-        mx - 40 + i * 30,
-        my + 200,
-        mx + 40 + i * 30,
-        my - 200,
-        mx + 20 + i * 30,
-        my - 200,
-      ])
-      .fill({ color: 0xffffff, alpha: 0.08 })
-  }
-  refl.mask = mask
-  ctx.back.addChild(refl, mask)
-  const edge = ctx.layer()
-  edge.poly(arch(6)).stroke(THIN)
-}
-
 // -- floor and ceiling bits ----------------------------------------------------
 
+/** a basket and a pile of books on the floor, out of everything's way */
 export function drawFloorThings(ctx: Ctx) {
-  // a big leafy plant in the back corner
-  bigPlant(ctx, ctx.layout.bed.spot === 'window' ? [-150, 0, 340] : [-136, 0, 384])
-
-  // a basket with a throw in it, front right
   const g = ctx.layer()
-  const bp: P3 = [150, 0, 70]
-  const { x, y, s } = at(bp)
+  const { x, y, s } = at([104, 0, 46])
   g.moveTo(x - 22 * s, y - 30 * s)
     .lineTo(x + 22 * s, y - 30 * s)
     .lineTo(x + 18 * s, y)
@@ -675,19 +781,18 @@ export function drawFloorThings(ctx: Ctx) {
     g.moveTo(x + i * 6 * s, y - 30 * s)
       .lineTo(x + i * 5 * s, y)
       .stroke({ color: 0x7a5a2a, width: 0.7 })
+  // a throw spilling out of it
   g.moveTo(x - 20 * s, y - 30 * s)
-    .quadraticCurveTo(x - 6 * s, y - 44 * s, x + 14 * s, y - 32 * s)
-    .lineTo(x + 18 * s, y - 14 * s)
-    .quadraticCurveTo(x + 26 * s, y - 22 * s, x + 20 * s, y - 30 * s)
+    .bezierCurveTo(x - 10 * s, y - 50 * s, x + 6 * s, y - 40 * s, x + 14 * s, y - 32 * s)
+    .bezierCurveTo(x + 22 * s, y - 26 * s, x + 30 * s, y - 14 * s, x + 26 * s, y - 2 * s)
+    .quadraticCurveTo(x + 20 * s, y - 16 * s, x + 18 * s, y - 28 * s)
+    .closePath()
     .fill(hex(ctx.layout.bed.blanket))
     .stroke(THIN)
 
-  // a stack of books on the floor, front left, with a candle on top
-  const sp: P3 = [-150, 0, 60]
-  const k = at(sp)
-  const colours = [0x2a4a8a, 0xc8302a, 0xe8c25a, 0x3a7a3a]
+  const k = at([-96, 0, 40])
   let top = k.y
-  colours.forEach((c, i) => {
+  for (const [i, c] of [0x2a4a8a, 0xc8302a, 0xe8c25a, 0x3a7a3a].entries()) {
     const bw = (34 - i * 3) * k.s
     const bh = 6 * k.s
     const off = (i % 2 ? 3 : -2) * k.s
@@ -696,106 +801,93 @@ export function drawFloorThings(ctx: Ctx) {
       .stroke({ ...THIN, width: 0.8 })
     g.rect(k.x - bw / 2 + off + 2, top - bh + 1.5, bw - 4, 1).fill({ color: 0xf2e2bd, alpha: 0.5 })
     top -= bh
-  })
-  candle(ctx, g, [-150, 24, 60], 12)
+  }
+  candle(ctx, g, [-96, 24, 40], 12)
 }
 
-function bigPlant(ctx: Ctx, p: P3) {
-  const g = ctx.layer()
-  const { x, y, s } = at(p)
-  g.moveTo(x - 18 * s, y - 34 * s)
-    .lineTo(x + 18 * s, y - 34 * s)
-    .lineTo(x + 14 * s, y)
-    .lineTo(x - 14 * s, y)
-    .closePath()
-    .fill(0x8e3a1e)
-    .stroke(LINE)
-  g.rect(x - 20 * s, y - 38 * s, 40 * s, 6 * s)
-    .fill(0xa84a26)
-    .stroke(THIN)
-  // monstera: big split leaves on long stems
-  const leaves = 9
-  for (let i = 0; i < leaves; i++) {
-    const a = -Math.PI / 2 + (i - (leaves - 1) / 2) * 0.2 + (ctx.rng() - 0.5) * 0.15
-    const len = (70 + ctx.rng() * 60) * s
-    const lx = x + Math.cos(a) * len
-    const ly = y - 36 * s + Math.sin(a) * len
-    g.moveTo(x, y - 36 * s)
-      .quadraticCurveTo(x + Math.cos(a) * len * 0.3, ly + 20 * s, lx, ly)
-      .stroke({ color: 0x2e4a22, width: 1.6 })
-    const leaf = new Graphics()
-    const r = (16 + ctx.rng() * 6) * s
-    leaf
-      .ellipse(0, 0, r, r * 0.72)
-      .fill(i % 3 ? 0x2e7a3a : 0x4a9a3a)
-      .stroke({ ...THIN, width: 0.9 })
-    // the splits
-    for (let c = -2; c <= 2; c++)
-      leaf
-        .moveTo(c * r * 0.3, 0)
-        .lineTo(c * r * 0.55, r * 0.7 * (c % 2 ? 1 : -1))
-        .stroke({ color: 0x1e3a1a, width: 1.4 })
-    leaf.moveTo(-r, 0).lineTo(r, 0).stroke({ color: 0x1e3a1a, width: 0.8 })
-    leaf.position.set(lx, ly)
-    leaf.rotation = a + Math.PI / 2
-    ctx.back.addChild(leaf)
-    const sway = ctx.rng() * 6
+/** pothos in macramé hangers, dropping from the ceiling (never near the walls) */
+export function drawHangingPlants(ctx: Ctx) {
+  const many = ctx.plan.variant.plants.length > 3
+  // kept clear of the record, the map and the window
+  const spots: P3[] = [[-172, 300, 60]]
+  if (many) spots.push([172, 290, 70], [-40, 410, 30])
+  for (const [i, p] of spots.entries()) {
+    const { x, y, s } = at(p)
+    const [, top] = project([
+      p[0],
+      ROOM.ceiling - (ctx.plan.variant.ceiling === 'beams' ? 18 : 0),
+      p[2],
+    ])
+    const g = ctx.layer()
+    for (const d of [-1, 0, 1])
+      g.moveTo(x, top)
+        .lineTo(x + d * 12 * s, y - 14 * s)
+        .stroke({ color: 0xe8d5b0, width: 1 })
+    g.ellipse(x, y - 4 * s, 14 * s, 12 * s)
+      .fill([0xe8c25a, 0xf2e2bd, 0xb8643a][i % 3]!)
+      .stroke(LINE)
+    g.ellipse(x, y - 15 * s, 14 * s, 3 * s).fill(0x3a2a1a)
+    const hang = new Graphics()
+    vines(hang, x, y - 12 * s, s, 7, 90, i * 3)
+    hang.pivot.set(x, y)
+    hang.position.set(x, y)
+    ctx.back.addChild(hang)
     ctx.anim.push((t) => {
-      leaf.rotation = a + Math.PI / 2 + Math.sin(t * 0.6 + sway) * 0.03
+      hang.rotation = Math.sin(t * 0.5 + i) * 0.02
     })
   }
 }
 
-/** a pothos in a macramé hanger, off the beam */
-export function drawHangingPlant(ctx: Ctx) {
-  const p: P3 = [140, 222, 200]
-  const { x, y, s } = at(p)
-  const [, top] = project([p[0], ROOM.ceiling - 16, p[2]])
+/** a slow ceiling fan with rattan blades */
+export function drawFan(ctx: Ctx) {
+  if (ctx.plan.variant.ceiling !== 'fan') return
+  const hub: P3 = [0, ROOM.ceiling - 60, 220]
+  const [hx, hy] = project(hub)
+  const [, cy] = project([0, ROOM.ceiling, 220])
+  const s = scaleAt(220)
   const g = ctx.layer()
-  for (const d of [-1, 0, 1])
-    g.moveTo(x, top)
-      .lineTo(x + d * 12 * s, y - 14 * s)
-      .stroke({ color: 0xe8d5b0, width: 1 })
-  g.ellipse(x, y - 4 * s, 14 * s, 12 * s)
-    .fill(0xe8c25a)
-    .stroke(LINE)
-  g.ellipse(x, y - 15 * s, 14 * s, 3 * s).fill(0x3a2a1a)
-  const vines = new Graphics()
-  for (let v = 0; v < 7; v++) {
-    const dx = (v - 3) * 5 * s
-    const len = (40 + ((v * 37) % 60)) * s
-    vines
-      .moveTo(x + dx, y - 12 * s)
-      .quadraticCurveTo(x + dx * 2.2, y + len * 0.4, x + dx * 1.4, y + len)
-      .stroke({ color: 0x2e5a2e, width: 1.2 })
-    for (let l = 0; l < 7; l++) {
-      const t = l / 7
-      vines
-        .ellipse(
-          x + dx * (1 + t * 0.8) + (l % 2 ? 3.5 : -3.5) * s,
-          y - 8 * s + len * t,
-          3 * s,
-          4.2 * s,
-        )
-        .fill(l % 2 ? 0x5a9a3a : 0x3a7a3a)
-        .stroke({ ...THIN, width: 0.5 })
-    }
+  g.moveTo(hx, cy).lineTo(hx, hy).stroke({ color: 0x2a1a10, width: 3 })
+  g.ellipse(hx, cy + 2, 10 * s, 3 * s).fill(0x2a1a10)
+  const blades = new Container()
+  blades.position.set(hx, hy)
+  blades.scale.y = 0.22
+  const spin = new Container()
+  blades.addChild(spin)
+  for (let i = 0; i < 5; i++) {
+    const b = new Graphics()
+    b.moveTo(10 * s, -6 * s)
+      .bezierCurveTo(60 * s, -16 * s, 90 * s, -10 * s, 96 * s, 0)
+      .bezierCurveTo(90 * s, 10 * s, 60 * s, 16 * s, 10 * s, 6 * s)
+      .closePath()
+      .fill(0xc8904a)
+      .stroke({ color: 0x5a3a1a, width: 4 })
+    for (let k = 1; k < 6; k++)
+      b.moveTo(10 * s + k * 15 * s, -10 * s)
+        .lineTo(10 * s + k * 15 * s, 10 * s)
+        .stroke({ color: 0x8a5a2a, width: 2 })
+    b.rotation = (i / 5) * Math.PI * 2
+    spin.addChild(b)
   }
-  ctx.back.addChild(vines)
-  vines.pivot.set(x, y)
-  vines.position.set(x, y)
+  ctx.back.addChild(blades)
+  const motor = ctx.layer()
+  motor
+    .ellipse(hx, hy, 12 * s, 7 * s)
+    .fill(0x3a2418)
+    .stroke(THIN)
+  motor.ellipse(hx, hy + 6 * s, 7 * s, 5 * s).fill(0xf2d8a0)
   ctx.anim.push((t) => {
-    vines.rotation = Math.sin(t * 0.5) * 0.02
+    spin.rotation = t * 1.2
   })
 }
 
-/** candles and a photo on the bookcase top */
-export function drawShelfTop(ctx: Ctx, shelf: { x0: number; x1: number; y1: number }) {
+/** candles and a photo on the low bookcase under the window */
+export function drawShelfTop(ctx: Ctx) {
+  const shelf = shelfBox(ctx)
+  if (!shelf) return
   const g = ctx.layer()
   candle(ctx, g, [shelf.x0 + 14, shelf.y1 + 5, 384], 16)
   candle(ctx, g, [shelf.x0 + 24, shelf.y1 + 5, 380], 10)
   candle(ctx, g, [shelf.x0 + 32, shelf.y1 + 5, 388], 13)
-  // a photo in a little frame, leaning
   const { x, y, s } = at([shelf.x1 - 22, shelf.y1 + 5, 390])
   g.rect(x - 9 * s, y - 24 * s, 18 * s, 24 * s)
     .fill(0x2a1a10)

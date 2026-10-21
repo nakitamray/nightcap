@@ -57,7 +57,8 @@ export default async function RoomPage({ params }: { params: Promise<{ id: strin
       houseName={house.name}
       userId={userId}
       theme={isTheme(house.theme) ? house.theme : 'paris'}
-      initialLayout={readLayout(me.layout)}
+      room={me.room}
+      initialLayout={readLayout(me.layout, me.room)}
       place={{ city: mine?.city ?? '', lat: mine?.lat ?? null, lon: mine?.lon ?? null }}
       housemates={housemates}
       spotify={spotify}
