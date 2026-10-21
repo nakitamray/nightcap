@@ -1,11 +1,11 @@
 import { Container, Graphics, Sprite, Text } from 'pixi.js'
-import { DISPLAY_FONT, SIGN_FONT } from '../fonts'
-import { CAFE, GROUND, HOUSE } from '../layout'
-import { palette } from '../palette'
-import { chance, createRng, pick, range, type Rng } from '../rng'
-import { dotTexture, glowTexture } from '../textures'
-import { Smoke } from './smoke'
-import { ironRail } from './ironwork'
+import { DISPLAY_FONT, SIGN_FONT } from '../../fonts'
+import { CAFE, GROUND, HOUSE } from '../../layout'
+import { palette } from '../../palette'
+import { chance, createRng, pick, range, type Rng } from '../../rng'
+import { dotTexture, glowTexture } from '../../textures'
+import { Smoke } from '../../layers/smoke'
+import { ironRail } from '../../layers/ironwork'
 
 interface Lantern {
   glow: Sprite

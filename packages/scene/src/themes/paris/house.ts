@@ -1,22 +1,19 @@
 import { Container, Graphics, Sprite, Text } from 'pixi.js'
-import { DISPLAY_FONT, SIGN_FONT } from '../fonts'
-import { DOOR, FLOOR_H, GROUND, GROUND_FLOOR, HOUSE, MAX_ROOMS, SHOPFRONTS, windowSlots, type Rect } from '../layout'
-import { palette } from '../palette'
-import { chance, createRng, int, pick, range, type Rng } from '../rng'
-import { dotTexture, glowTexture } from '../textures'
-import type { Rooms } from '../types'
-import { balconySlab, ironRail } from './ironwork'
-import { Marquee } from './marquee'
-import { RoomWindow } from './window'
+import { DISPLAY_FONT, SIGN_FONT } from '../../fonts'
+import { DOOR, FLOOR_H, GROUND, GROUND_FLOOR, HOUSE, SHOPFRONTS, windowSlots, type Rect } from '../../layout'
+import { palette } from '../../palette'
+import { chance, createRng, int, pick, range, type Rng } from '../../rng'
+import { dotTexture, glowTexture } from '../../textures'
+import { balconySlab, ironRail } from '../../layers/ironwork'
+import { BaseHouse } from '../../layers/house-base'
+import { parisWindow } from './window'
 
 const CORNICE_Y = HOUSE.y
 const ROOF_TOP = 140
 
 // A Haussmann block: limestone, a zinc mansard with dormers, iron balconies,
 // a carriage door, and two little shops at street level.
-export class House extends Container {
-  readonly windows: RoomWindow[]
-  readonly marquee: Marquee
+export class House extends BaseHouse {
   private doorGlow: Sprite
   private neon: { text: Text; glow: Sprite }
   private dormerGlows: Sprite[] = []
@@ -33,8 +30,7 @@ export class House extends Container {
     this.addChild(shell)
     this.addChild(ivy(rng))
 
-    this.windows = windowSlots().map((slot) => new RoomWindow(slot, lights))
-    this.addChild(...this.windows)
+    this.addWindows(lights, parisWindow)
 
     // continuous balconies go in front of the windows
     const balconies = new Graphics()
@@ -58,8 +54,7 @@ export class House extends Container {
     this.addShopSigns()
     this.addStreetNumber()
 
-    this.marquee = new Marquee(lights)
-    this.addChild(this.marquee)
+    this.addMarquee(lights)
     this.neon = this.neonSign(lights, HOUSE.x - 22, 600, 'LIVRES')
 
     this.doorGlow = new Sprite(glowTexture())
@@ -400,30 +395,8 @@ export class House extends Container {
     return c
   }
 
-  setRooms(rooms: Rooms) {
-    for (let i = 0; i < MAX_ROOMS; i++) {
-      const w = this.windows[i]
-      if (!w) continue
-      const next = rooms[i] ?? null
-      const prev = w.resident
-      if (!prev || !next || prev.id !== next.id) {
-        w.setResident(next)
-      } else {
-        w.resident = next
-        w.setLit(next.home)
-        w.setCurtains(next.curtains)
-      }
-    }
-  }
-
-  /** world-space hit test; see the note in scene.ts about why this isn't pixi's */
-  windowAt(x: number, y: number) {
-    return this.windows.find(({ slot }) => x >= slot.x - 12 && x <= slot.x + slot.width + 12 && y >= slot.y - 20 && y <= slot.y + slot.height + 10)
-  }
-
-  update(time: number, dt: number, reducedMotion: boolean) {
-    for (const w of this.windows) w.update(time, dt, reducedMotion)
-    this.marquee.update(time, dt, reducedMotion)
+  override update(time: number, dt: number, reducedMotion: boolean) {
+    super.update(time, dt, reducedMotion)
     // one tube is going, so every so often it stutters
     const stutter = !reducedMotion && time % 7 > 6.5 && Math.sin(time * 70) > 0.2
     this.neon.text.alpha = stutter ? 0.4 : 1

@@ -1,3 +1,5 @@
+import type { ThemeId } from './themes/types'
+
 export type Curtains = 'open' | 'drawn'
 
 export interface Resident {
@@ -26,6 +28,8 @@ export interface SceneEvents extends Record<string, unknown> {
 export interface SceneOptions {
   rooms: Rooms
   marquee: string[]
+  /** which street the house is on; paris if not given */
+  theme?: ThemeId
   seed?: number
   reducedMotion?: boolean
 }

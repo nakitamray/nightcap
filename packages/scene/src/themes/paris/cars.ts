@@ -1,6 +1,6 @@
 import { Container, Graphics, Sprite } from 'pixi.js'
-import { palette } from '../palette'
-import { glowTexture } from '../textures'
+import { palette } from '../../palette'
+import { glowTexture } from '../../textures'
 
 // Parked cars along the kerb, mostly cut off by the edge of the frame like
 // they would be in a photo. Both drawn facing right, wheels on y = 0.

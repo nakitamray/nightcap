@@ -1,17 +1,24 @@
 'use client'
 
-import type { StreetScene, WindowEvent } from '@nightcap/scene'
+import { isThemeId, THEME_IDS, type StreetScene, type ThemeId, type WindowEvent } from '@nightcap/scene'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { demoMarquee, demoRooms, type Member } from '@/lib/house'
+import { demoRooms, marqueeFor, themeNames, type Member } from '@/lib/house'
 import { WindowCard } from './WindowCard'
 import styles from './Street.module.css'
 
 export function Street() {
+  const params = useSearchParams()
+  const router = useRouter()
+  const pathname = usePathname()
+  const asked = params.get('theme')
+  const theme: ThemeId = isThemeId(asked) ? asked : 'paris'
+
   const hostRef = useRef<HTMLDivElement>(null)
   const sceneRef = useRef<StreetScene | null>(null)
   const [rooms, setRooms] = useState(demoRooms)
   const [hover, setHover] = useState<WindowEvent | null>(null)
-  const [ready, setReady] = useState(false)
+  const [readyTheme, setReadyTheme] = useState<ThemeId | null>(null)
   const [touched, setTouched] = useState(false)
 
   const toggle = useCallback((index: number) => {
@@ -25,7 +32,10 @@ export function Street() {
     })
   }, [])
 
-  // the scene is created once; everything after that goes through setRooms
+  // kept in a ref so switching streets doesn't reset who's home
+  const roomsRef = useRef(rooms)
+
+  // the scene is built once per street; after that everything goes through setRooms
   useEffect(() => {
     const host = hostRef.current
     if (!host) return
@@ -35,8 +45,9 @@ export function Street() {
 
     import('@nightcap/scene').then(async ({ StreetScene }) => {
       const s = await StreetScene.create(host, {
-        rooms: demoRooms,
-        marquee: demoMarquee,
+        rooms: roomsRef.current,
+        marquee: marqueeFor(theme),
+        theme,
         reducedMotion,
       })
       // strict mode mounts twice; the first one can finish after it's gone
@@ -44,19 +55,26 @@ export function Street() {
       scene = sceneRef.current = s
       s.events.on('window:hover', setHover)
       s.events.on('window:click', (e) => toggle(e.index))
-      setReady(true)
+      setReadyTheme(theme)
     })
 
     return () => {
       cancelled = true
       scene?.destroy()
       sceneRef.current = null
+      setHover(null)
     }
-  }, [toggle])
+  }, [toggle, theme])
 
   useEffect(() => {
+    roomsRef.current = rooms
     sceneRef.current?.setRooms(rooms)
   }, [rooms])
+
+  const ready = readyTheme === theme
+  const pickTheme = (id: ThemeId) => {
+    router.replace(id === 'paris' ? pathname : `${pathname}?theme=${id}`, { scroll: false })
+  }
 
   const residents = rooms.filter((r): r is Member => r !== null)
   const home = residents.filter((r) => r.home).length
@@ -76,6 +94,14 @@ export function Street() {
           click a window to flip its light
         </p>
       </footer>
+
+      <nav className={styles.themes} data-ready={ready} aria-label="Street">
+        {THEME_IDS.map((id) => (
+          <button key={id} type="button" aria-pressed={id === theme} onClick={() => pickTheme(id)}>
+            {themeNames[id]}
+          </button>
+        ))}
+      </nav>
 
       {/* the canvas isn't keyboard friendly, so the same controls live here too */}
       <ul className="sr-only">

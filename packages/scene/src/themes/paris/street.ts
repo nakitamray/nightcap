@@ -1,9 +1,9 @@
 import { Container, Graphics, Sprite, Text } from 'pixi.js'
-import { SIGN_FONT } from '../fonts'
-import { CURB, GROUND, LAMPPOSTS, MORRIS_COLUMN, WORLD } from '../layout'
-import { palette } from '../palette'
-import { createRng, range } from '../rng'
-import { coneTexture, glowTexture } from '../textures'
+import { SIGN_FONT } from '../../fonts'
+import { CURB, GROUND, LAMPPOSTS, MORRIS_COLUMN, WORLD } from '../../layout'
+import { palette } from '../../palette'
+import { createRng, range } from '../../rng'
+import { coneTexture, glowTexture } from '../../textures'
 
 const STREET_BOTTOM = WORLD.height + 700
 

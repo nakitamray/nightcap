@@ -1,4 +1,4 @@
-import type { Resident } from '@nightcap/scene'
+import type { Resident, ThemeId } from '@nightcap/scene'
 
 // Placeholder house until there's a backend. Facade order: top floor first,
 // left to right.
@@ -33,3 +33,22 @@ export const demoRooms: (Member | null)[] = [
 ]
 
 export const demoMarquee = ['NIGHTCAP', "FRI: DEV'S BIRTHDAY", 'SAT: MOVIE NIGHT', 'SUN: ROOFTOP, 9PM']
+
+// same calendar, different town
+const marquees: Record<ThemeId, string[]> = {
+  paris: demoMarquee,
+  'new-york': ['NIGHTCAP', "FRI: DEV'S BIRTHDAY", 'SAT: CONEY ISLAND', 'SUN: ROOF, 9PM'],
+  venice: ['NIGHTCAP', "FRI: DEV'S BIRTHDAY", 'SAT: GONDOLA AT 8', 'SUN: SPRITZ, 7PM'],
+  tokyo: ['NIGHTCAP', "FRI: DEV'S BIRTHDAY", 'SAT: KARAOKE', 'SUN: RAMEN, 10PM'],
+}
+
+export function marqueeFor(theme: ThemeId) {
+  return marquees[theme]
+}
+
+export const themeNames: Record<ThemeId, string> = {
+  paris: 'paris',
+  'new-york': 'new york',
+  venice: 'venice',
+  tokyo: 'tokyo',
+}

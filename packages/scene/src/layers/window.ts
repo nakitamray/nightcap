@@ -3,10 +3,27 @@ import type { WindowSlot } from '../layout'
 import { palette } from '../palette'
 import { chance, createRng, hashString, pick, range, type Rng } from '../rng'
 import { glowTexture } from '../textures'
-import { ironRail } from './ironwork'
 import type { Curtains, Resident } from '../types'
 
 type Prop = 'cat' | 'lamp' | 'plant' | 'figure' | 'shelf' | 'gramophone'
+
+/**
+ * How a window looks from the street. The light, curtains and furniture are
+ * the same everywhere; the stone (or brick, or timber) around them, the shape
+ * of the glass and the glazing bars belong to the street's theme.
+ */
+export interface WindowStyle {
+  /** outline of the glass in window-local coords */
+  glass(g: Graphics, w: number, h: number): Graphics
+  /** the surround, drawn behind the glass */
+  frame(g: Graphics, slot: WindowSlot): void
+  /** glazing bars and anything else over the glass */
+  bars(g: Graphics, slot: WindowSlot): void
+  /** something in front of the whole window, like a rail */
+  front?(slot: WindowSlot): Container | null
+  /** curtain tint unlit / lit */
+  curtains?: [number, number]
+}
 
 // switch-on flicker, [seconds, brightness]. old bulbs never come on clean.
 const FLICKER: [number, number][] = [
@@ -52,14 +69,17 @@ export class RoomWindow extends Container {
   private hovered = false
   private phase: number
 
-  constructor(slot: WindowSlot, lights: Container) {
+  private style: WindowStyle
+
+  constructor(slot: WindowSlot, lights: Container, style: WindowStyle) {
     super()
     this.slot = slot
+    this.style = style
     this.position.set(slot.x, slot.y)
     this.phase = slot.index * 1.7
 
     const { width: w, height: h } = slot
-    this.drawFrame()
+    style.frame(this.frame, slot)
     this.addChild(this.frame)
 
     const glass = new Graphics()
@@ -105,19 +125,11 @@ export class RoomWindow extends Container {
     this.blind.visible = false
     this.addChild(this.blind)
 
-    // french casements: centre post, a transom, two lighter glazing bars
     const bars = new Graphics()
-    bars.rect(w / 2 - 2, h * 0.2, 4, h * 0.8).fill(palette.ink)
-    bars.rect(0, h * 0.2 - 2, w, 5).fill(palette.ink)
-    bars.rect(0, h * 0.45, w, 2.5).rect(0, h * 0.7, w, 2.5).fill(palette.ink)
-    bars.rect(w / 4 - 1, 0, 2, h * 0.2).rect((3 * w) / 4 - 1, 0, 2, h * 0.2).fill(palette.ink)
-    this.glassPath(bars).stroke({ color: palette.ink, width: 5 })
-    // a little moonlight caught on the glass
-    bars
-      .poly([w * 0.08, h * 0.62, w * 0.22, h * 0.5, w * 0.27, h * 0.55, w * 0.13, h * 0.67])
-      .fill({ color: 0xe6ecff, alpha: 0.07 })
+    style.bars(bars, slot)
     this.addChild(bars)
-    if (slot.balcony === 'rail') this.addChild(ironRail(-8, h - 36, w + 16, 40))
+    const front = style.front?.(slot)
+    if (front) this.addChild(front)
 
     this.halo.anchor.set(0.5)
     this.halo.position.set(slot.x + w / 2, slot.y + h / 2)
@@ -135,33 +147,7 @@ export class RoomWindow extends Container {
   }
 
   private glassPath(g: Graphics) {
-    return g.rect(0, 0, this.slot.width, this.slot.height)
-  }
-
-  private drawFrame() {
-    const g = this.frame
-    const { width: w, height: h, row } = this.slot
-    // moulded stone surround with a shadowed reveal
-    g.rect(-12, -12, w + 24, h + 16).fill(palette.stoneLight)
-    g.rect(-6, -6, w + 12, h + 8).fill(palette.stoneDark)
-    g.rect(-12, -12, w + 24, h + 16).stroke({ color: palette.ink, width: 1.5, alpha: 0.7 })
-
-    if (row === 2) {
-      // the noble floor gets a proper triangular pediment
-      g.poly([-22, -18, w / 2, -54, w + 22, -18]).fill(palette.stoneLight).stroke({ color: palette.ink, width: 1.5, alpha: 0.7 })
-      g.poly([-8, -22, w / 2, -46, w + 8, -22]).fill(palette.stone)
-      g.rect(-24, -20, w + 48, 7).fill(palette.stoneLight)
-    } else if (row === 1) {
-      // flat hood on two little scrolled consoles
-      g.rect(-22, -30, w + 44, 12).fill(palette.stoneLight).stroke({ color: palette.ink, width: 1.5, alpha: 0.7 })
-      g.rect(-22, -18, w + 44, 3).fill({ color: palette.ink, alpha: 0.35 })
-      for (const cx of [-16, w + 8]) {
-        g.rect(cx, -18, 8, 22).fill(palette.stoneLight)
-        g.circle(cx + 4, 6, 4).fill(palette.stoneLight)
-      }
-    } else {
-      g.poly([w / 2 - 9, -16, w / 2 + 9, -16, w / 2 + 6, 0, w / 2 - 6, 0]).fill(palette.stoneLight)
-    }
+    return this.style.glass(g, this.slot.width, this.slot.height)
   }
 
   setHovered(hovered: boolean) {
@@ -329,7 +315,8 @@ export class RoomWindow extends Container {
     this.curtainR.scale.x = openScale
     this.curtainL.skew.x = sway
     this.curtainR.skew.x = -sway * 0.8
-    const tint = lerpColor(palette.curtain, palette.curtainLit, this.light)
+    const [dark, lit] = this.style.curtains ?? [palette.curtain, palette.curtainLit]
+    const tint = lerpColor(dark, lit, this.light)
     this.curtainL.tint = this.curtainR.tint = tint
     this.curtainL.alpha = this.curtainR.alpha = 1 - this.light * 0.12
 
