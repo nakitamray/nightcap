@@ -52,7 +52,9 @@ export function LoginForm({ next, linkError }: { next: string; linkError: boolea
         />
       </label>
       <label className={styles.label}>
-        What do your friends call you? <span style={{ color: 'var(--muted)' }}>(first time only)</span>
+        <span>
+          What do your friends call you? <span className={styles.hint}>(first time only)</span>
+        </span>
         <input
           className={styles.input}
           maxLength={40}

@@ -1,4 +1,5 @@
 import { LoginForm } from './LoginForm'
+import { WindowWallBackground } from '@/components/WindowWallBackground'
 import styles from '@/components/NightCard.module.css'
 
 export const metadata = { title: 'Sign in · Nightcap' }
@@ -11,10 +12,10 @@ export default async function LoginPage({
   const { next, error } = await searchParams
   return (
     <main className={styles.page}>
-      <div className={styles.moon} aria-hidden />
+      <WindowWallBackground />
       <div className={styles.card}>
         <h1 className={styles.title}>NIGHTCAP</h1>
-        <p className={styles.lede}>come home</p>
+        <p className={styles.lede}>make a home</p>
         <LoginForm next={safeNext(next)} linkError={error === 'link'} />
       </div>
     </main>

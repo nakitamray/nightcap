@@ -1,13 +1,5 @@
 import type { Metadata, Viewport } from 'next'
-import { Libre_Caslon_Text } from 'next/font/google'
 import './globals.css'
-
-const caslon = Libre_Caslon_Text({
-  subsets: ['latin'],
-  weight: ['400', '700'],
-  style: ['normal', 'italic'],
-  variable: '--font-caslon',
-})
 
 export const metadata: Metadata = {
   title: 'Nightcap',
@@ -20,7 +12,10 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={caslon.variable}>
+    <html lang="en">
+      <head>
+        <link rel="preload" href="/fonts/Livonia.woff" as="font" type="font/woff" crossOrigin="" />
+      </head>
       <body>{children}</body>
     </html>
   )

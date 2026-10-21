@@ -19,6 +19,13 @@
     U+00D5-00D6, U+00DC, U+00E4, U+00F5-00F6, U+00FC, U+0160-0161, U+017D-017E;
 }
 
+/* body text: instructions, labels, cards */
+@font-face {
+  font-family: 'Livonia';
+  src: url('/fonts/Livonia.woff') format('woff');
+  font-display: swap;
+}
+
 /* Rye on its own, for small signs */
 @font-face {
   font-family: 'Nightcap Sign';
@@ -36,7 +43,8 @@
   --muted: #b79b7a;
 
   --font-display: 'Nightcap Display', serif;
-  --font-body: var(--font-caslon), Georgia, serif;
+  --font-sign: 'Nightcap Sign', Georgia, serif;
+  --font-body: 'Livonia', Georgia, serif;
 
   color-scheme: dark;
 }
