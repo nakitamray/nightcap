@@ -8,12 +8,14 @@ import { House } from './house'
 import { Neighbors } from './neighbors'
 import { parisOutfits } from './people'
 import { couple, Lampposts, morrisColumn, Pavement, PlaneTree } from './street'
+import { EiffelTower } from './eiffel'
 
 export const paris: Theme = {
   id: 'paris',
   build({ seed, lights }) {
     const sky = new Sky(seed)
     const skyline = new Skyline(seed + 1)
+    const tower = new EiffelTower(seed + 11, 1915, 92, 660)
     const neighbors = new Neighbors(seed + 2, lights)
     const house = new House(seed + 3, lights)
     const lamps = new Lampposts(lights)
@@ -27,7 +29,7 @@ export const paris: Theme = {
 
     return {
       house,
-      backdrop: [sky, skyline, neighbors],
+      backdrop: [sky, tower, skyline, neighbors],
       props: [morrisColumn(seed + 7), lamps],
       front: trees,
       ground: new Pavement(seed + 5),
@@ -37,6 +39,7 @@ export const paris: Theme = {
       update(time, dt, pointerX, reducedMotion) {
         sky.update(time, dt)
         skyline.update(time, reducedMotion ? 0 : pointerX)
+        tower.update(time, reducedMotion)
         neighbors.update(time, dt)
         lamps.update(time)
         if (!reducedMotion) for (const tree of trees) tree.update(time)
