@@ -11,21 +11,47 @@ import { glowTexture } from './textures'
 
 const INK = 0x07080d
 
-type Shape = 'rect' | 'arch' | 'french' | 'grid' | 'shutters'
-type Life = 'sax' | 'dinner' | 'reader' | 'sill' | 'desk' | 'dance' | 'cat' | 'party' | 'plants' | 'books' | 'kiss'
+type Shape = 'rect' | 'arch' | 'segment' | 'gothic' | 'round' | 'twin' | 'tall'
+type Bars = 'none' | 'cross' | 'transom' | 'grid' | 'sash' | 'lattice' | 'vertical' | 'fan'
+type Balcony = 'none' | 'iron' | 'railing' | 'balustrade' | 'box' | 'plants'
+type Shade = 'none' | 'shutters' | 'blind' | 'cafe'
+type Life =
+  | 'sax'
+  | 'dinner'
+  | 'reader'
+  | 'sill'
+  | 'desk'
+  | 'dance'
+  | 'cat'
+  | 'party'
+  | 'plants'
+  | 'books'
+  | 'kiss'
+  | 'tv'
+  | 'cook'
+  | 'piano'
+  | 'painter'
+  | 'phone'
+  | 'guitar'
 
-// every colour a room can be lit at night: lamps, tvs, coloured shades,
-// fairy lights -- all about as likely as each other.
+const SHAPES: Shape[] = ['rect', 'arch', 'segment', 'gothic', 'round', 'twin', 'tall']
+const BARS: Bars[] = ['none', 'cross', 'transom', 'grid', 'sash', 'lattice', 'vertical', 'fan']
+const BALCONIES: Balcony[] = ['none', 'iron', 'railing', 'balustrade', 'box', 'plants']
+const SHADES: Shade[] = ['none', 'shutters', 'blind', 'cafe']
+const LIVES: Life[] = ['sax', 'dinner', 'reader', 'sill', 'desk', 'dance', 'cat', 'party', 'plants', 'books', 'kiss', 'tv', 'cook', 'piano', 'painter', 'phone', 'guitar']
+
+// mostly lamplight -- amber, honey, apricot, candle -- with the odd room lit
+// some other colour: a tv, a rose shade, a green glass lamp.
 const LIGHTS: { weight: number; stops: [number, number, number] }[] = [
-  { weight: 1, stops: [0xd8582a, 0xf5823a, 0xffad5c] },
-  { weight: 1, stops: [0xc89a2a, 0xf0c050, 0xffe08a] },
-  { weight: 1, stops: [0x8e1a12, 0xc8301e, 0xe8582a] },
-  { weight: 1, stops: [0x8a2a5a, 0xd0608a, 0xf6b0c8] },
-  { weight: 1, stops: [0x3a1a5a, 0x7040a0, 0xc09ae0] },
+  { weight: 4, stops: [0xd8582a, 0xf5823a, 0xffad5c] },
+  { weight: 4, stops: [0xc8862a, 0xf0b048, 0xffda8a] },
+  { weight: 3, stops: [0xb8582a, 0xe88a50, 0xf8c09a] },
+  { weight: 3, stops: [0xd89a3a, 0xf8c868, 0xfff0c0] },
+  { weight: 2, stops: [0x9a2a1a, 0xd04a28, 0xf08a4a] },
   { weight: 1, stops: [0x1a2a6a, 0x3a5ab0, 0x8aa8e8] },
-  { weight: 1, stops: [0x0f4a4a, 0x2a8a80, 0x8ad0c0] },
-  { weight: 1, stops: [0x1a4a2a, 0x3a8a4a, 0xa8d890] },
-  { weight: 1, stops: [0x5a5a3a, 0xa8a878, 0xe8e8c8] },
+  { weight: 1, stops: [0x8a2a4a, 0xc86a7a, 0xf0b0b0] },
+  { weight: 1, stops: [0x2a4a2a, 0x5a8a50, 0xb8d890] },
+  { weight: 1, stops: [0x4a2a5a, 0x8a5a9a, 0xd0b0d8] },
 ]
 
 function pickLight(rng: Rng) {
@@ -38,7 +64,52 @@ function pickLight(rng: Rng) {
   return LIGHTS[0]!.stops
 }
 
-const FRAMES = [0x2a1810, 0x1c2840, 0x6e5e4a, 0x4a1612, 0x1d3324, 0x3a2a3e]
+const FRAMES = [0x2a1810, 0x3a2416, 0x1c2840, 0x6e5e4a, 0x4a1612, 0x1d3324, 0x3a2a3e, 0x5a4a38]
+
+interface Design {
+  shape: Shape
+  bars: Bars
+  balcony: Balcony
+  shade: Shade
+  life: Life
+}
+
+/**
+ * Hands out window designs so no two on the wall are the same: every
+ * combination of shape, glazing, balcony, blind and what's going on inside
+ * is used at most once. Neighbours also get a different shape and scene from
+ * the window before.
+ */
+class Designer {
+  private used = new Set<string>()
+  private last: Design | null = null
+
+  constructor(private rng: Rng) {}
+
+  next(): Design {
+    for (let tries = 0; tries < 400; tries++) {
+      const d: Design = {
+        shape: pick(this.rng, SHAPES),
+        bars: pick(this.rng, BARS),
+        balcony: pick(this.rng, BALCONIES),
+        shade: pick(this.rng, SHADES),
+        life: pick(this.rng, LIVES),
+      }
+      // an oculus is too small for a balcony or shutters
+      if (d.shape === 'round') {
+        d.balcony = 'none'
+        d.shade = 'none'
+      }
+      const key = `${d.shape}|${d.bars}|${d.balcony}|${d.shade}|${d.life}`
+      if (this.used.has(key)) continue
+      if (this.last && (this.last.shape === d.shape || this.last.life === d.life)) continue
+      this.used.add(key)
+      this.last = d
+      return d
+    }
+    throw new Error('ran out of window designs')
+  }
+}
 
 interface Pane {
   root: Container
@@ -104,6 +175,7 @@ export class WindowWall {
     this.paper.setScreen(width, height)
 
     const rng = createRng(this.seed)
+    const designer = new Designer(rng)
     // lots of small windows: a whole city's worth of other people's evenings
     const colW = width < 700 ? 92 : 118
     const cols = Math.ceil(width / colW) + 1
@@ -111,40 +183,40 @@ export class WindowWall {
     for (let c = 0; c < cols; c++) {
       let y = range(rng, -120, -10)
       while (y < height + 20) {
-        const w = range(rng, colW * 0.6, colW * 0.84)
-        const h = range(rng, w * 1.05, w * 1.75)
+        const design = designer.next()
+        let w = range(rng, colW * 0.6, colW * 0.84)
+        let h = range(rng, w * 1.05, w * 1.75)
+        if (design.shape === 'round') h = w = range(rng, colW * 0.5, colW * 0.66)
+        if (design.shape === 'tall') {
+          w *= 0.78
+          h = w * range(rng, 1.9, 2.3)
+        }
         const x = offset + c * colW + (colW - w) / 2 + range(rng, -10, 10)
-        this.addPane(rng, x, y, w, h)
-        y += h + range(rng, 22, 46)
+        this.addPane(rng, design, x, y, w, h)
+        y += h + range(rng, 26, 50) + (design.balcony === 'none' ? 0 : 10)
       }
     }
   }
 
-  private addPane(rng: Rng, x: number, y: number, w: number, h: number) {
-    const shape: Shape = pick(rng, ['rect', 'rect', 'arch', 'french', 'grid', 'shutters'] as const)
+  private addPane(rng: Rng, d: Design, x: number, y: number, w: number, h: number) {
     const frame = pick(rng, FRAMES)
     const light = pickLight(rng)
-    const life: Life = pick(rng, ['sax', 'dinner', 'reader', 'sill', 'desk', 'dance', 'cat', 'party', 'plants', 'books', 'kiss'] as const)
-
     const root = new Container()
     root.position.set(x, y)
 
-    const glass = (g: Graphics) =>
-      shape === 'arch' ? g.moveTo(0, h).lineTo(0, w / 2).arc(w / 2, w / 2, w / 2, Math.PI, 0).lineTo(w, h).closePath() : g.rect(0, 0, w, h)
+    const glass = (g: Graphics, pad = 0) => outline(g, d.shape, w, h, pad)
 
-    // frame and reveal
+    // shutters sit behind the frame, folded back against the wall
     const f = new Graphics()
-    if (shape === 'arch') {
-      f.moveTo(-8, h + 8).lineTo(-8, w / 2).arc(w / 2, w / 2, w / 2 + 8, Math.PI, 0).lineTo(w + 8, h + 8).closePath().fill(frame)
-    } else {
-      f.rect(-8, -8, w + 16, h + 16).fill(frame)
-    }
-    if (shape === 'shutters') {
-      for (const sx of [-8 - w * 0.36, w + 8]) {
-        f.rect(sx, -8, w * 0.36, h + 16).fill(frame)
-        for (let ly = 0; ly < h; ly += 7) f.rect(sx + 3, ly, w * 0.36 - 6, 2).fill({ color: INK, alpha: 0.4 })
+    if (d.shade === 'shutters') {
+      const sw = w * 0.36
+      const tint = pick(rng, [0x1d3324, 0x3a1a14, 0x1c2840, 0x5a4a38])
+      for (const sx of [-8 - sw, w + 8]) {
+        f.rect(sx, -4, sw, h + 8).fill(tint)
+        for (let ly = 2; ly < h; ly += 6) f.rect(sx + 3, ly, sw - 6, 2).fill({ color: INK, alpha: 0.4 })
       }
     }
+    glass(f, 8).fill(frame)
     root.addChild(f)
 
     // the room
@@ -166,31 +238,36 @@ export class WindowWall {
     hot.tint = 0xfff0d0
     hot.alpha = 0.5
     hot.blendMode = 'add'
-    const { node, animate } = scene(life, w, h, rng)
+    const { node, animate } = scene(d.life, w, h, rng)
     const mask = new Graphics()
     glass(mask).fill(0xffffff)
-    interior.addChild(wall, hot, node, mask)
+    interior.addChild(wall, hot, node)
+    if (d.shade === 'blind') {
+      // roller blind pulled part way down
+      const drop = h * range(rng, 0.2, 0.45)
+      interior.addChild(new Graphics().rect(0, 0, w, drop).fill({ color: 0xf0dcb0, alpha: 0.82 }).rect(0, drop - 3, w, 3).fill(0x8a6a4a))
+    } else if (d.shade === 'cafe') {
+      // café curtain on a rod across the bottom half
+      const top = h * 0.58
+      const c = new Graphics().rect(0, top, w, h - top).fill({ color: pick(rng, [0xf0e6d0, 0xd88a8a, 0xe8d090]), alpha: 0.78 })
+      for (let fx = 4; fx < w; fx += 7) c.rect(fx, top, 2, h - top).fill({ color: INK, alpha: 0.08 })
+      c.rect(-2, top - 2, w + 4, 3).fill(0x5a3a1a)
+      interior.addChild(c)
+    }
+    interior.addChild(mask)
     interior.mask = mask
     root.addChild(interior)
 
-    // muntins / rails over the glass
+    // glazing bars are clipped to the glass; lattice and fan bars run long
     const bars = new Graphics()
-    if (shape === 'grid') {
-      for (let gx = 1; gx < 4; gx++) bars.rect((w * gx) / 4 - 1, 0, 2, h)
-      for (let gy = 1; gy < 5; gy++) bars.rect(0, (h * gy) / 5 - 1, w, 2)
-      bars.fill(frame)
-    } else if (shape !== 'arch' || rng() < 0.5) {
-      bars.rect(w / 2 - 2, h * 0.22, 4, h * 0.78).rect(0, h * 0.22 - 2, w, 4).fill(frame)
-    }
-    glass(bars).stroke({ color: frame, width: 4 })
-    if (shape === 'french') {
-      // little iron balcony
-      const ry = h - h * 0.24
-      bars.rect(-10, ry, w + 20, 3).rect(-10, h + 4, w + 20, 3).fill(INK)
-      for (let bx = -8; bx <= w + 8; bx += 7) bars.rect(bx, ry, 1.5, h * 0.24 + 6).fill(INK)
-      for (let bx = -2; bx < w; bx += 16) bars.ellipse(bx + 8, ry + h * 0.12, 6, h * 0.06).stroke({ color: INK, width: 1.4 })
-    }
-    root.addChild(bars)
+    glazing(bars, d, w, h, frame)
+    const clip = new Graphics()
+    glass(clip).fill(0xffffff)
+    bars.mask = clip
+    const edge = new Graphics()
+    glass(edge).stroke({ color: frame, width: 4 })
+    balcony(edge, d.balcony, w, h, rng)
+    root.addChild(bars, clip, edge)
 
     const halo = new Sprite(glowTexture())
     halo.anchor.set(0.5)
@@ -241,6 +318,142 @@ export class WindowWall {
     if (this.destroyed) return
     this.destroyed = true
     this.app.destroy({ removeView: true }, { children: true })
+  }
+}
+
+// ---- the window itself ---------------------------------------------------------
+
+/** the outline of the glass, grown by `pad` for the frame around it */
+function outline(g: Graphics, shape: Shape, w: number, h: number, pad: number) {
+  const x0 = -pad
+  const x1 = w + pad
+  const y1 = h + pad
+  switch (shape) {
+    case 'arch': {
+      const r = w / 2 + pad
+      return g.moveTo(x0, y1).lineTo(x0, w / 2).arc(w / 2, w / 2, r, Math.PI, 0).lineTo(x1, y1).closePath()
+    }
+    case 'segment': {
+      const rise = w * 0.2
+      return g.moveTo(x0, y1).lineTo(x0, rise).quadraticCurveTo(w / 2, -rise - pad * 1.5, x1, rise).lineTo(x1, y1).closePath()
+    }
+    case 'gothic': {
+      const a = w * 0.7
+      return g
+        .moveTo(x0, y1)
+        .lineTo(x0, a)
+        .bezierCurveTo(x0, a * 0.4, w * 0.3, a * 0.1 - pad, w / 2, -pad)
+        .bezierCurveTo(w * 0.7, a * 0.1 - pad, x1, a * 0.4, x1, a)
+        .lineTo(x1, y1)
+        .closePath()
+    }
+    case 'round':
+      return g.ellipse(w / 2, h / 2, w / 2 + pad, h / 2 + pad)
+    default:
+      return g.rect(x0, -pad, w + pad * 2, h + pad * 2)
+  }
+}
+
+function glazing(g: Graphics, d: Design, w: number, h: number, colour: number) {
+  const bar = (x: number, y: number, bw: number, bh: number) => g.rect(x, y, bw, bh)
+  if (d.shape === 'twin') bar(w / 2 - 3, 0, 6, h)
+  switch (d.bars) {
+    case 'cross':
+      bar(w / 2 - 1.5, 0, 3, h)
+      bar(0, h * 0.45, w, 3)
+      break
+    case 'transom':
+      bar(0, h * 0.24, w, 4)
+      bar(w / 2 - 1.5, h * 0.24, 3, h * 0.76)
+      break
+    case 'grid':
+      for (let i = 1; i < 3; i++) bar((w * i) / 3 - 1, 0, 2, h)
+      for (let i = 1; i < 4; i++) bar(0, (h * i) / 4 - 1, w, 2)
+      break
+    case 'sash':
+      // six over six
+      bar(0, h * 0.5 - 2.5, w, 5)
+      for (let i = 1; i < 3; i++) bar((w * i) / 3 - 1, 0, 2, h)
+      bar(0, h * 0.25 - 1, w, 2)
+      bar(0, h * 0.75 - 1, w, 2)
+      break
+    case 'lattice':
+      for (let t = -h; t < w + h; t += 16) {
+        g.moveTo(t, 0).lineTo(t + h, h).moveTo(t + h, 0).lineTo(t, h)
+      }
+      g.stroke({ color: colour, width: 1.4 })
+      return
+    case 'vertical':
+      for (let i = 1; i < 4; i++) bar((w * i) / 4 - 1, 0, 2, h)
+      break
+    case 'fan': {
+      // sunburst bars radiating from the bottom of the top pane
+      const cy = h * 0.32
+      bar(0, cy - 2, w, 4)
+      for (let i = 1; i < 6; i++) {
+        const a = Math.PI + (i / 6) * Math.PI
+        g.moveTo(w / 2, cy).lineTo(w / 2 + Math.cos(a) * w, cy + Math.sin(a) * w)
+      }
+      g.stroke({ color: colour, width: 2 })
+      bar(w / 2 - 1.5, cy, 3, h - cy)
+      break
+    }
+    case 'none':
+      break
+  }
+  g.fill(colour)
+}
+
+function balcony(g: Graphics, kind: Balcony, w: number, h: number, rng: Rng) {
+  const flowers = [0xe0402a, 0xf06a3a, 0xf0c050, 0xd04a8a, 0xf6f0e0]
+  switch (kind) {
+    case 'iron': {
+      // curly wrought-iron balconette over the bottom of the window
+      const top = h - h * 0.24
+      g.rect(-12, top, w + 24, 3).rect(-12, h + 6, w + 24, 3).fill(INK)
+      for (let bx = -10; bx <= w + 10; bx += 7) g.rect(bx, top, 1.5, h * 0.24 + 8).fill(INK)
+      for (let bx = -4; bx < w + 4; bx += 14) g.ellipse(bx + 7, top + h * 0.12, 5.5, h * 0.06).stroke({ color: INK, width: 1.4 })
+      break
+    }
+    case 'railing': {
+      // plain bars, a ledge to stand on
+      g.rect(-14, h + 4, w + 28, 6).fill(0x3a3028)
+      g.rect(-14, h - 30, w + 28, 3).fill(INK)
+      for (let bx = -12; bx <= w + 12; bx += 10) g.rect(bx, h - 30, 2, 36).fill(INK)
+      break
+    }
+    case 'balustrade': {
+      // little stone balcony with fat balusters
+      g.rect(-16, h + 2, w + 32, 8).fill(0x8a7a64)
+      g.rect(-16, h - 28, w + 32, 6).fill(0x8a7a64)
+      for (let bx = -10; bx <= w + 8; bx += 12) g.ellipse(bx + 4, h - 10, 4, 11).fill(0x8a7a64)
+      break
+    }
+    case 'box': {
+      const f = pick(rng, flowers)
+      g.rect(-6, h + 4, w + 12, 13).fill(pick(rng, [0x2a3a1a, 0x4a1e12, 0x1e2a3a, 0x5a3a20]))
+      for (let i = 0; i < 9; i++) {
+        const fx = -2 + (i / 8) * (w + 4)
+        g.ellipse(fx, h + 1, 6, 7).fill(0x1b2a14)
+        if (rng() < 0.75) g.circle(fx + range(rng, -3, 3), h - 4 - range(rng, 0, 5), 3).fill(f)
+      }
+      break
+    }
+    case 'plants': {
+      // pots on the sill, a trailing plant hanging over the edge
+      g.rect(-10, h + 4, w + 20, 6).fill(0x5a4a38)
+      for (let i = 0; i < 3; i++) {
+        const px = 8 + i * ((w - 16) / 2)
+        g.poly([px - 7, h - 8, px + 7, h - 8, px + 5, h + 4, px - 5, h + 4]).fill(0x8a4a30)
+        for (let l = 0; l < 5; l++) g.ellipse(px + range(rng, -6, 6), h - 12 - range(rng, 0, 10), 3, 6).fill(0x1b2a14)
+      }
+      for (let t = 0; t < 6; t++) g.circle(w - 10 + Math.sin(t) * 3, h + 10 + t * 6, 3).fill(0x1b2a14)
+      break
+    }
+    case 'none':
+      // just a sill
+      g.rect(-10, h + 4, w + 20, 5).fill(0x5a4a38)
+      break
   }
 }
 
@@ -408,6 +621,90 @@ function scene(kind: Life, w: number, h: number, rng: Rng): Inside {
           bx += bw + 1
         }
       }
+      break
+    }
+    case 'tv': {
+      // someone on the sofa, the set flickering blue at them
+      const x = g()
+      x.roundRect(10, -40, 60, 40, 6).fill(INK)
+      x.circle(40, -54, 7).fill(INK)
+      x.rect(32, -48, 16, 12).fill(INK)
+      x.rect(76, -40, 20, 40).fill(INK)
+      const screen = g()
+      screen.rect(78, -36, 16, 12).fill(0x8ab8ff)
+      animate = (t) => (screen.alpha = 0.6 + Math.abs(Math.sin(t * 7 + phase)) * 0.4)
+      break
+    }
+    case 'cook': {
+      // at the stove, a pot steaming
+      const x = g()
+      person(x, 36, 0, 90)
+      x.rect(52, -40, 44, 40).fill(INK)
+      x.rect(60, -52, 20, 12).fill(INK)
+      x.rect(46, -64, 10, 4).fill(INK)
+      const steam = [g(), g(), g()]
+      steam.forEach((p, i) => p.circle(0, 0, 4 + i).fill({ color: 0xfff6e0, alpha: 0.35 }))
+      animate = (t) =>
+        steam.forEach((p, i) => {
+          const k = (t * 0.6 + i / 3 + phase) % 1
+          p.position.set(70 + Math.sin(k * 6 + i) * 4, -56 - k * 50)
+          p.alpha = 1 - k
+        })
+      break
+    }
+    case 'piano': {
+      const x = g()
+      x.rect(40, -50, 56, 50).fill(INK)
+      x.rect(36, -30, 64, 4).fill(INK)
+      x.rect(20, -24, 18, 4).rect(22, -20, 3, 20).rect(34, -20, 3, 20).fill(INK)
+      const p = g()
+      p.circle(26, -58, 6.5).fill(INK)
+      p.poly([18, -51, 34, -51, 36, -24, 18, -24]).fill(INK)
+      p.rect(30, -40, 14, 4).fill(INK)
+      animate = (t) => (p.rotation = Math.sin(t * 2.2 + phase) * 0.03)
+      break
+    }
+    case 'painter': {
+      // an easel, a canvas with a dab of colour, the painter leaning in
+      const x = g()
+      x.moveTo(62, 0).lineTo(72, -86).lineTo(82, 0).moveTo(72, -86).lineTo(72, 0).stroke({ color: INK, width: 3 })
+      x.rect(56, -78, 34, 40).fill(0xf0e6d0)
+      x.circle(66, -62, 5).fill(0xd04a2a)
+      x.rect(72, -54, 12, 6).fill(0x3a6ab0)
+      const p = g()
+      person(p, 34, 0, 88)
+      const arm = g()
+      arm.rect(0, 0, 22, 3.5).fill(INK)
+      arm.position.set(38, -62)
+      animate = (t) => (arm.rotation = -0.3 + Math.sin(t * 1.8 + phase) * 0.15)
+      break
+    }
+    case 'phone': {
+      // curled up on a chair, on the phone, cord looping to the wall
+      const x = g()
+      x.roundRect(20, -36, 44, 36, 6).fill(INK)
+      x.circle(42, -50, 7).fill(INK)
+      x.rect(34, -44, 16, 12).fill(INK)
+      x.rect(46, -54, 5, 10).fill(INK)
+      const cord = g()
+      animate = (t) => {
+        const sag = Math.sin(t * 1.3 + phase) * 3
+        cord.clear().moveTo(50, -48).bezierCurveTo(70, -20 + sag, 80, -60, 92, -70).stroke({ color: INK, width: 1.5 })
+      }
+      x.rect(88, -78, 8, 14).fill(INK)
+      break
+    }
+    case 'guitar': {
+      // on the edge of the bed with a guitar, foot tapping
+      const x = g()
+      x.rect(4, -24, 92, 24).fill(INK)
+      x.rect(4, -40, 8, 16).fill(INK)
+      const p = g()
+      p.circle(50, -70, 7).fill(INK)
+      p.poly([42, -62, 58, -62, 60, -26, 40, -26]).fill(INK)
+      p.ellipse(62, -36, 10, 8).fill(INK)
+      p.rect(62, -44, 26, 3).fill(INK)
+      animate = (t) => (p.y = Math.abs(Math.sin(t * 4 + phase)) * -1.5)
       break
     }
     case 'kiss': {
