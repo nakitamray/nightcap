@@ -5,7 +5,11 @@ import { block, fillPoly, hex, INK, mix, shade, THIN } from './paint'
 import { flat, NEAR, onFloor, ROOM, type P3 } from './projection'
 import type { Floor } from './variants'
 
-const { left: L, right: R, ceiling: C, back: B } = ROOM
+const B = ROOM.back
+// the current room's walls, picked up at the start of each draw
+let L = ROOM.left
+let R = ROOM.right
+let C = ROOM.ceiling
 const PLASTER = 0xe8c890
 
 type Wall = 'back' | 'left' | 'right'
@@ -32,6 +36,7 @@ function blob(ctx: Ctx, wall: Wall, u: number, v: number, ru: number, rv: number
 }
 
 export function drawShell(ctx: Ctx) {
+  ;({ left: L, right: R, ceiling: C } = ROOM)
   const wall = hex(ctx.layout.wall)
   const g = ctx.layer('wall')
 

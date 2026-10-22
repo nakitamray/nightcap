@@ -46,13 +46,18 @@ export class Marquee extends Container {
     // chains back to the wall
     const chains = new Graphics()
     for (const cx of [x + 30, x + w - 30]) {
-      chains.moveTo(cx, y).lineTo(cx + (cx < x + w / 2 ? -40 : 40), y - 42).stroke({ color: palette.ink, width: 2 })
+      chains
+        .moveTo(cx, y)
+        .lineTo(cx + (cx < x + w / 2 ? -40 : 40), y - 42)
+        .stroke({ color: palette.ink, width: 2 })
     }
     this.addChild(chains)
 
     const board = new Graphics()
     // underside of the canopy, then the face
-    board.poly([x - 14, y + h, x + w + 14, y + h, x + w - 6, y + h + 8, x + 6, y + h + 8]).fill(0x2a0d08)
+    board
+      .poly([x - 14, y + h, x + w + 14, y + h, x + w - 6, y + h + 8, x + 6, y + h + 8])
+      .fill(0x2a0d08)
     board.roundRect(x - 14, y - 8, w + 28, h + 16, 6).fill(boardColour)
     board.roundRect(x - 6, y, w + 12, h, 4).fill(face)
     board.roundRect(x + 12, y + 12, w - 24, h - 24, 3).fill(0x140a08)
@@ -60,7 +65,10 @@ export class Marquee extends Container {
     const cx = x + w / 2
     if (look.fan ?? true) {
       // little deco fan on top
-      board.moveTo(cx - 46, y - 8).arc(cx, y - 8, 46, Math.PI, 0).fill(boardColour)
+      board
+        .moveTo(cx - 46, y - 8)
+        .arc(cx, y - 8, 46, Math.PI, 0)
+        .fill(boardColour)
       for (let i = 1; i < 8; i++) {
         const a = Math.PI + (i / 8) * Math.PI
         board

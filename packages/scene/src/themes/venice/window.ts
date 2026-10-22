@@ -8,12 +8,18 @@ export const veniceWindow: WindowStyle = {
 
   frame(g, { width: w, height: h, row }) {
     if (row === 0) shutters(g, 0, 2, w, h - 2)
-    lancet(g, -11, -14, w + 22, h + 18, (w + 22) * 0.75).fill(vn.istria).stroke(INK)
+    lancet(g, -11, -14, w + 22, h + 18, (w + 22) * 0.75)
+      .fill(vn.istria)
+      .stroke(INK)
     lancet(g, -5, -6, w + 10, h + 8, (w + 10) * 0.75).fill(vn.istriaDark)
     // a little stone cross on the tip of the arch
-    g.rect(w / 2 - 1.5, -26, 3, 12).rect(w / 2 - 5, -22, 10, 3).fill(vn.istria)
+    g.rect(w / 2 - 1.5, -26, 3, 12)
+      .rect(w / 2 - 5, -22, 10, 3)
+      .fill(vn.istria)
     // sill
-    g.rect(-16, h + 2, w + 32, 9).fill(vn.istria).stroke(INK)
+    g.rect(-16, h + 2, w + 32, 9)
+      .fill(vn.istria)
+      .stroke(INK)
   },
 
   bars(g, { width: w, height: h }) {

@@ -1,6 +1,15 @@
 import { Container, Graphics, Sprite, Text } from 'pixi.js'
 import { DISPLAY_FONT, SIGN_FONT } from '../../fonts'
-import { DOOR, FLOOR_H, GROUND, GROUND_FLOOR, HOUSE, SHOPFRONTS, windowSlots, type Rect } from '../../layout'
+import {
+  DOOR,
+  FLOOR_H,
+  GROUND,
+  GROUND_FLOOR,
+  HOUSE,
+  SHOPFRONTS,
+  windowSlots,
+  type Rect,
+} from '../../layout'
 import { palette } from '../../palette'
 import { chance, createRng, int, pick, range, type Rng } from '../../rng'
 import { dotTexture, glowTexture } from '../../textures'
@@ -42,11 +51,18 @@ export class House extends BaseHouse {
       ironRail(HOUSE.x - 4, y - 40, HOUSE.width + 8, 40, balconies)
     }
     for (const w of this.windows) {
-      if (w.slot.balcony === 'rail') balconySlab(w.slot.x - 14, w.slot.y + w.slot.height + 4, w.slot.width + 28, balconies)
+      if (w.slot.balcony === 'rail')
+        balconySlab(w.slot.x - 14, w.slot.y + w.slot.height + 4, w.slot.width + 28, balconies)
     }
     // geraniums on the top balcony, because someone always has them
     for (const w of this.windows) {
-      if (w.slot.row === 0 && chance(rng, 0.5)) this.flowerPots(balconies, w.slot.x + range(rng, -6, w.slot.width - 30), w.slot.y + w.slot.height + 2, rng)
+      if (w.slot.row === 0 && chance(rng, 0.5))
+        this.flowerPots(
+          balconies,
+          w.slot.x + range(rng, -6, w.slot.width - 30),
+          w.slot.y + w.slot.height + 2,
+          rng,
+        )
     }
     this.addChild(balconies)
     this.addChild(this.festoon(lights, this.windows[8]!.slot.y - 8, 28))
@@ -103,13 +119,19 @@ export class House extends BaseHouse {
     }
     // mansard: steep lower slope, then the shallow top
     const brisisTop = ROOF_TOP + 14
-    g.poly([x - 4, CORNICE_Y, x + w + 4, CORNICE_Y, x + w - 22, brisisTop, x + 22, brisisTop]).fill(palette.zinc)
-    g.poly([x + 22, brisisTop, x + w - 22, brisisTop, x + w - 60, ROOF_TOP, x + 60, ROOF_TOP]).fill(palette.zincDark)
+    g.poly([x - 4, CORNICE_Y, x + w + 4, CORNICE_Y, x + w - 22, brisisTop, x + 22, brisisTop]).fill(
+      palette.zinc,
+    )
+    g.poly([x + 22, brisisTop, x + w - 22, brisisTop, x + w - 60, ROOF_TOP, x + 60, ROOF_TOP]).fill(
+      palette.zincDark,
+    )
     // standing seams
     for (let sx = x + 8; sx < x + w; sx += 16) {
       const t = (sx - x) / w
       const topX = x + 22 + t * (w - 44)
-      g.moveTo(sx, CORNICE_Y).lineTo(topX, brisisTop).stroke({ color: palette.zincDark, width: 1.5 })
+      g.moveTo(sx, CORNICE_Y)
+        .lineTo(topX, brisisTop)
+        .stroke({ color: palette.zincDark, width: 1.5 })
     }
     g.rect(x + 22, brisisTop - 2, w - 44, 3).fill({ color: 0xa8b0c8, alpha: 0.25 })
 
@@ -127,7 +149,9 @@ export class House extends BaseHouse {
         .fill(palette.stone)
       const lit = chance(rng, 0.45)
       g.rect(cx - 15, top + 10, 30, CORNICE_Y - top - 18).fill(lit ? 0xd88a3a : 0x10131e)
-      g.rect(cx - 1, top + 10, 2, CORNICE_Y - top - 18).rect(cx - 15, top + 34, 30, 2).fill(palette.ink)
+      g.rect(cx - 1, top + 10, 2, CORNICE_Y - top - 18)
+        .rect(cx - 15, top + 34, 30, 2)
+        .fill(palette.ink)
       if (lit) {
         const glow = new Sprite(glowTexture())
         glow.anchor.set(0.5)
@@ -155,14 +179,22 @@ export class House extends BaseHouse {
         g.rect(bx, by, 1.5, course).fill({ color: palette.stoneJoint, alpha: 0.5 })
         if (chance(rng, 0.25)) {
           const tone = pick(rng, [palette.stoneLight, palette.stoneJoint, 0xa48f70])
-          g.rect(bx + 1.5, by + 1.5, 70, course - 1.5).fill({ color: tone, alpha: range(rng, 0.12, 0.3) })
+          g.rect(bx + 1.5, by + 1.5, 70, course - 1.5).fill({
+            color: tone,
+            alpha: range(rng, 0.12, 0.3),
+          })
         }
       }
     }
     // decades of rain under every sill
     for (const slot of windowSlots()) {
       for (let i = 0; i < 3; i++) {
-        g.rect(slot.x + range(rng, 0, slot.width), slot.y + slot.height + 14, range(rng, 2, 6), range(rng, 20, 60)).fill({
+        g.rect(
+          slot.x + range(rng, 0, slot.width),
+          slot.y + slot.height + 14,
+          range(rng, 2, 6),
+          range(rng, 20, 60),
+        ).fill({
           color: palette.stoneDark,
           alpha: range(rng, 0.12, 0.25),
         })
@@ -175,7 +207,9 @@ export class House extends BaseHouse {
       g.rect(x, sy + 6, w, 2).fill({ color: palette.ink, alpha: 0.3 })
     }
     // shallow pilasters at the ends
-    g.rect(x, y, 16, bottom - y).rect(x + w - 16, y, 16, bottom - y).fill({ color: palette.stoneLight, alpha: 0.5 })
+    g.rect(x, y, 16, bottom - y)
+      .rect(x + w - 16, y, 16, bottom - y)
+      .fill({ color: palette.stoneLight, alpha: 0.5 })
   }
 
   private drawCornice(g: Graphics) {
@@ -194,7 +228,8 @@ export class House extends BaseHouse {
     const { x, y, width: w } = GROUND_FLOOR
     g.rect(x, y + 6, w, GROUND - y - 6).fill(palette.stoneDark)
     // bossage: deep horizontal grooves
-    for (let gy = y + 30; gy < GROUND; gy += 24) g.rect(x, gy, w, 3).fill({ color: palette.ink, alpha: 0.5 })
+    for (let gy = y + 30; gy < GROUND; gy += 24)
+      g.rect(x, gy, w, 3).fill({ color: palette.ink, alpha: 0.5 })
     g.rect(x - 8, y - 4, w + 16, 12).fill(palette.stoneLight)
 
     for (const [i, shop] of SHOPFRONTS.entries()) this.drawShop(g, shop, i, rng)
@@ -211,7 +246,11 @@ export class House extends BaseHouse {
     const half = d.width / 2
     const fan = 26
     g.rect(d.x - 12, d.y - 12, d.width + 24, d.height + 12).fill(palette.stoneLight)
-    g.rect(d.x - 12, d.y - 12, d.width + 24, d.height + 12).stroke({ color: palette.ink, width: 1.5, alpha: 0.7 })
+    g.rect(d.x - 12, d.y - 12, d.width + 24, d.height + 12).stroke({
+      color: palette.ink,
+      width: 1.5,
+      alpha: 0.7,
+    })
     // fanlight
     g.rect(d.x, d.y, d.width, fan).fill(0xf0a050)
     for (let i = 0; i <= 6; i++) {
@@ -230,16 +269,34 @@ export class House extends BaseHouse {
     // a figure in a long coat and hat, backlit
     const fx = d.x + half / 2
     const fy = GROUND - 2
-    g.poly([fx - 7, fy, fx + 7, fy, fx + 9, fy - 70, fx + 6, fy - 92, fx - 6, fy - 92, fx - 9, fy - 70]).fill(palette.ink)
+    g.poly([
+      fx - 7,
+      fy,
+      fx + 7,
+      fy,
+      fx + 9,
+      fy - 70,
+      fx + 6,
+      fy - 92,
+      fx - 6,
+      fy - 92,
+      fx - 9,
+      fy - 70,
+    ]).fill(palette.ink)
     g.circle(fx, fy - 100, 6).fill(palette.ink)
-    g.ellipse(fx, fy - 105, 11, 2.5).rect(fx - 5, fy - 113, 10, 8).fill(palette.ink)
+    g.ellipse(fx, fy - 105, 11, 2.5)
+      .rect(fx - 5, fy - 113, 10, 8)
+      .fill(palette.ink)
     // the open leaf, seen edge-on against the jamb
     g.poly([d.x, top, d.x + 9, top + 5, d.x + 9, top + h - 2, d.x, top + h]).fill(0x0e2a20)
 
     // the closed leaf
     g.rect(d.x + half, top, half, h).fill(0x123026)
     g.rect(d.x + half + 6, top + 8, half - 12, h * 0.42).stroke({ color: 0x2c5a48, width: 2 })
-    g.rect(d.x + half + 6, top + 16 + h * 0.42, half - 12, h * 0.42).stroke({ color: 0x2c5a48, width: 2 })
+    g.rect(d.x + half + 6, top + 16 + h * 0.42, half - 12, h * 0.42).stroke({
+      color: 0x2c5a48,
+      width: 2,
+    })
     g.circle(d.x + half + 6, top + h * 0.5, 3).fill(palette.gold)
     g.rect(d.x + half - 1.5, top, 3, h).fill(palette.ink)
 
@@ -277,7 +334,9 @@ export class House extends BaseHouse {
         for (let s = 0; s < 4; s++) {
           const sx = bx + range(rng, -8, 8)
           const sy = y + h - 44 - int(rng, 14, 36)
-          g.moveTo(bx, y + h - 44).lineTo(sx, sy).stroke({ color: palette.ink, width: 1.5 })
+          g.moveTo(bx, y + h - 44)
+            .lineTo(sx, sy)
+            .stroke({ color: palette.ink, width: 1.5 })
           g.circle(sx, sy, range(rng, 3, 5)).fill(palette.ink)
         }
       }
@@ -335,7 +394,13 @@ export class House extends BaseHouse {
       .stroke({ color: 0xff3b2a, width: 2 })
     const text = new Text({
       text: letters,
-      style: { fontFamily: DISPLAY_FONT, fontSize: 28, lineHeight: lineH, align: 'center', fill: 0xff4a32 },
+      style: {
+        fontFamily: DISPLAY_FONT,
+        fontSize: 28,
+        lineHeight: lineH,
+        align: 'center',
+        fill: 0xff4a32,
+      },
       resolution: 2,
     })
     text.anchor.set(0.5)
@@ -356,8 +421,10 @@ export class House extends BaseHouse {
     for (let i = 0; i < 2; i++) {
       const px = x + i * 16
       g.poly([px, y - 14, px + 12, y - 14, px + 10, y, px + 2, y]).fill(palette.terracotta)
-      for (let l = 0; l < 4; l++) g.circle(px + 6 + range(rng, -6, 6), y - 18 - range(rng, 0, 8), 4).fill(0x1d2a1a)
-      for (let f = 0; f < 3; f++) g.circle(px + 6 + range(rng, -6, 6), y - 20 - range(rng, 0, 9), 2.5).fill(palette.red)
+      for (let l = 0; l < 4; l++)
+        g.circle(px + 6 + range(rng, -6, 6), y - 18 - range(rng, 0, 8), 4).fill(0x1d2a1a)
+      for (let f = 0; f < 3; f++)
+        g.circle(px + 6 + range(rng, -6, 6), y - 20 - range(rng, 0, 9), 2.5).fill(palette.red)
     }
   }
 
@@ -425,14 +492,20 @@ function ivy(rng: Rng) {
         const lx = x + range(rng, -11, 11)
         const ly = y + range(rng, -6, 6)
         // leaves low down catch the lamps and shop light
-        const colour = y > GROUND_FLOOR.y - 60 && chance(rng, 0.3) ? pick(rng, lit) : pick(rng, greens)
-        g.ellipse(lx, ly, range(rng, 3.5, 6.5), range(rng, 2.5, 4.5)).fill({ color: colour, alpha: 0.95 })
+        const colour =
+          y > GROUND_FLOOR.y - 60 && chance(rng, 0.3) ? pick(rng, lit) : pick(rng, greens)
+        g.ellipse(lx, ly, range(rng, 3.5, 6.5), range(rng, 2.5, 4.5)).fill({
+          color: colour,
+          alpha: 0.95,
+        })
       }
-      if (depth < 2 && chance(rng, 0.05)) grow(x, y, int(rng, 10, 26), range(rng, -2.5, 2.5), depth + 1)
+      if (depth < 2 && chance(rng, 0.05))
+        grow(x, y, int(rng, 10, 26), range(rng, -2.5, 2.5), depth + 1)
     }
   }
   for (const x of [HOUSE.x + 6, HOUSE.x + 22]) grow(x, GROUND, int(rng, 85, 110), 0.6)
-  for (const x of [HOUSE.x + HOUSE.width - 8, HOUSE.x + HOUSE.width - 24]) grow(x, GROUND, int(rng, 60, 80), -0.6)
+  for (const x of [HOUSE.x + HOUSE.width - 8, HOUSE.x + HOUSE.width - 24])
+    grow(x, GROUND, int(rng, 60, 80), -0.6)
   // a little around the shopfronts and over the door
   for (const shop of SHOPFRONTS) grow(shop.x - 8, GROUND, 24, 0.2)
   grow(DOOR.x - 14, GROUND, 30, 1.1)

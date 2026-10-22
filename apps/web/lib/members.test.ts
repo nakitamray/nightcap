@@ -9,7 +9,9 @@ describe('memberLine', () => {
   it('names up to two others, then counts', () => {
     expect(memberLine(['nakita', 'jaren'], 'nakita')).toBe('you, jaren')
     expect(memberLine(['nakita', 'jaren', 'mithula'], 'nakita')).toBe('you, jaren, mithula')
-    expect(memberLine(['nakita', 'jaren', 'mithula', 'a', 'b', 'c', 'd', 'e'], 'nakita')).toBe('you, jaren, mithula +5')
+    expect(memberLine(['nakita', 'jaren', 'mithula', 'a', 'b', 'c', 'd', 'e'], 'nakita')).toBe(
+      'you, jaren, mithula +5',
+    )
   })
 })
 

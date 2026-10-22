@@ -1,8 +1,10 @@
-// One-point perspective for the room. Room space: x runs -200 (left wall) to
-// 200 (right wall), y is 0 at the floor up to 440 at the (tall) ceiling, z is 0 at
-// the front of the picture and 400 at the back wall. The eye sits low, at
-// y=170, so the room opens up above you.
+// One-point perspective for the room. Room space: x runs from the left wall
+// to the right wall (centred on 0), y is 0 at the floor up to the ceiling, z
+// is 0 at the front of the picture and 400 at the back wall. The eye sits low,
+// at y=170, so the room opens up above you.
 //
+// Rooms come in different shapes -- tall and narrow, low and wide -- so the
+// walls and the camera are set per room with setRoomShape() before drawing.
 // Everything comes out in "view" units, a 1000 x 960 picture that the scene
 // scales to the screen.
 
@@ -11,26 +13,37 @@ import { Matrix } from 'pixi.js'
 export const ROOM = { left: -200, right: 200, floor: 0, ceiling: 440, back: 400 }
 export const VIEW = { width: 1000, height: 960 }
 /** the walls carry on in front of the picture so wide screens don't get bars */
-export const NEAR = -400
+export const NEAR = -330
 
 const CX = 500
-const HORIZON = 480
 const EYE = 170
-// a camera a little further back than you'd stand, so the far wall stays
-// big and the room feels open rather than like a corridor
-const F = 1500
+// a camera a little further back than you'd stand, so the far wall stays big
 const F0 = 600
+const cam = { f: 1500, horizon: 445 }
+
+/** sets the walls and points the camera so the whole room fits */
+export function setRoomShape(half: number, ceiling: number) {
+  ROOM.left = -half
+  ROOM.right = half
+  ROOM.ceiling = ceiling
+  // tall rooms pull the camera back a touch so the ceiling stays in the picture
+  cam.f = 1500 * Math.min(1, 470 / ceiling)
+  const s = cam.f / (ROOM.back + F0)
+  // keep the top of the back wall near the top of the picture; low rooms sit
+  // a little lower, showing more ceiling
+  cam.horizon = 40 + (ceiling - EYE) * s + Math.max(0, 440 - ceiling) * 0.9
+}
 
 export type P3 = readonly [number, number, number]
 export type P2 = [number, number]
 
 export function scaleAt(z: number) {
-  return F / (z + F0)
+  return cam.f / (z + F0)
 }
 
 export function project([x, y, z]: P3): P2 {
   const s = scaleAt(z)
-  return [CX + x * s, HORIZON - (y - EYE) * s]
+  return [CX + x * s, cam.horizon - (y - EYE) * s]
 }
 
 /** flat [x0, y0, x1, y1, ...] for pixi's poly() */
@@ -77,12 +90,6 @@ export function mirror(b: Box): Box {
 /** a shape lying on the floor, from floor-plan points [x, z] */
 export function onFloor(points: [number, number][], y = 0.5) {
   return flat(...points.map(([x, z]): P3 => [x, y, z]))
-}
-
-/** a point on one of the walls, in that wall's own (across, up) coordinates */
-export function onWall(wall: 'back' | 'left' | 'right', u: number, v: number): P3 {
-  if (wall === 'back') return [u, v, ROOM.back]
-  return [wall === 'left' ? ROOM.left + 0.5 : ROOM.right - 0.5, v, u]
 }
 
 /**

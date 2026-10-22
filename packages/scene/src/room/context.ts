@@ -8,16 +8,18 @@ import { project, scaleAt, type P3 } from './projection'
 /** the things in a room you can click on to change */
 export type Thing =
   | 'bed'
+  | 'nightstand'
   | 'wall'
   | 'window'
   | 'posters'
-  | 'shelves'
+  | 'furniture'
   | 'lamp'
   | 'rug'
   | 'desk'
   | 'led'
   | 'vinyl'
   | 'map'
+  | 'pet'
 
 /** a pool of light, for the night-time shading pass (view units) */
 export interface Light {
@@ -42,6 +44,8 @@ export class Ctx {
   readonly anim: ((t: number, dt: number) => void)[] = []
   /** containers that brighten when you hover what they belong to */
   readonly groups = new Map<Thing, Container[]>()
+  /** layers that change every frame; everything else gets cached as a picture */
+  readonly moving = new Set<Container>()
 
   constructor(
     readonly layout: Layout,
@@ -66,6 +70,12 @@ export class Ctx {
     const c = new Container()
     this.back.addChild(c)
     if (thing) this.own(thing, c)
+    return c
+  }
+
+  /** marks a layer as animated, so it's never baked into a cached picture */
+  live<T extends Container>(c: T) {
+    this.moving.add(c)
     return c
   }
 

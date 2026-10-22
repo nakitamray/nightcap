@@ -57,13 +57,22 @@ export function shutters(g: Graphics, x: number, y: number, w: number, h: number
   const sw = w * 0.42
   for (const sx of [x - sw - 4, x + w + 4]) {
     g.rect(sx, y, sw, h).fill(vn.shutter)
-    for (let ly = y + 6; ly < y + h - 4; ly += 6) g.rect(sx + 3, ly, sw - 6, 1.5).fill({ color: palette.ink, alpha: 0.45 })
+    for (let ly = y + 6; ly < y + h - 4; ly += 6)
+      g.rect(sx + 3, ly, sw - 6, 1.5).fill({ color: palette.ink, alpha: 0.45 })
     g.rect(sx, y, sw, h).stroke({ color: palette.ink, width: 1, alpha: 0.6 })
   }
 }
 
 /** crumbling plaster: patches where it's come away and the brick shows */
-export function plasterWall(g: Graphics, x: number, y: number, w: number, h: number, colour: number, rng: () => number) {
+export function plasterWall(
+  g: Graphics,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  colour: number,
+  rng: () => number,
+) {
   g.rect(x, y, w, h).fill(colour)
   for (let i = 0; i < (w * h) / 26000; i++) {
     const px = x + rng() * (w - 60)
@@ -71,7 +80,8 @@ export function plasterWall(g: Graphics, x: number, y: number, w: number, h: num
     const pw = 24 + rng() * 60
     const ph = 14 + rng() * 34
     g.roundRect(px, py, pw, ph, 6).fill(vn.brick)
-    for (let by = py + 4; by < py + ph - 2; by += 6) g.rect(px + 2, by, pw - 4, 1).fill({ color: palette.ink, alpha: 0.4 })
+    for (let by = py + 4; by < py + ph - 2; by += 6)
+      g.rect(px + 2, by, pw - 4, 1).fill({ color: palette.ink, alpha: 0.4 })
   }
   // damp creeping up from the water
   g.rect(x, y + h - 70, w, 70).fill({ color: palette.ink, alpha: 0.22 })

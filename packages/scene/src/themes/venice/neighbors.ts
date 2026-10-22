@@ -44,12 +44,12 @@ export class Neighbors extends Container {
     const right: Palazzo[] = []
     let colour = 0
     const next = () => PLASTERS[colour++ % PLASTERS.length]!
-    for (let x = HOUSE.x; x > -560; ) {
+    for (let x = HOUSE.x; x > -560;) {
       const width = range(rng, 190, 290)
       x -= width
       left.push(this.makePalazzo(rng, x, width, next()))
     }
-    for (let x = HOUSE.x + HOUSE.width; x < 2900; ) {
+    for (let x = HOUSE.x + HOUSE.width; x < 2900;) {
       const width = range(rng, 190, 290)
       right.push(this.makePalazzo(rng, x, width, next()))
       x += width
@@ -73,15 +73,24 @@ export class Neighbors extends Container {
     }
 
     this.smoke = [
-      new Smoke(seed + 1, { x: left[0]!.x + 60, y: left[0]!.top - 90 }, { tint: 0x9a8a80, strength: 0.3, rise: 170, count: 16 }),
-      new Smoke(seed + 2, { x: right[1]!.x + 60, y: right[1]!.top - 90 }, { tint: 0x9a8a80, strength: 0.3, rise: 170, count: 16 }),
+      new Smoke(
+        seed + 1,
+        { x: left[0]!.x + 60, y: left[0]!.top - 90 },
+        { tint: 0x9a8a80, strength: 0.3, rise: 170, count: 16 },
+      ),
+      new Smoke(
+        seed + 2,
+        { x: right[1]!.x + 60, y: right[1]!.top - 90 },
+        { tint: 0x9a8a80, strength: 0.3, rise: 170, count: 16 },
+      ),
     ]
     for (const s of this.smoke) this.addChildAt(s, 0)
   }
 
   private palazzo(g: Graphics, lights: Container, rng: Rng, p: Palazzo) {
     const { x, width: w, top, base } = p
-    for (let cx = x + 50; cx < x + w - 30; cx += range(rng, 120, 240)) funnelChimney(g, cx, top - 6, pick(rng, [vn.terracotta, vn.ochre, vn.rose]))
+    for (let cx = x + 50; cx < x + w - 30; cx += range(rng, 120, 240))
+      funnelChimney(g, cx, top - 6, pick(rng, [vn.terracotta, vn.ochre, vn.rose]))
     g.poly([x - 16, top, x + w + 16, top, x + w + 4, top - 22, x - 4, top - 22]).fill(vn.tile)
     if (p.altana) this.altana(g, rng, x, top - 22, w)
     plasterWall(g, x, top, w, GROUND - top, p.colour, rng)
@@ -113,10 +122,19 @@ export class Neighbors extends Container {
           // shutters pulled to
           glass.fill(vn.shutter)
           g.rect(wx + ww / 2 - 0.75, wy + 10, 1.5, wh - 10).fill(palette.ink)
-          for (let ly = wy + 14; ly < wy + wh - 4; ly += 6) g.rect(wx + 3, ly, ww - 6, 1.5).fill({ color: palette.ink, alpha: 0.45 })
+          for (let ly = wy + 14; ly < wy + wh - 4; ly += 6)
+            g.rect(wx + 3, ly, ww - 6, 1.5).fill({ color: palette.ink, alpha: 0.45 })
         } else if (lit) {
           glass.fill(pick(rng, [0xf07a32, 0xffa040, 0xe0461f, 0xc0301a, 0xf0c050]))
-          glow(lights, wx + ww / 2, wy + wh / 2, (ww * 3) / 256, (wh * 2) / 256, palette.amberDeep, 0.32)
+          glow(
+            lights,
+            wx + ww / 2,
+            wy + wh / 2,
+            (ww * 3) / 256,
+            (wh * 2) / 256,
+            palette.amberDeep,
+            0.32,
+          )
         } else {
           glass.fill(0x0c0806)
         }
@@ -124,7 +142,8 @@ export class Neighbors extends Container {
         g.rect(wx - 8, wy + wh + 4, ww + 16, 5).fill(vn.istria)
         if (style === 'iron') this.ironBalcony(g, rng, wx - 10, wy + wh - 22, ww + 20)
       }
-      if (style === 'balustrade') this.balustrade(g, rng, off + bay * 0.25, wy + wh + 6, cols * bay - bay * 0.5)
+      if (style === 'balustrade')
+        this.balustrade(g, rng, off + bay * 0.25, wy + wh + 6, cols * bay - bay * 0.5)
     }
     g.rect(x, base, w, GROUND - base).fill({ color: palette.ink, alpha: 0.3 })
     g.rect(x, GROUND - 26, w, 26).fill(vn.istriaDark)
@@ -152,15 +171,23 @@ export class Neighbors extends Container {
 
   /** stone balcony with fat balusters, pots of geraniums along the rail */
   private balustrade(g: Graphics, rng: Rng, x: number, y: number, w: number) {
-    g.rect(x - 6, y, w + 12, 9).fill(vn.istria).stroke(INK)
+    g.rect(x - 6, y, w + 12, 9)
+      .fill(vn.istria)
+      .stroke(INK)
     for (let bx = x + 2; bx < x + w - 4; bx += 11) g.ellipse(bx + 4, y - 14, 4, 11).fill(vn.istria)
-    g.rect(x - 6, y - 30, w + 12, 7).fill(vn.istria).stroke(INK)
+    g.rect(x - 6, y - 30, w + 12, 7)
+      .fill(vn.istria)
+      .stroke(INK)
     for (let bx = x + 8; bx < x + w; bx += range(rng, 24, 40)) {
       g.poly([bx - 6, y - 30, bx + 6, y - 30, bx + 4, y - 40, bx - 4, y - 40]).fill(0x8a4a30)
-      for (let f = 0; f < 4; f++) g.circle(bx + range(rng, -7, 7), y - 44 - range(rng, 0, 6), 3).fill(pick(rng, [0xe0402a, 0xf06a3a, 0xff8ab0]))
+      for (let f = 0; f < 4; f++)
+        g.circle(bx + range(rng, -7, 7), y - 44 - range(rng, 0, 6), 3).fill(
+          pick(rng, [0xe0402a, 0xf06a3a, 0xff8ab0]),
+        )
     }
     // brackets under it
-    for (let bx = x + 10; bx < x + w; bx += 40) g.poly([bx, y + 9, bx + 10, y + 9, bx + 7, y + 22, bx + 3, y + 22]).fill(vn.istria)
+    for (let bx = x + 10; bx < x + w; bx += 40)
+      g.poly([bx, y + 9, bx + 10, y + 9, bx + 7, y + 22, bx + 3, y + 22]).fill(vn.istria)
   }
 
   /** a little wrought-iron balcony under one window, flowers spilling over */
@@ -170,11 +197,20 @@ export class Neighbors extends Container {
     for (let bx = x; bx <= x + w; bx += 6) g.rect(bx, y, 1.4, 24).fill(palette.ink)
     g.ellipse(x + w / 2, y + 12, w * 0.3, 6).stroke({ color: palette.ink, width: 1.3 })
     const f = pick(rng, [0xe0402a, 0xff6a9a, 0xf0c050])
-    for (let t = 0; t < 7; t++) g.circle(x + range(rng, 0, w), y - 2 + range(rng, -4, 30), 2.5).fill(t % 3 ? f : 0x1d3a1a)
+    for (let t = 0; t < 7; t++)
+      g.circle(x + range(rng, 0, w), y - 2 + range(rng, -4, 30), 2.5).fill(t % 3 ? f : 0x1d3a1a)
   }
 
   /** an arcade of round arches on thin columns, lit room behind */
-  private loggia(g: Graphics, lights: Container, rng: Rng, x: number, y: number, w: number, h: number) {
+  private loggia(
+    g: Graphics,
+    lights: Container,
+    rng: Rng,
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+  ) {
     const arches = Math.max(3, Math.round(w / 40))
     const aw = w / arches
     g.rect(x - 6, y - 6, w + 12, h + 12).fill(vn.istria)
@@ -210,22 +246,40 @@ export class Neighbors extends Container {
     g.rect(ax - 4, top - 102, aw + 12, 3).fill(0x2e1a10)
   }
 
-  private opening(g: Graphics, x: number, y: number, w: number, h: number, arch: 'pointed' | 'round' | 'square') {
+  private opening(
+    g: Graphics,
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    arch: 'pointed' | 'round' | 'square',
+  ) {
     if (arch === 'square') return g.rect(x, y, w, h)
     if (arch === 'pointed') return lancet(g, x, y, w, h)
-    return g.moveTo(x, y + h).lineTo(x, y + w / 2).arc(x + w / 2, y + w / 2, w / 2, Math.PI, 0).lineTo(x + w, y + h).closePath()
+    return g
+      .moveTo(x, y + h)
+      .lineTo(x, y + w / 2)
+      .arc(x + w / 2, y + w / 2, w / 2, Math.PI, 0)
+      .lineTo(x + w, y + h)
+      .closePath()
   }
 
   /** a line of washing between two windows */
   private washing(g: Graphics, x: number, y: number, w: number, rng: Rng) {
-    g.moveTo(x, y).quadraticCurveTo(x + w / 2, y + 26, x + w, y).stroke({ color: 0x1a1210, width: 1.5 })
+    g.moveTo(x, y)
+      .quadraticCurveTo(x + w / 2, y + 26, x + w, y)
+      .stroke({ color: 0x1a1210, width: 1.5 })
     for (let t = 0.08; t < 0.95; t += range(rng, 0.08, 0.14)) {
       const px = x + w * t
       const py = y + 26 * 2 * t * (1 - t) * 2
       const colour = pick(rng, [0xd8c8b0, 0xb02418, 0xd9a54a, 0x6a8aa0, 0xe8e0d0])
       const kind = rng()
       if (kind < 0.4) g.rect(px - 9, py, 18, 26).fill({ color: colour, alpha: 0.75 })
-      else if (kind < 0.7) g.poly([px - 12, py, px + 12, py, px + 9, py + 22, px - 9, py + 22]).fill({ color: colour, alpha: 0.75 })
+      else if (kind < 0.7)
+        g.poly([px - 12, py, px + 12, py, px + 9, py + 22, px - 9, py + 22]).fill({
+          color: colour,
+          alpha: 0.75,
+        })
       else g.rect(px - 5, py, 10, 30).fill({ color: colour, alpha: 0.75 })
     }
   }
@@ -244,8 +298,14 @@ export class Neighbors extends Container {
     }
     for (let px = x + 8; px < x + w - 8; px += 60) g.rect(px, y + 30, 3, h - 36).fill(0x2a0e08)
     // green awning with the name on the valance
-    g.poly([x - 8, y, x + w + 8, y, x + w + 16, y + 26, x - 16, y + 26]).fill(0x1e4a30).stroke(INK)
-    const t = new Text({ text: 'TRATTORIA', style: { fontFamily: SIGN_FONT, fontSize: 13, fill: 0xf2e2bd, letterSpacing: 3 }, resolution: 2 })
+    g.poly([x - 8, y, x + w + 8, y, x + w + 16, y + 26, x - 16, y + 26])
+      .fill(0x1e4a30)
+      .stroke(INK)
+    const t = new Text({
+      text: 'TRATTORIA',
+      style: { fontFamily: SIGN_FONT, fontSize: 13, fill: 0xf2e2bd, letterSpacing: 3 },
+      resolution: 2,
+    })
     t.anchor.set(0.5)
     t.position.set(x + w / 2, y + 14)
     this.addChild(t)
@@ -255,8 +315,18 @@ export class Neighbors extends Container {
   /** murano glass glowing in every colour on glass shelves */
   private glassShop(g: Graphics, lights: Container, rng: Rng, x: number, y: number, w: number) {
     const h = GROUND - y - 26
-    g.moveTo(x - 10, y + h).lineTo(x - 10, y + 30).arc(x + w / 2, y + 30, w / 2 + 10, Math.PI, 0).lineTo(x + w + 10, y + h).closePath().fill(vn.istria)
-    g.moveTo(x, y + h).lineTo(x, y + 30).arc(x + w / 2, y + 30, w / 2, Math.PI, 0).lineTo(x + w, y + h).closePath().fill(0x1a0a08)
+    g.moveTo(x - 10, y + h)
+      .lineTo(x - 10, y + 30)
+      .arc(x + w / 2, y + 30, w / 2 + 10, Math.PI, 0)
+      .lineTo(x + w + 10, y + h)
+      .closePath()
+      .fill(vn.istria)
+    g.moveTo(x, y + h)
+      .lineTo(x, y + 30)
+      .arc(x + w / 2, y + 30, w / 2, Math.PI, 0)
+      .lineTo(x + w, y + h)
+      .closePath()
+      .fill(0x1a0a08)
     for (let s = 0; s < 3; s++) {
       const sy = y + 50 + s * 34
       g.rect(x + 8, sy + 22, w - 16, 2).fill({ color: 0xffe0b0, alpha: 0.5 })
@@ -275,7 +345,11 @@ export class Neighbors extends Container {
         this.glass.push(s2)
       }
     }
-    const t = new Text({ text: 'VETRI', style: { fontFamily: SIGN_FONT, fontSize: 13, fill: palette.gold, letterSpacing: 3 }, resolution: 2 })
+    const t = new Text({
+      text: 'VETRI',
+      style: { fontFamily: SIGN_FONT, fontSize: 13, fill: palette.gold, letterSpacing: 3 },
+      resolution: 2,
+    })
     t.anchor.set(0.5)
     t.position.set(x + w / 2, y + 16)
     this.addChild(t)
@@ -287,4 +361,3 @@ export class Neighbors extends Container {
     this.glass.forEach((s, i) => (s.alpha = 0.45 + Math.sin(time * 0.8 + i) * 0.08))
   }
 }
-

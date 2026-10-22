@@ -9,7 +9,9 @@ import { createRng, pick, range, type Rng } from '../rng'
 
 const INK = palette.ink
 // people come in every shade -- a bit darker than daylight, it's night
-export const SKIN_TONES = [0x3a2216, 0x4e2e1a, 0x6e4224, 0x8a5430, 0x9c6a3a, 0xb07c50, 0xc49064, 0xd4a47c, 0xe0b892]
+export const SKIN_TONES = [
+  0x3a2216, 0x4e2e1a, 0x6e4224, 0x8a5430, 0x9c6a3a, 0xb07c50, 0xc49064, 0xd4a47c, 0xe0b892,
+]
 export const HAIR = [0x140a06, 0x1a0e08, 0x2e1a0e, 0x4a2a14, 0x6a3a1a, 0x8a5a2a, 0xb08a4a, 0x8a8480]
 
 export type Hat = 'none' | 'beret' | 'fedora' | 'wide' | 'scarf' | 'cap' | 'afro' | 'bucket' | 'bun'
@@ -69,7 +71,9 @@ class Walker extends Container {
 
     // coat / dress
     const shoulder = -232
-    const coat = new Graphics().poly([-17, shoulder, 17, shoulder, 18 + o.flare, o.coatHem, -18 - o.flare, o.coatHem]).fill(o.coat)
+    const coat = new Graphics()
+      .poly([-17, shoulder, 17, shoulder, 18 + o.flare, o.coatHem, -18 - o.flare, o.coatHem])
+      .fill(o.coat)
     coat.rect(-1, shoulder + 6, 2, o.coatHem - shoulder - 6).fill({ color: INK, alpha: 0.25 })
     if (o.coatHem < -100 && !o.dress) {
       // jacket: show a belt line and the turtleneck
@@ -117,7 +121,10 @@ class Walker extends Container {
         head.poly([-12, hy - 6, 12, hy - 6, 9, hy - 22, -9, hy - 22]).fill(o.hatColour)
         head.ellipse(0, hy - 6, 19, 4).fill(o.hatColour)
         // round glasses
-        head.circle(-5, hy + 1, 4).circle(6, hy + 1, 4).stroke({ color: INK, width: 1.5 })
+        head
+          .circle(-5, hy + 1, 4)
+          .circle(6, hy + 1, 4)
+          .stroke({ color: INK, width: 1.5 })
         break
       case 'bun':
         head.ellipse(0, hy - 7, 15, 9).fill(0x0e0806)
@@ -125,9 +132,14 @@ class Walker extends Container {
         head.rect(-12, hy - 22, 24, 2).fill(o.hatColour)
         break
       case 'scarf':
-        head.poly([-15, hy - 4, 0, hy - 18, 15, hy - 4, 12, hy + 12, -12, hy + 12]).fill(o.hatColour)
+        head
+          .poly([-15, hy - 4, 0, hy - 18, 15, hy - 4, 12, hy + 12, -12, hy + 12])
+          .fill(o.hatColour)
         // big sunglasses, at night, obviously
-        head.ellipse(-5, hy + 1, 5, 4).ellipse(6, hy + 1, 5, 4).fill(INK)
+        head
+          .ellipse(-5, hy + 1, 5, 4)
+          .ellipse(6, hy + 1, 5, 4)
+          .fill(INK)
         break
       default:
         if (!o.longHair) head.ellipse(0, hy - 8, 14, 8).fill(hair)
@@ -136,7 +148,9 @@ class Walker extends Container {
     this.body.addChild(head)
 
     for (const arm of [this.armL, this.armR]) {
-      arm.addChild(new Graphics().poly([-6, 0, 6, 0, 5, 92, -5, 92]).fill(o.coat).circle(0, 96, 5).fill(skin))
+      arm.addChild(
+        new Graphics().poly([-6, 0, 6, 0, 5, 92, -5, 92]).fill(o.coat).circle(0, 96, 5).fill(skin),
+      )
       arm.position.set(0, shoulder + 8)
     }
     // the far arm is a shade darker
@@ -153,7 +167,11 @@ class Walker extends Container {
       const b =
         o.carry === 'briefcase'
           ? new Graphics().rect(-14, 92, 28, 20).fill(0x2a160c).rect(-5, 88, 10, 4).fill(INK)
-          : new Graphics().roundRect(-12, 90, 24, 26, 4).fill(0xb03a1e).rect(-1, 78, 2, 14).fill(INK)
+          : new Graphics()
+              .roundRect(-12, 90, 24, 26, 4)
+              .fill(0xb03a1e)
+              .rect(-1, 78, 2, 14)
+              .fill(INK)
       this.armR.addChild(b)
     }
     if (o.umbrella) {
@@ -217,7 +235,11 @@ class Walker extends Container {
 function poodle() {
   const g = new Graphics()
   const c = 0xe8dcc8
-  g.rect(-14, -28, 3, 28).rect(-4, -28, 3, 28).rect(10, -28, 3, 28).rect(18, -28, 3, 28).fill(0x6a5a4a)
+  g.rect(-14, -28, 3, 28)
+    .rect(-4, -28, 3, 28)
+    .rect(10, -28, 3, 28)
+    .rect(18, -28, 3, 28)
+    .fill(0x6a5a4a)
   for (const [x, y] of [
     [-12, -2],
     [-2, -2],

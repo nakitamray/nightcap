@@ -1,12 +1,12 @@
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { CityWindow } from '@/components/CityWindow'
+import { CityCard, EmptyWindowCard } from '@/components/CityCard'
+import cardStyles from '@/components/CityCard.module.css'
+import { Gallery } from '@/components/Gallery'
 import { InviteButton } from '@/components/InviteButton'
 import { SignOut } from '@/components/SignOut'
 import { daysLeft, MAX_HOUSES, memberLine } from '@/lib/members'
 import { currentUserId, supabaseServer } from '@/lib/supabase/server'
 import { isTheme, THEME_NAMES } from '@/lib/themes'
-import styles from './keys.module.css'
 
 export const metadata = { title: 'Your keyring · Nightcap' }
 
@@ -35,57 +35,47 @@ export default async function Keyring() {
     supabase.from('profiles').select('display_name, username').eq('id', userId).maybeSingle(),
   ])
   const people = new Set((rooms ?? []).map((r) => r.user_id))
-  const { data: profiles } = await supabase.from('profiles').select('id, display_name').in('id', [...people])
+  const { data: profiles } = await supabase
+    .from('profiles')
+    .select('id, display_name')
+    .in('id', [...people])
   const nameOf = (id: string) => profiles?.find((p) => p.id === id)?.display_name ?? '?'
   const myName = me?.display_name ?? 'you'
   const keys = (houses ?? []) as Key[]
 
   return (
-    <main className={styles.page}>
-      <header className={styles.header}>
-        <div>
-          <h1 className={styles.title}>YOUR KEYRING</h1>
-          <p className={styles.sub}>
-            {keys.length} of {MAX_HOUSES} houses &middot; signed in as {me?.username ?? myName}
-          </p>
-        </div>
-        <SignOut />
-      </header>
-
-      <ul className={styles.grid}>
-        {keys.map((h) => {
-          const members = (rooms ?? []).filter((r) => r.house_id === h.id).map((r) => nameOf(r.user_id))
-          const waiting = members.length < 2
-          const theme = isTheme(h.theme) ? h.theme : 'paris'
-          return (
-            <li key={h.id} className={styles.key} data-waiting={waiting}>
-              <Link href={`/h/${h.id}`} className={styles.window} aria-label={`go home to ${h.name}`}>
-                <CityWindow theme={theme} seed={h.id} className={styles.city} />
-              </Link>
-              <p className={styles.name}>{h.name}</p>
-              <p className={styles.members}>
-                {THEME_NAMES[theme]} &middot; {members.length >= 6 ? `${members.length} people` : memberLine(members, myName)}
-              </p>
-              {waiting && (
-                <div className={styles.waiting}>
-                  <p>
-                    waiting for a friend &middot; {daysLeft(h.created_at)} days before it goes
-                  </p>
-                  <InviteButton houseId={h.id} userId={userId} />
-                </div>
-              )}
-            </li>
-          )
-        })}
-        {keys.length < MAX_HOUSES && (
-          <li className={styles.key}>
-            <Link href="/new" className={`${styles.window} ${styles.newWindow}`}>
-              <span className={styles.plus}>+</span>
-              <span>make a new house</span>
-            </Link>
-          </li>
-        )}
-      </ul>
-    </main>
+    <Gallery
+      title="YOUR KEYRING"
+      sub={`${keys.length} of ${MAX_HOUSES} houses · signed in as ${me?.username ?? myName}`}
+      actions={<SignOut />}
+    >
+      {keys.map((h) => {
+        const members = (rooms ?? [])
+          .filter((r) => r.house_id === h.id)
+          .map((r) => nameOf(r.user_id))
+        const waiting = members.length < 2
+        const theme = isTheme(h.theme) ? h.theme : 'paris'
+        return (
+          <CityCard
+            key={h.id}
+            theme={theme}
+            href={`/h/${h.id}`}
+            label={`go home to ${h.name}`}
+            title={h.name}
+            line={`${THEME_NAMES[theme]} · ${members.length >= 6 ? `${members.length} people` : memberLine(members, myName)}`}
+          >
+            {waiting && (
+              <div className={cardStyles.waiting}>
+                <p>waiting for a friend · {daysLeft(h.created_at)} days before it goes</p>
+                <InviteButton houseId={h.id} userId={userId} />
+              </div>
+            )}
+          </CityCard>
+        )
+      })}
+      {keys.length < MAX_HOUSES && (
+        <EmptyWindowCard href="/new" title="a new house" line="pick a city, send the link round" />
+      )}
+    </Gallery>
   )
 }

@@ -48,11 +48,12 @@ export class StreetWorld extends Container {
         bloomScale: 0.8,
         brightness: 1,
         blur: 5,
-        quality: 4,
+        quality: 3,
       }),
     ]
 
-    this.reflection = new Reflection(this.upper, 0.4, street.reflection)
+    // the reflection skips the bloom: it's smeared by the water anyway
+    this.reflection = new Reflection(this.upper, 0.4, street.reflection, [this.lights])
     const drops = street.rain ?? 160
     this.rain = new Rain(seed + 4, reduced ? Math.round(drops / 3) : drops)
 
@@ -80,6 +81,11 @@ export class StreetWorld extends Container {
     this.street.people.update(dt, reduced)
     this.rain.update(reduced ? dt * 0.4 : dt)
     this.reflection.update(renderer, t)
+  }
+
+  /** for when the street is only seen small, through a window */
+  lowDetail() {
+    this.reflection.every = 3
   }
 
   /** for slow machines: no bloom, a lazier reflection */

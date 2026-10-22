@@ -32,7 +32,12 @@ export const demoRooms: (Member | null)[] = [
   m('rosa', 'Rosa', 'Madison', 'America/Chicago', true),
 ]
 
-export const demoMarquee = ['NIGHTCAP', "FRI: DEV'S BIRTHDAY", 'SAT: MOVIE NIGHT', 'SUN: ROOFTOP, 9PM']
+export const demoMarquee = [
+  'NIGHTCAP',
+  "FRI: DEV'S BIRTHDAY",
+  'SAT: MOVIE NIGHT',
+  'SUN: ROOFTOP, 9PM',
+]
 
 // same calendar, different town
 const marquees: Record<ThemeId, string[]> = {
@@ -46,9 +51,8 @@ export function marqueeFor(theme: ThemeId) {
   return marquees[theme]
 }
 
-export const themeNames: Record<ThemeId, string> = {
-  paris: 'paris',
-  'new-york': 'new york',
-  venice: 'venice',
-  tokyo: 'tokyo',
+/** a room number out of a url, or null if it isn't one of the twelve */
+export function roomIndex(raw: string): number | null {
+  const n = Number(raw)
+  return Number.isInteger(n) && n >= 0 && n < 12 && /^\d+$/.test(raw) ? n : null
 }

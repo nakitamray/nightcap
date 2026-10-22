@@ -33,7 +33,13 @@ export class Smoke extends Container {
       this.addChild(s)
       const life = range(this.rng, 4.5, 7.5)
       // stagger them so the column is already going on the first frame
-      this.puffs.push({ s, age: (i / opts.count) * life, life, drift: range(this.rng, 8, 18), wobble: this.rng() * 10 })
+      this.puffs.push({
+        s,
+        age: (i / opts.count) * life,
+        life,
+        drift: range(this.rng, 8, 18),
+        wobble: this.rng() * 10,
+      })
     }
   }
 

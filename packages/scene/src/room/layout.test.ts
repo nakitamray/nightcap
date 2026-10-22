@@ -32,9 +32,31 @@ describe('readLayout', () => {
     ).toEqual([2, 4])
   })
 
-  it('caps the extra bookcases', () => {
-    expect(readLayout({ shelves: 9 }).shelves).toBe(3)
-    expect(readLayout({ shelves: -2 }).shelves).toBe(0)
+  it('turns old extra bookcases into furniture, and keeps only known pieces', () => {
+    expect(readLayout({ shelves: 2 }).furniture).toEqual(['bookcase', 'bookcase'])
+    expect(readLayout({ furniture: ['beanbag', 'spaceship', 'lounger'] }).furniture).toEqual([
+      'beanbag',
+      'lounger',
+    ])
+  })
+
+  it('reads pets, falling back on a breed that exists', () => {
+    expect(readLayout({ pet: { kind: 'dog', breed: 'shepherd' } }).pet).toEqual({
+      kind: 'dog',
+      breed: 'shepherd',
+    })
+    expect(readLayout({ pet: { kind: 'cat', breed: 'dragon' } }).pet).toEqual({
+      kind: 'cat',
+      breed: 'black',
+    })
+    expect(readLayout({ pet: { kind: 'none' } }).pet).toEqual({ kind: 'none' })
+  })
+
+  it('keeps the nightstand to one of the three styles', () => {
+    expect(readLayout({ nightstand: 'skirted' }).nightstand).toBe('skirted')
+    expect(['drawers', 'skirted', 'suitcases']).toContain(
+      readLayout({ nightstand: 'throne' }).nightstand,
+    )
   })
 
   it('never has fairy lights and a strip in the same room', () => {

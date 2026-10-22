@@ -25,9 +25,17 @@ export type Extra =
   | 'floorlamp'
   | 'mirror'
   | 'monstera'
+  | 'lounger'
+  | 'beanbag'
+  | 'loveseat'
+  | 'pouf'
+  | 'dresser'
 
 export interface Variant {
   name: string
+  /** half the room's width, and how high its ceiling is */
+  half: number
+  height: number
   glazing: Glazing
   /** half the window's width and its top edge, in room units */
   paneHalf: number
@@ -64,6 +72,8 @@ export interface Variant {
 export const VARIANTS: Variant[] = [
   {
     name: 'the attic library',
+    half: 165,
+    height: 510,
     glazing: 'sash',
     paneHalf: 108,
     paneTop: 370,
@@ -92,6 +102,8 @@ export const VARIANTS: Variant[] = [
   },
   {
     name: 'the lounge',
+    half: 245,
+    height: 370,
     glazing: 'french',
     paneHalf: 88,
     paneTop: 390,
@@ -121,6 +133,8 @@ export const VARIANTS: Variant[] = [
   },
   {
     name: 'the studio',
+    half: 225,
+    height: 470,
     glazing: 'grid',
     paneHalf: 114,
     paneTop: 380,
@@ -149,6 +163,8 @@ export const VARIANTS: Variant[] = [
   },
   {
     name: 'the greenhouse',
+    half: 200,
+    height: 500,
     glazing: 'picture',
     paneHalf: 114,
     paneTop: 384,
@@ -177,6 +193,8 @@ export const VARIANTS: Variant[] = [
   },
   {
     name: 'the record room',
+    half: 235,
+    height: 350,
     glazing: 'casement',
     paneHalf: 100,
     paneTop: 370,
@@ -205,6 +223,8 @@ export const VARIANTS: Variant[] = [
   },
   {
     name: 'the canopy room',
+    half: 190,
+    height: 480,
     glazing: 'french',
     paneHalf: 88,
     paneTop: 390,
@@ -233,6 +253,8 @@ export const VARIANTS: Variant[] = [
   },
   {
     name: 'the reading nook',
+    half: 160,
+    height: 420,
     glazing: 'sash',
     paneHalf: 104,
     paneTop: 376,
@@ -261,6 +283,8 @@ export const VARIANTS: Variant[] = [
   },
   {
     name: 'the piano room',
+    half: 240,
+    height: 440,
     glazing: 'casement',
     paneHalf: 104,
     paneTop: 386,
@@ -291,6 +315,8 @@ export const VARIANTS: Variant[] = [
   },
   {
     name: 'the den',
+    half: 250,
+    height: 340,
     glazing: 'grid',
     paneHalf: 110,
     paneTop: 376,
@@ -320,6 +346,8 @@ export const VARIANTS: Variant[] = [
   },
   {
     name: 'the botanist',
+    half: 172,
+    height: 500,
     glazing: 'picture',
     paneHalf: 110,
     paneTop: 380,
@@ -348,6 +376,8 @@ export const VARIANTS: Variant[] = [
   },
   {
     name: 'the writer’s room',
+    half: 168,
+    height: 460,
     glazing: 'casement',
     paneHalf: 100,
     paneTop: 372,
@@ -376,6 +406,8 @@ export const VARIANTS: Variant[] = [
   },
   {
     name: 'the loft',
+    half: 232,
+    height: 520,
     glazing: 'grid',
     paneHalf: 116,
     paneTop: 390,
@@ -403,6 +435,16 @@ export const VARIANTS: Variant[] = [
     },
   },
 ]
+
+/**
+ * The window's actual size in a given room: never so wide there's no wall
+ * left for the record and the map, never up into the ceiling.
+ */
+export function windowSize(v: Variant) {
+  const reachExtra = v.glazing === 'french' ? 42 : 28
+  const paneHalf = Math.min(v.paneHalf, v.half - reachExtra - 46)
+  return { paneHalf, paneTop: Math.min(v.paneTop, v.height - 60), reach: paneHalf + reachExtra }
+}
 
 export function variantFor(room: number) {
   return VARIANTS[((room % VARIANTS.length) + VARIANTS.length) % VARIANTS.length]!

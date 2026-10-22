@@ -20,7 +20,11 @@ export default async function Join({ params }: { params: Promise<{ code: string 
         <h1 className={styles.title}>HM.</h1>
         <p className={styles.lede}>{error?.message ?? 'That invite didn’t work.'}</p>
         <p className={styles.note}>
-          Ask whoever sent it for a fresh link, or <Link className={styles.link} href="/keys">go back to your keyring</Link>.
+          Ask whoever sent it for a fresh link, or{' '}
+          <Link className={styles.link} href="/keys">
+            go back to your keyring
+          </Link>
+          .
         </p>
       </WindowCardFrame>
     </main>

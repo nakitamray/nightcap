@@ -44,7 +44,11 @@ export abstract class BaseHouse extends Container {
   /** world-space hit test; see the note in scene.ts about why this isn't pixi's */
   windowAt(x: number, y: number) {
     return this.windows.find(
-      ({ slot }) => x >= slot.x - 12 && x <= slot.x + slot.width + 12 && y >= slot.y - 20 && y <= slot.y + slot.height + 10,
+      ({ slot }) =>
+        x >= slot.x - 12 &&
+        x <= slot.x + slot.width + 12 &&
+        y >= slot.y - 20 &&
+        y <= slot.y + slot.height + 10,
     )
   }
 

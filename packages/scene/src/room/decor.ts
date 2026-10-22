@@ -12,7 +12,7 @@ import { flat, pictureMatrix, project, ROOM, scaleAt, type P3 } from './projecti
 import { potPlant, vines } from './soft'
 import { windowReach } from './window'
 
-const { left: L, right: R, back: B } = ROOM
+const B = ROOM.back
 const BRASS = 0xd9a54a
 
 // -- the record and the map, either side of the window -----------------------
@@ -20,9 +20,11 @@ const BRASS = 0xd9a54a
 export function drawVinyl(ctx: Ctx) {
   // in the gap between the left wall and the curtains
   const reach = windowReach(ctx.plan.variant)
-  const room = Math.min(30, (198 - reach) / 2 - 4)
+  const wall = ctx.plan.half - 2
+  const room = Math.min(30, (wall - reach) / 2 - 4)
   // high up, so nothing standing in the corner hides it
-  const [cx, cy] = project([-(198 + reach) / 2, 374, B])
+  const vy = Math.min(374, ctx.plan.height - 70)
+  const [cx, cy] = project([-(wall + reach) / 2, vy, B])
   const r = room * scaleAt(B)
   const g = ctx.layer('vinyl')
   // the sleeve hanging behind it, slightly crooked
@@ -49,7 +51,7 @@ export function drawVinyl(ctx: Ctx) {
     .arc(0, 0, r * 0.87, Math.PI * 1.15, Math.PI * 1.45)
     .stroke({ color: 0xffffff, width: 1.5, alpha: 0.2 })
   disc.position.set(cx, cy)
-  ctx.container('vinyl').addChild(disc)
+  ctx.live(ctx.container('vinyl')).addChild(disc)
 
   if (ctx.playing) {
     glow(ctx.lights, cx, cy, (r * 4) / 128, (r * 4) / 128, 0xff6a3a, 0.7)
@@ -64,7 +66,7 @@ export function drawVinyl(ctx: Ctx) {
       notes.addChild(n)
       return { n, phase: i / 3 }
     })
-    ctx.pool([-(198 + reach) / 2, 374, B], 160, 0.6)
+    ctx.pool([-(wall + reach) / 2, vy, B], 160, 0.6)
     ctx.anim.push((t, dt) => {
       disc.rotation += dt * 3.5
       ring.alpha = 0.6 + Math.sin(t * 4) * 0.3
@@ -267,10 +269,12 @@ const LANDS: [number, number][][] = [
 ]
 
 export function drawMap(ctx: Ctx) {
+  const right = ctx.plan.half - 3
   const left = windowReach(ctx.plan.variant) + 6
-  const tall = (197 - left) * 1.5
-  const [x0, y0] = project([left, 330 + tall / 2, B])
-  const [x1, y1] = project([197, 330 - tall / 2, B])
+  const tall = (right - left) * 1.5
+  const cy = Math.min(330, ctx.plan.height - 40 - tall / 2)
+  const [x0, y0] = project([left, cy + tall / 2, B])
+  const [x1, y1] = project([right, cy - tall / 2, B])
   const w = x1 - x0
   const h = y1 - y0
   const g = ctx.layer('map')
@@ -324,7 +328,7 @@ export function drawMap(ctx: Ctx) {
 
 /** corners of a slot on a side wall, as you'd read it facing that wall */
 function slotCorners(slot: WallSlot, inset = 0) {
-  const X = slot.wall === 'left' ? L + 1 : R - 1
+  const X = slot.wall === 'left' ? ROOM.left + 1 : ROOM.right - 1
   // facing the left wall the front of the room is on your left; facing the right wall, the back is
   const zl = slot.wall === 'left' ? slot.z0 + inset : slot.z1 - inset
   const zr = slot.wall === 'left' ? slot.z1 - inset : slot.z0 + inset
@@ -427,7 +431,7 @@ export function drawPosters(ctx: Ctx) {
 export function drawShelves(ctx: Ctx) {
   const style = ctx.plan.variant.shelf
   ctx.plan.shelves.forEach((slot, i) => {
-    const X = slot.wall === 'left' ? L : R
+    const X = slot.wall === 'left' ? ROOM.left : ROOM.right
     const d = slot.wall === 'left' ? 1 : -1
     const g = ctx.layer()
     const z0 = slot.z0 + 6
@@ -450,8 +454,8 @@ export function drawShelves(ctx: Ctx) {
       block(
         g,
         slot.wall === 'left'
-          ? { x0: L, x1: L + 22, y0: y, y1: y + 5, z0, z1 }
-          : { x0: R - 22, x1: R, y0: y, y1: y + 5, z0, z1 },
+          ? { x0: ROOM.left, x1: ROOM.left + 22, y0: y, y1: y + 5, z0, z1 }
+          : { x0: ROOM.right - 22, x1: ROOM.right, y0: y, y1: y + 5, z0, z1 },
         0x5a3420,
       )
       for (const z of [z0 + 14, z1 - 14])
@@ -462,8 +466,8 @@ export function drawShelves(ctx: Ctx) {
       block(
         g,
         slot.wall === 'left'
-          ? { x0: L, x1: L + 10, y0: y, y1: y + 4, z0, z1 }
-          : { x0: R - 10, x1: R, y0: y, y1: y + 4, z0, z1 },
+          ? { x0: ROOM.left, x1: ROOM.left + 10, y0: y, y1: y + 4, z0, z1 }
+          : { x0: ROOM.right - 10, x1: ROOM.right, y0: y, y1: y + 4, z0, z1 },
         0x3a2418,
       )
       const n = Math.max(2, Math.round((z1 - z0) / 40))
@@ -544,8 +548,8 @@ export function drawShelves(ctx: Ctx) {
           const yb = y - 20 + row * 40
           const box =
             slot.wall === 'left'
-              ? { x0: L, x1: L + 26, y0: yb, y1: yb + 40, z0: za, z1: zb }
-              : { x0: R - 26, x1: R, y0: yb, y1: yb + 40, z0: za, z1: zb }
+              ? { x0: ROOM.left, x1: ROOM.left + 26, y0: yb, y1: yb + 40, z0: za, z1: zb }
+              : { x0: ROOM.right - 26, x1: ROOM.right, y0: yb, y1: yb + 40, z0: za, z1: zb }
           block(g, box, 0xe8d8c0, THIN)
           const face = X + d * 26
           g.poly(
@@ -714,7 +718,7 @@ export function drawNeon(ctx: Ctx) {
   const slot = ctx.plan.neon
   if (!slot) return
   const n = NEON[ctx.theme]
-  const X = slot.wall === 'left' ? L + 1 : R - 1
+  const X = slot.wall === 'left' ? ROOM.left + 1 : ROOM.right - 1
   const [z0, z1] = [slot.z0 + 6, slot.z1 - 6]
   const [y0, y1] = [slot.y0 + 6, slot.y1 - 6]
   const back = new Graphics()
@@ -745,7 +749,7 @@ export function drawNeon(ctx: Ctx) {
   }
   const tube = make(1)
   const halo = make(0.9)
-  ctx.back.addChild(tube)
+  ctx.back.addChild(ctx.live(tube))
   ctx.lights.addChild(halo)
   const [gx, gy] = project([X, (y0 + y1) / 2, (z0 + z1) / 2])
   const wash = glow(ctx.lights, gx, gy, 2.4, 1.4, n.colour, 0.45)
@@ -765,7 +769,7 @@ export function drawNeon(ctx: Ctx) {
 /** a basket and a pile of books on the floor, out of everything's way */
 export function drawFloorThings(ctx: Ctx) {
   const g = ctx.layer()
-  const { x, y, s } = at([104, 0, 46])
+  const { x, y, s } = at([56, 0, 22])
   g.moveTo(x - 22 * s, y - 30 * s)
     .lineTo(x + 22 * s, y - 30 * s)
     .lineTo(x + 18 * s, y)
@@ -790,7 +794,7 @@ export function drawFloorThings(ctx: Ctx) {
     .fill(hex(ctx.layout.bed.blanket))
     .stroke(THIN)
 
-  const k = at([-96, 0, 40])
+  const k = at([-50, 0, 18])
   let top = k.y
   for (const [i, c] of [0x2a4a8a, 0xc8302a, 0xe8c25a, 0x3a7a3a].entries()) {
     const bw = (34 - i * 3) * k.s
@@ -802,15 +806,16 @@ export function drawFloorThings(ctx: Ctx) {
     g.rect(k.x - bw / 2 + off + 2, top - bh + 1.5, bw - 4, 1).fill({ color: 0xf2e2bd, alpha: 0.5 })
     top -= bh
   }
-  candle(ctx, g, [-96, 24, 40], 12)
+  candle(ctx, g, [-50, 24, 18], 12)
 }
 
 /** pothos in macramé hangers, dropping from the ceiling (never near the walls) */
 export function drawHangingPlants(ctx: Ctx) {
   const many = ctx.plan.variant.plants.length > 3
   // kept clear of the record, the map and the window
-  const spots: P3[] = [[-172, 300, 60]]
-  if (many) spots.push([172, 290, 70], [-40, 410, 30])
+  const C = ctx.plan.height
+  const spots: P3[] = [[ROOM.left + 28, C - 140, 60]]
+  if (many) spots.push([ROOM.right - 28, C - 150, 70], [-40, C - 30, 30])
   for (const [i, p] of spots.entries()) {
     const { x, y, s } = at(p)
     const [, top] = project([
@@ -831,7 +836,7 @@ export function drawHangingPlants(ctx: Ctx) {
     vines(hang, x, y - 12 * s, s, 7, 90, i * 3)
     hang.pivot.set(x, y)
     hang.position.set(x, y)
-    ctx.back.addChild(hang)
+    ctx.back.addChild(ctx.live(hang))
     ctx.anim.push((t) => {
       hang.rotation = Math.sin(t * 0.5 + i) * 0.02
     })
@@ -868,7 +873,7 @@ export function drawFan(ctx: Ctx) {
     b.rotation = (i / 5) * Math.PI * 2
     spin.addChild(b)
   }
-  ctx.back.addChild(blades)
+  ctx.back.addChild(ctx.live(blades))
   const motor = ctx.layer()
   motor
     .ellipse(hx, hy, 12 * s, 7 * s)

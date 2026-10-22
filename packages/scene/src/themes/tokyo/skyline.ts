@@ -40,14 +40,22 @@ export class TokyoSkyline extends Container {
       far.rect(x, top, w, BASE - top).fill(FAR)
       for (let wy = top + 8; wy < BASE - 8; wy += 10) {
         for (let wx = x + 5; wx < x + w - 5; wx += 8) {
-          if (chance(rng, 0.16)) far.rect(wx, wy, 4, 5).fill({ color: pick(rng, [0xffc46a, 0xfff0d0, 0xff8a4a]), alpha: 0.6 })
+          if (chance(rng, 0.16))
+            far
+              .rect(wx, wy, 4, 5)
+              .fill({ color: pick(rng, [0xffc46a, 0xfff0d0, 0xff8a4a]), alpha: 0.6 })
         }
       }
       // rooftop billboards and blinking aircraft lights
       if (chance(rng, 0.35)) {
         const bw = w * 0.7
-        far.rect(x + (w - bw) / 2, top - 34, bw, 28).fill(pick(rng, [0xc8261a, 0xe08a2a, 0xd84a6a, 0xf0c040]))
-        far.rect(x + (w - bw) / 2 + 4, top - 6, 2, 6).rect(x + (w + bw) / 2 - 6, top - 6, 2, 6).fill(FAR)
+        far
+          .rect(x + (w - bw) / 2, top - 34, bw, 28)
+          .fill(pick(rng, [0xc8261a, 0xe08a2a, 0xd84a6a, 0xf0c040]))
+        far
+          .rect(x + (w - bw) / 2 + 4, top - 6, 2, 6)
+          .rect(x + (w + bw) / 2 - 6, top - 6, 2, 6)
+          .fill(FAR)
       }
       if (chance(rng, 0.3)) this.blinker(x + w / 2, top - 4)
       x += w + range(rng, -4, 8)
@@ -78,18 +86,25 @@ export class TokyoSkyline extends Container {
       const t0 = 0.12 + i * 0.13
       const a = at(t0)
       const b = at(t0 + 0.04)
-      g.poly([cx - a.half, a.y, cx + a.half, a.y, cx + b.half, b.y, cx - b.half, b.y]).fill(0xf2d8b0)
+      g.poly([cx - a.half, a.y, cx + a.half, a.y, cx + b.half, b.y, cx - b.half, b.y]).fill(
+        0xf2d8b0,
+      )
     }
     // lattice
     for (let i = 1; i < 24; i++) {
       const a = at(i / 24)
       const b = at((i + 1) / 24)
-      g.moveTo(cx - a.half, a.y).lineTo(cx + b.half, b.y).moveTo(cx + a.half, a.y).lineTo(cx - b.half, b.y).stroke({ color: 0xffb060, width: 1.2, alpha: 0.6 })
+      g.moveTo(cx - a.half, a.y)
+        .lineTo(cx + b.half, b.y)
+        .moveTo(cx + a.half, a.y)
+        .lineTo(cx - b.half, b.y)
+        .stroke({ color: 0xffb060, width: 1.2, alpha: 0.6 })
     }
     for (const t of [0.33, 0.62]) {
       const { y, half } = at(t)
       g.rect(cx - half - 12, y - 16, (half + 12) * 2, 18).fill(0x2a1810)
-      for (let wx = cx - half - 8; wx < cx + half + 10; wx += 6) g.rect(wx, y - 12, 3, 8).fill(0xffe0a0)
+      for (let wx = cx - half - 8; wx < cx + half + 10; wx += 6)
+        g.rect(wx, y - 12, 3, 8).fill(0xffe0a0)
     }
     g.rect(cx - 2, tip - 50, 4, 50).fill(0xf2d8b0)
     const halo = new Sprite(glowTexture())

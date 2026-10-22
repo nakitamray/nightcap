@@ -38,7 +38,25 @@ const SHAPES: Shape[] = ['rect', 'arch', 'segment', 'gothic', 'round', 'twin', '
 const BARS: Bars[] = ['none', 'cross', 'transom', 'grid', 'sash', 'lattice', 'vertical', 'fan']
 const BALCONIES: Balcony[] = ['none', 'iron', 'railing', 'balustrade', 'box', 'plants']
 const SHADES: Shade[] = ['none', 'shutters', 'blind', 'cafe']
-const LIVES: Life[] = ['sax', 'dinner', 'reader', 'sill', 'desk', 'dance', 'cat', 'party', 'plants', 'books', 'kiss', 'tv', 'cook', 'piano', 'painter', 'phone', 'guitar']
+const LIVES: Life[] = [
+  'sax',
+  'dinner',
+  'reader',
+  'sill',
+  'desk',
+  'dance',
+  'cat',
+  'party',
+  'plants',
+  'books',
+  'kiss',
+  'tv',
+  'cook',
+  'piano',
+  'painter',
+  'phone',
+  'guitar',
+]
 
 // mostly lamplight -- amber, honey, apricot, candle -- with the odd room lit
 // some other colour: a tv, a rose shade, a green glass lamp.
@@ -157,7 +175,13 @@ export class WindowWall {
   private build() {
     const { app } = this
     app.stage.addChild(this.wall, this.lights)
-    const bloom = new AdvancedBloomFilter({ threshold: 0.55, bloomScale: 0.6, brightness: 1, blur: 6, quality: 4 })
+    const bloom = new AdvancedBloomFilter({
+      threshold: 0.55,
+      bloomScale: 0.6,
+      brightness: 1,
+      blur: 6,
+      quality: 4,
+    })
     this.lights.filters = [bloom]
     app.stage.filters = [this.paper]
     app.stage.filterArea = app.screen
@@ -213,7 +237,8 @@ export class WindowWall {
       const tint = pick(rng, [0x1d3324, 0x3a1a14, 0x1c2840, 0x5a4a38])
       for (const sx of [-8 - sw, w + 8]) {
         f.rect(sx, -4, sw, h + 8).fill(tint)
-        for (let ly = 2; ly < h; ly += 6) f.rect(sx + 3, ly, sw - 6, 2).fill({ color: INK, alpha: 0.4 })
+        for (let ly = 2; ly < h; ly += 6)
+          f.rect(sx + 3, ly, sw - 6, 2).fill({ color: INK, alpha: 0.4 })
       }
     }
     glass(f, 8).fill(frame)
@@ -245,12 +270,21 @@ export class WindowWall {
     if (d.shade === 'blind') {
       // roller blind pulled part way down
       const drop = h * range(rng, 0.2, 0.45)
-      interior.addChild(new Graphics().rect(0, 0, w, drop).fill({ color: 0xf0dcb0, alpha: 0.82 }).rect(0, drop - 3, w, 3).fill(0x8a6a4a))
+      interior.addChild(
+        new Graphics()
+          .rect(0, 0, w, drop)
+          .fill({ color: 0xf0dcb0, alpha: 0.82 })
+          .rect(0, drop - 3, w, 3)
+          .fill(0x8a6a4a),
+      )
     } else if (d.shade === 'cafe') {
       // café curtain on a rod across the bottom half
       const top = h * 0.58
-      const c = new Graphics().rect(0, top, w, h - top).fill({ color: pick(rng, [0xf0e6d0, 0xd88a8a, 0xe8d090]), alpha: 0.78 })
-      for (let fx = 4; fx < w; fx += 7) c.rect(fx, top, 2, h - top).fill({ color: INK, alpha: 0.08 })
+      const c = new Graphics()
+        .rect(0, top, w, h - top)
+        .fill({ color: pick(rng, [0xf0e6d0, 0xd88a8a, 0xe8d090]), alpha: 0.78 })
+      for (let fx = 4; fx < w; fx += 7)
+        c.rect(fx, top, 2, h - top).fill({ color: INK, alpha: 0.08 })
       c.rect(-2, top - 2, w + 4, 3).fill(0x5a3a1a)
       interior.addChild(c)
     }
@@ -331,11 +365,21 @@ function outline(g: Graphics, shape: Shape, w: number, h: number, pad: number) {
   switch (shape) {
     case 'arch': {
       const r = w / 2 + pad
-      return g.moveTo(x0, y1).lineTo(x0, w / 2).arc(w / 2, w / 2, r, Math.PI, 0).lineTo(x1, y1).closePath()
+      return g
+        .moveTo(x0, y1)
+        .lineTo(x0, w / 2)
+        .arc(w / 2, w / 2, r, Math.PI, 0)
+        .lineTo(x1, y1)
+        .closePath()
     }
     case 'segment': {
       const rise = w * 0.2
-      return g.moveTo(x0, y1).lineTo(x0, rise).quadraticCurveTo(w / 2, -rise - pad * 1.5, x1, rise).lineTo(x1, y1).closePath()
+      return g
+        .moveTo(x0, y1)
+        .lineTo(x0, rise)
+        .quadraticCurveTo(w / 2, -rise - pad * 1.5, x1, rise)
+        .lineTo(x1, y1)
+        .closePath()
     }
     case 'gothic': {
       const a = w * 0.7
@@ -379,7 +423,10 @@ function glazing(g: Graphics, d: Design, w: number, h: number, colour: number) {
       break
     case 'lattice':
       for (let t = -h; t < w + h; t += 16) {
-        g.moveTo(t, 0).lineTo(t + h, h).moveTo(t + h, 0).lineTo(t, h)
+        g.moveTo(t, 0)
+          .lineTo(t + h, h)
+          .moveTo(t + h, 0)
+          .lineTo(t, h)
       }
       g.stroke({ color: colour, width: 1.4 })
       return
@@ -410,9 +457,12 @@ function balcony(g: Graphics, kind: Balcony, w: number, h: number, rng: Rng) {
     case 'iron': {
       // curly wrought-iron balconette over the bottom of the window
       const top = h - h * 0.24
-      g.rect(-12, top, w + 24, 3).rect(-12, h + 6, w + 24, 3).fill(INK)
+      g.rect(-12, top, w + 24, 3)
+        .rect(-12, h + 6, w + 24, 3)
+        .fill(INK)
       for (let bx = -10; bx <= w + 10; bx += 7) g.rect(bx, top, 1.5, h * 0.24 + 8).fill(INK)
-      for (let bx = -4; bx < w + 4; bx += 14) g.ellipse(bx + 7, top + h * 0.12, 5.5, h * 0.06).stroke({ color: INK, width: 1.4 })
+      for (let bx = -4; bx < w + 4; bx += 14)
+        g.ellipse(bx + 7, top + h * 0.12, 5.5, h * 0.06).stroke({ color: INK, width: 1.4 })
       break
     }
     case 'railing': {
@@ -445,9 +495,11 @@ function balcony(g: Graphics, kind: Balcony, w: number, h: number, rng: Rng) {
       for (let i = 0; i < 3; i++) {
         const px = 8 + i * ((w - 16) / 2)
         g.poly([px - 7, h - 8, px + 7, h - 8, px + 5, h + 4, px - 5, h + 4]).fill(0x8a4a30)
-        for (let l = 0; l < 5; l++) g.ellipse(px + range(rng, -6, 6), h - 12 - range(rng, 0, 10), 3, 6).fill(0x1b2a14)
+        for (let l = 0; l < 5; l++)
+          g.ellipse(px + range(rng, -6, 6), h - 12 - range(rng, 0, 10), 3, 6).fill(0x1b2a14)
       }
-      for (let t = 0; t < 6; t++) g.circle(w - 10 + Math.sin(t) * 3, h + 10 + t * 6, 3).fill(0x1b2a14)
+      for (let t = 0; t < 6; t++)
+        g.circle(w - 10 + Math.sin(t) * 3, h + 10 + t * 6, 3).fill(0x1b2a14)
       break
     }
     case 'none':
@@ -478,11 +530,22 @@ function scene(kind: Life, w: number, h: number, rng: Rng): Inside {
   }
   const person = (x: Graphics, cx: number, floor: number, height: number) => {
     x.circle(cx, floor - height + 6, 6.5).fill(INK)
-    x.poly([cx - 7, floor - height + 13, cx + 7, floor - height + 13, cx + 9, floor, cx - 9, floor]).fill(INK)
+    x.poly([
+      cx - 7,
+      floor - height + 13,
+      cx + 7,
+      floor - height + 13,
+      cx + 9,
+      floor,
+      cx - 9,
+      floor,
+    ]).fill(INK)
   }
   const seated = (x: Graphics, cx: number, floor: number, facing: 1 | -1) => {
     x.circle(cx, floor - 58, 6.5).fill(INK)
-    x.poly([cx - 7, floor - 51, cx + 7, floor - 51, cx + 8, floor - 24, cx - 8, floor - 24]).fill(INK)
+    x.poly([cx - 7, floor - 51, cx + 7, floor - 51, cx + 8, floor - 24, cx - 8, floor - 24]).fill(
+      INK,
+    )
     x.rect(cx - 8, floor - 26, 8 * facing + 18 * facing, 7).fill(INK)
     x.rect(cx + 16 * facing - 2, floor - 26, 4, 26).fill(INK)
   }
@@ -497,7 +560,9 @@ function scene(kind: Life, w: number, h: number, rng: Rng): Inside {
       p.circle(50, -92, 11).fill(INK)
       p.poly([36, -80, 64, -80, 70, 0, 30, 0]).fill(INK)
       p.moveTo(60, -86).lineTo(72, -70).lineTo(76, -40).stroke({ color: INK, width: 5 })
-      p.moveTo(76, -40).quadraticCurveTo(84, -22, 72, -20).stroke({ color: INK, width: 9, cap: 'round' })
+      p.moveTo(76, -40)
+        .quadraticCurveTo(84, -22, 72, -20)
+        .stroke({ color: INK, width: 9, cap: 'round' })
       p.ellipse(68, -18, 9, 6).fill(INK)
       animate = (t) => (p.rotation = Math.sin(t * 1.6 + phase) * 0.06)
       break
@@ -574,7 +639,10 @@ function scene(kind: Life, w: number, h: number, rng: Rng): Inside {
       x.circle(50, -32, 9).fill(INK)
       x.poly([42, -35, 43, -48, 48, -38]).poly([58, -35, 57, -48, 52, -38]).fill(INK)
       const tail = g()
-      tail.moveTo(0, 0).bezierCurveTo(14, 2, 18, -10, 12, -22).stroke({ color: INK, width: 4, cap: 'round' })
+      tail
+        .moveTo(0, 0)
+        .bezierCurveTo(14, 2, 18, -10, 12, -22)
+        .stroke({ color: INK, width: 4, cap: 'round' })
       tail.position.set(60, -4)
       x.rect(78, -60, 2, 60).poly([70, -60, 88, -60, 84, -70, 74, -70]).fill(INK)
       animate = (t) => (tail.rotation = Math.sin(t * 1.8 + phase) * 0.3)
@@ -584,9 +652,11 @@ function scene(kind: Life, w: number, h: number, rng: Rng): Inside {
       const heads = [g(), g(), g(), g()]
       heads.forEach((x, i) => person(x, 16 + i * 23, 0, 78 + (i % 2) * 10))
       const deco = g()
-      for (let i = 0; i < 6; i++) deco.circle(10 + i * 16, -118 + Math.sin(i) * 4, 2.5).fill(0xfff0c0)
+      for (let i = 0; i < 6; i++)
+        deco.circle(10 + i * 16, -118 + Math.sin(i) * 4, 2.5).fill(0xfff0c0)
       deco.moveTo(4, -120).quadraticCurveTo(50, -100, 96, -120).stroke({ color: INK, width: 1 })
-      animate = (t) => heads.forEach((x, i) => (x.y = Math.abs(Math.sin(t * 3 + i * 1.3 + phase)) * -3))
+      animate = (t) =>
+        heads.forEach((x, i) => (x.y = Math.abs(Math.sin(t * 3 + i * 1.3 + phase)) * -3))
       break
     }
     case 'plants': {
@@ -667,7 +737,12 @@ function scene(kind: Life, w: number, h: number, rng: Rng): Inside {
     case 'painter': {
       // an easel, a canvas with a dab of colour, the painter leaning in
       const x = g()
-      x.moveTo(62, 0).lineTo(72, -86).lineTo(82, 0).moveTo(72, -86).lineTo(72, 0).stroke({ color: INK, width: 3 })
+      x.moveTo(62, 0)
+        .lineTo(72, -86)
+        .lineTo(82, 0)
+        .moveTo(72, -86)
+        .lineTo(72, 0)
+        .stroke({ color: INK, width: 3 })
       x.rect(56, -78, 34, 40).fill(0xf0e6d0)
       x.circle(66, -62, 5).fill(0xd04a2a)
       x.rect(72, -54, 12, 6).fill(0x3a6ab0)
@@ -689,7 +764,11 @@ function scene(kind: Life, w: number, h: number, rng: Rng): Inside {
       const cord = g()
       animate = (t) => {
         const sag = Math.sin(t * 1.3 + phase) * 3
-        cord.clear().moveTo(50, -48).bezierCurveTo(70, -20 + sag, 80, -60, 92, -70).stroke({ color: INK, width: 1.5 })
+        cord
+          .clear()
+          .moveTo(50, -48)
+          .bezierCurveTo(70, -20 + sag, 80, -60, 92, -70)
+          .stroke({ color: INK, width: 1.5 })
       }
       x.rect(88, -78, 8, 14).fill(INK)
       break

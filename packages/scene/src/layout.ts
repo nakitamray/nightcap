@@ -97,7 +97,8 @@ export const PARIS_GRID: WindowGrid = {
 }
 
 export function gridSlots(grid: WindowGrid): WindowSlot[] {
-  if (grid.cols * grid.rows !== MAX_ROOMS) throw new Error(`a house has ${MAX_ROOMS} rooms, not ${grid.cols * grid.rows}`)
+  if (grid.cols * grid.rows !== MAX_ROOMS)
+    throw new Error(`a house has ${MAX_ROOMS} rooms, not ${grid.cols * grid.rows}`)
   const slots: WindowSlot[] = []
   for (let row = 0; row < grid.rows; row++) {
     for (let col = 0; col < grid.cols; col++) {

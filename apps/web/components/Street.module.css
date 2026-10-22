@@ -72,29 +72,28 @@
   opacity: 1;
 }
 
-.themes button {
+.themes a {
   padding: 2px 6px;
-  border: 0;
-  background: none;
   font-size: 13px;
+  text-decoration: none;
   font-style: italic;
   color: var(--muted);
   cursor: pointer;
   text-shadow: 0 1px 8px rgba(0, 0, 0, 0.8);
 }
 
-.themes button + button::before {
+.themes a + a::before {
   content: '·';
   margin-right: 10px;
   color: var(--muted);
   font-style: normal;
 }
 
-.themes button:hover {
+.themes a:hover {
   color: var(--paper);
 }
 
-.themes button[aria-pressed='true'] {
+.themes a[aria-current='page'] {
   color: var(--amber);
   font-style: normal;
 }

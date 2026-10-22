@@ -2,7 +2,7 @@ import { Graphics } from 'pixi.js'
 import { glow } from '../layers/neon'
 import { at, type Ctx } from './context'
 import { shade, THIN } from './paint'
-import { project, ROOM, type P3 } from './projection'
+import { project, type P3 } from './projection'
 
 const BRONZE = 0x5a4224
 const BRASS = 0xd9a54a
@@ -13,10 +13,10 @@ const WARM = 0xffb04a
  * outside are. Each draws its shade twice -- once normally, once on the lights
  * layer -- so the bloom makes the shade itself glow.
  */
-export function drawLamp(ctx: Ctx, deskTop: P3) {
+export function drawLamp(ctx: Ctx, stand: P3) {
   const style = ctx.layout.lamp
   if (style === 'lantern') return lantern(ctx)
-  const { x, y, s } = at(deskTop)
+  const { x, y, s } = at(stand)
   const g = ctx.layer('lamp')
   const lit = new Graphics()
   const u = s * 0.95
@@ -48,7 +48,7 @@ export function drawLamp(ctx: Ctx, deskTop: P3) {
   const by = y + bulbY * u
   glow(ctx.lights, x, by, (200 * u) / 128, (170 * u) / 128, WARM, 0.45)
   glow(ctx.lights, x, by + 6 * u, (30 * u) / 128, (20 * u) / 128, 0xfff0c8, 0.6)
-  const p: P3 = [deskTop[0], deskTop[1] + 40, deskTop[2]]
+  const p: P3 = [stand[0], stand[1] + 40, stand[2]]
   ctx.pool(p, 420, 1)
   ctx.anim.push((t) => {
     lit.alpha = 0.4 + Math.sin(t * 9.1) * 0.015 + Math.sin(t * 2.3) * 0.02
@@ -254,9 +254,9 @@ function banker(g: Graphics, lit: Graphics) {
 
 /** a big red paper lantern hanging from the beam */
 function lantern(ctx: Ctx) {
-  const p: P3 = [-50, 320, 250]
+  const p: P3 = [-50, ctx.plan.height - 120, 250]
   const { x, y, s } = at(p)
-  const [, cy] = project([p[0], ROOM.ceiling, p[2]])
+  const [, cy] = project([p[0], ctx.plan.height, p[2]])
   const g = ctx.layer('lamp')
   const lit = new Graphics()
   ctx.lights.addChild(lit)
@@ -290,7 +290,6 @@ function lantern(ctx: Ctx) {
   glow(ctx.lights, x, y, (rx * 5) / 128, (ry * 5) / 128, 0xff4a2a, 0.4)
   ctx.pool(p, 460, 1)
   ctx.anim.push((t) => {
-    g.rotation = 0
     lit.alpha = 0.3 + Math.sin(t * 1.1) * 0.03
   })
   ctx.hit('lamp', (h) => h.ellipse(x, y, rx * 1.2, ry * 1.3))

@@ -30,7 +30,9 @@ pnpm build
 
 ## houses (supabase)
 
-`/demo` is a street with made-up friends and works with no setup. Everything
+`/demo` is a street with made-up friends and works with no setup. Click any
+window to look round that room and play with it; nothing you change there is
+kept. Everything
 else needs a Supabase project:
 
 1. run each file in `supabase/migrations/`, oldest first, in the Supabase SQL editor
@@ -45,31 +47,37 @@ How it fits together:
 
 - `/` and `/login` sign in, `/signup` makes an account (username, email,
   password). Supabase emails a link to confirm, which lands back on `/login`.
-- `/keys` is your keyring: up to five houses, each shown as a window onto
-  its city with who lives there.
+- `/keys` is your keyring: up to five houses, each an arched window onto its
+  city. Click one to go to that house's street.
 - `/new` names a house and picks the city, then `/h/<id>/invite` hands you
   a 7-day `/join/<code>` link. A house needs two people; one that's still
   just you after a week gets swept away.
-- `/h/<id>` is the street. Double click an empty window to claim it (one
-  room each). Lights are live presence: a window is lit while that person
-  has the house open.
-- `/h/<id>/room` is your room. All twelve rooms in a house are different
-  (`packages/scene/src/room/variants.ts`): the attic library, the lounge,
-  the studio, the greenhouse and so on, each with its own window, desk,
-  shelving, ceiling, floor, plants and furniture. Click anything to change
-  it: the bed (five frames, colours, which wall), paint, window shape and
-  curtains, posters for every free bit of wall, extra bookcases, six old
-  lamps, a rug, the desk, and an led strip in the rooms that don't have
-  fairy lights. `plan.ts` works out where everything goes so nothing
-  overlaps. The record
+- `/h/<id>` is the street. Click an empty window to claim it (one room
+  each), or a lit one to look round that person's room. "go to my room" and
+  your curtains are up in the corner. Lights are live presence: a window is
+  lit while that person has the house open.
+- `/h/<id>/room/<n>` is a room. Anyone in the house can look; only the person
+  who lives there can change anything (the database agrees: you can only
+  update your own membership). `/h/<id>/room` takes you to yours.
+- All twelve rooms in a house are different
+  (`packages/scene/src/room/variants.ts`): the attic library is tall and
+  narrow, the den is low and wide, and each has its own window, desk,
+  shelving, floor, plants and furniture. Click anything to change it: the
+  bed (five frames, colours, which wall), the nightstand (a little chest, a
+  skirted table or stacked suitcases), paint, window shape and curtains,
+  posters for every free bit of wall, up to five extra pieces of furniture
+  (slouchy chairs, beanbags, a mini sofa, poufs, a dresser, bookcases and so
+  on), six old lamps, a rug, the desk, a cat or a dog, and an led strip in
+  the rooms that don't have fairy lights. `plan.ts` works out where
+  everything goes so nothing overlaps. The record
   on the wall connects Spotify and spins while you're listening; the map
   poster pins where you are (to the nearest town) next to everyone else.
 
 ### dev mode
 
 `/dev` lets you try every city on your own, with no Supabase and no friends
-needed: the demo street with two empty rooms, claim one, go inside, change
-everything. It saves to your browser only. It's on whenever you run
+needed: pick a city, then click into any of its twelve rooms and change
+everything. Nothing is saved. It's on whenever you run
 `pnpm dev`; set `NEXT_PUBLIC_DEV_MODE=1` to keep it on a deployed build.
 
 Privacy is enforced in the database with row level security, not in the
@@ -119,7 +127,10 @@ A few things worth knowing:
   low-res texture every other frame. That messes with pixi's cached transforms,
   so windows are hit-tested by hand in world space (see `scene.ts`).
 - **Performance.** If frames get slow the scene drops the bloom and refreshes
-  the reflection less often instead of stuttering.
+  the reflection less often instead of stuttering. In a room, everything that
+  doesn't move is cached as a picture, and the street outside is drawn into a
+  window-sized texture every other frame. The city cards on `/keys` and
+  `/dev` are still pictures drawn once by the real scene, not live streets.
 - **Reduced motion.** `prefers-reduced-motion` turns off the flicker and
   sway and thins out the rain.
 
@@ -136,7 +147,6 @@ embedding before this goes anywhere public.
 
 ## next
 
-- visiting a friend's room
 - notes under the door, gifts on the step
 - weather and local time per window
 - what everyone's listening to, from the street

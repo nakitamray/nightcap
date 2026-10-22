@@ -21,6 +21,8 @@ export class Reflection extends Container {
     private source: Container,
     resolution = 0.4,
     strength?: number,
+    /** containers whose filters are switched off while the reflection renders */
+    private plain: Container[] = [],
   ) {
     super()
     this.filter = new WetFilter(strength)
@@ -43,7 +45,15 @@ export class Reflection extends Container {
   update(renderer: Renderer, time: number) {
     this.filter.time = time
     if (this.frame++ % this.every !== 0) return
-    renderer.render({ container: this.source, target: this.rt, transform: this.matrix, clear: true })
+    const saved = this.plain.map((c) => c.filters)
+    for (const c of this.plain) c.filters = null
+    renderer.render({
+      container: this.source,
+      target: this.rt,
+      transform: this.matrix,
+      clear: true,
+    })
+    this.plain.forEach((c, i) => (c.filters = saved[i] ? [...saved[i]!] : null))
   }
 
   override destroy() {

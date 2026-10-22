@@ -39,7 +39,15 @@ export function neonWord(
   return { text, glow }
 }
 
-export function glow(lights: Container, x: number, y: number, sx: number, sy: number, tint: number, alpha: number) {
+export function glow(
+  lights: Container,
+  x: number,
+  y: number,
+  sx: number,
+  sy: number,
+  tint: number,
+  alpha: number,
+) {
   const s = new Sprite(glowTexture())
   s.anchor.set(0.5)
   s.position.set(x, y)

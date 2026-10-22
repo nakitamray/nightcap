@@ -31,7 +31,9 @@ export function drawBuilding(g: Graphics, spec: BuildingSpec, rng: Rng) {
   switch (spec.roof) {
     case 'mansard': {
       // sloped zinc roof with a row of chimney pots on top
-      g.poly([x - 2, top, x + width + 2, top, x + width - 14, top - 34, x + 14, top - 34]).fill(color)
+      g.poly([x - 2, top, x + width + 2, top, x + width - 14, top - 34, x + 14, top - 34]).fill(
+        color,
+      )
       for (let px = x + 18; px < x + width - 18; px += range(rng, 14, 30)) {
         g.rect(px, top - 34 - range(rng, 8, 18), 6, 18).fill(color)
       }
@@ -46,7 +48,9 @@ export function drawBuilding(g: Graphics, spec: BuildingSpec, rng: Rng) {
     case 'dome': {
       const r = width * 0.28
       g.rect(cx - r, top - 18, r * 2, 18).fill(color)
-      g.moveTo(cx - r, top - 18).arc(cx, top - 18, r, Math.PI, 0).fill(color)
+      g.moveTo(cx - r, top - 18)
+        .arc(cx, top - 18, r, Math.PI, 0)
+        .fill(color)
       g.rect(cx - 2, top - 18 - r - 22, 4, 22).fill(color)
       break
     }

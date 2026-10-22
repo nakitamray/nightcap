@@ -59,20 +59,23 @@ export function paneShape(
   return g
 }
 
-/** fits the live street into the window, kept inside the world so there are no black edges */
-export function placeStreet(street: Container, theme: ThemeId, v: Variant, room: number) {
+/**
+ * Which slice of the street shows through the window: the scale and offset
+ * to draw the street world at so it fills the glass (in view units, relative
+ * to the glass's top-left), kept inside the world so there are no black edges.
+ */
+export function streetFrame(theme: ThemeId, v: Variant, room: number) {
   const view = VIEWS[theme]
-  const { x, y, w, h } = paneRect(v)
+  const { w, h } = paneRect(v)
   const scale = Math.max(h / view.h, w / (view.h * 1.2))
   const halfW = w / scale / 2
   // each room looks out from a slightly different spot along the block
   const shift = ((room % 4) - 1.5) * 90
   const cx = Math.min(Math.max(view.cx + shift, halfW), WORLD.width - halfW)
-  street.scale.set(scale)
-  street.position.set(x + w / 2 - cx * scale, y + h / 2 - view.cy * scale)
-  return { top: view.cy - h / scale / 2 }
+  return { scale, x: w / 2 - cx * scale, y: h / 2 - view.cy * scale, top: view.cy - h / scale / 2 }
 }
 
+/** draws the window; `street` is whatever shows the view, sized to the glass */
 export function drawWindow(ctx: Ctx, street: Container | null) {
   const v = ctx.plan.variant
   const { shape, curtains, curtainColor } = ctx.layout.window
@@ -86,11 +89,17 @@ export function drawWindow(ctx: Ctx, street: Container | null) {
   paneShape(reveal, v, shape, 18).fill(shade(hex(ctx.layout.wall), -0.4))
   paneShape(reveal, v, shape, 18).stroke(LINE)
 
-  const view = ctx.container('window')
+  // the glass shows the live street, so it's never cached
+  const view = ctx.live(ctx.container('window'))
   const mask = paneShape(new Graphics(), v, shape).fill(0xffffff)
   const glass = new Container()
   glass.addChild(new Graphics().rect(x, y, w, h).fill(0x04060f))
-  if (street) glass.addChild(street)
+  if (street) {
+    street.position.set(x, y)
+    street.width = w
+    street.height = h
+    glass.addChild(street)
+  }
   // french windows open onto a little iron balcony
   if (french) glass.addChild(balcony(x, y + h * 0.72, w, h * 0.28))
   const bars = new Graphics()
@@ -319,10 +328,10 @@ function fairyLights(ctx: Ctx, v: Variant) {
   const top = v.paneTop + 40
   strand(
     [
-      [-195, top + 10, B - 2],
+      [ROOM.left + 5, top + 10, B - 2],
       [-60, top, B - 2],
       [60, top, B - 2],
-      [195, top + 10, B - 2],
+      [ROOM.right - 5, top + 10, B - 2],
     ],
     16,
   )

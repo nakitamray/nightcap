@@ -98,7 +98,12 @@ export class Sky extends Container {
         this.addChild(h)
       }
       this.addChild(s)
-      this.stars.push({ sprite: s, base: range(rng, 0.45, 1), speed: range(rng, 0.4, 2.2), phase: rng() * 10 })
+      this.stars.push({
+        sprite: s,
+        base: range(rng, 0.45, 1),
+        speed: range(rng, 0.4, 2.2),
+        phase: rng() * 10,
+      })
     }
   }
 

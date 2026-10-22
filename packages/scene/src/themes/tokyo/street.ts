@@ -14,7 +14,12 @@ export class Lane extends Container {
     const g = new Graphics()
     g.rect(-500, GROUND, WORLD.width + 1000, STREET_BOTTOM - GROUND).fill(0x0e0c0e)
     for (let i = 0; i < 60; i++) {
-      g.rect(range(rng, -400, WORLD.width + 400), range(rng, GROUND + 4, GROUND + 300), range(rng, 20, 120), range(rng, 4, 16)).fill({
+      g.rect(
+        range(rng, -400, WORLD.width + 400),
+        range(rng, GROUND + 4, GROUND + 300),
+        range(rng, 20, 120),
+        range(rng, 4, 16),
+      ).fill({
         color: 0x161416,
         alpha: 0.8,
       })
@@ -22,7 +27,8 @@ export class Lane extends Container {
     // the white line the lane has instead of a kerb
     g.rect(-500, CURB - 4, WORLD.width + 1000, 4).fill({ color: 0xd8d0c0, alpha: 0.55 })
     // a gutter grate along the buildings
-    for (let x = -500; x < WORLD.width + 500; x += 8) g.rect(x, GROUND + 4, 4, 10).fill({ color: palette.ink, alpha: 0.6 })
+    for (let x = -500; x < WORLD.width + 500; x += 8)
+      g.rect(x, GROUND + 4, 4, 10).fill({ color: palette.ink, alpha: 0.6 })
     // fancy cast manhole cover
     g.ellipse(1060, CURB + 30, 40, 8).fill(0x2a2422)
     g.ellipse(1060, CURB + 30, 30, 5.5).stroke({ color: 0x4a403a, width: 2 })
@@ -51,13 +57,17 @@ export class Wires extends Container {
         [top + 60, 70],
       ] as const) {
         g.rect(x - w / 2, y, w, 6).fill(0x2a2826)
-        for (let ix = x - w / 2 + 6; ix < x + w / 2; ix += 20) g.rect(ix, y - 8, 5, 8).fill(0xd8d0c0)
+        for (let ix = x - w / 2 + 6; ix < x + w / 2; ix += 20)
+          g.rect(ix, y - 8, 5, 8).fill(0xd8d0c0)
       }
       // transformer can
       g.roundRect(x + 10, top + 90, 30, 46, 4).fill(0x6a6a70)
-      g.rect(x + 7, top + 100, 4, 2).rect(x + 7, top + 124, 4, 2).fill(0x2a2826)
+      g.rect(x + 7, top + 100, 4, 2)
+        .rect(x + 7, top + 124, 4, 2)
+        .fill(0x2a2826)
       // the yellow-and-black guard at the bottom
-      for (let sy = GROUND - 90; sy < GROUND + 20; sy += 16) g.poly([x - 8, sy, x + 8, sy - 8, x + 8, sy, x - 8, sy + 8]).fill(0xe0a018)
+      for (let sy = GROUND - 90; sy < GROUND + 20; sy += 16)
+        g.poly([x - 8, sy, x + 8, sy - 8, x + 8, sy, x - 8, sy + 8]).fill(0xe0a018)
       // lamp on a short arm
       const ly = top + 190
       g.rect(x, ly, 46, 4).fill(0x2a2826)
@@ -98,13 +108,19 @@ export class Wires extends Container {
         [52, 34],
         [54, 46],
       ] as const) {
-        g.moveTo(a, top + dy).quadraticCurveTo((a + b) / 2, top + dy + sag * 2, b, top + dy).stroke({ color: 0x0a0a0e, width: 1.6 })
+        g.moveTo(a, top + dy)
+          .quadraticCurveTo((a + b) / 2, top + dy + sag * 2, b, top + dy)
+          .stroke({ color: 0x0a0a0e, width: 1.6 })
       }
     }
     // and a couple sagging off to the buildings
     for (const x of xs) {
-      g.moveTo(x, top + 60).quadraticCurveTo(x - 140, top + 160, x - 260, top + 120).stroke({ color: 0x0a0a0e, width: 1.4 })
-      g.moveTo(x, top + 20).quadraticCurveTo(x + 160, top + 90, x + 300, top + 40).stroke({ color: 0x0a0a0e, width: 1.4 })
+      g.moveTo(x, top + 60)
+        .quadraticCurveTo(x - 140, top + 160, x - 260, top + 120)
+        .stroke({ color: 0x0a0a0e, width: 1.4 })
+      g.moveTo(x, top + 20)
+        .quadraticCurveTo(x + 160, top + 90, x + 300, top + 40)
+        .stroke({ color: 0x0a0a0e, width: 1.4 })
     }
     this.addChild(g)
   }

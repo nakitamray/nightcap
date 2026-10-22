@@ -3,18 +3,19 @@ import { glow } from '../layers/neon'
 import { at, type Ctx } from './context'
 import { BOOKS } from './furniture'
 import { block, hex, INK, LINE, mix, shade, THIN } from './paint'
-import type { Piece } from './plan'
+import { fit, type Piece } from './plan'
 import { paintPoster } from './posters'
-import { flat, project, ROOM, type Box, type P3 } from './projection'
+import { flat, project, type Box, type P3 } from './projection'
 import { cushion, drape, pillow, potPlant, vines } from './soft'
 
 const BRASS = 0xd9a54a
 const WOOD = 0x5a3420
 
-/** helpers for something standing against a side wall in a zone */
-function against(p: Piece) {
+/** helpers for something standing against a side wall in a zone (or out from it) */
+function against(ctx: Ctx, p: Piece) {
   const left = p.zone.wall === 'left'
-  const wx = (depth: number) => (left ? ROOM.left + depth : ROOM.right - depth)
+  const wall = ctx.plan.half - p.zone.inset
+  const wx = (depth: number) => (left ? -wall + depth : wall - depth)
   const box = (d0: number, d1: number, y0: number, y1: number, z0: number, z1: number): Box => {
     const a = wx(d0)
     const b = wx(d1)
@@ -24,42 +25,45 @@ function against(p: Piece) {
   return { left, wx, box, mid, z0: p.zone.z0, z1: p.zone.z1 }
 }
 
+const DRAW: Record<Piece['kind'], (ctx: Ctx, p: Piece, index: number) => void> = {
+  bookcase,
+  sofa: (ctx, p) => sofa(ctx, p, 3),
+  loveseat: (ctx, p) => sofa(ctx, p, 2),
+  armchair,
+  lounger,
+  beanbag,
+  pouf,
+  dresser,
+  piano,
+  easel,
+  records,
+  plantstand,
+  tree,
+  ladder,
+  trunk,
+  floorlamp: floorLamp,
+  mirror,
+  monstera,
+}
+
 export function drawExtra(ctx: Ctx, p: Piece, index: number) {
-  switch (p.kind) {
-    case 'bookcase':
-      return bookcase(ctx, p, index)
-    case 'sofa':
-      return sofa(ctx, p)
-    case 'armchair':
-      return armchair(ctx, p)
-    case 'piano':
-      return piano(ctx, p)
-    case 'easel':
-      return easel(ctx, p)
-    case 'records':
-      return records(ctx, p)
-    case 'plantstand':
-      return plantstand(ctx, p)
-    case 'tree':
-      return tree(ctx, p)
-    case 'ladder':
-      return ladder(ctx, p)
-    case 'trunk':
-      return trunk(ctx, p)
-    case 'floorlamp':
-      return floorLamp(ctx, p)
-    case 'mirror':
-      return mirror(ctx, p)
-    case 'monstera':
-      return monstera(ctx, p)
+  DRAW[p.kind](ctx, p, index)
+  // anything you can see can be clicked to rearrange the furniture
+  if (p.kind !== 'bookcase') {
+    const a = against(ctx, p)
+    const h = fit(p.kind, ctx.plan.height).h
+    const face = a.wx(40)
+    ctx.hit('furniture', (g) =>
+      g.poly(flat([face, 0, a.z0], [face, 0, a.z1], [face, h, a.z1], [face, h, a.z0])),
+    )
   }
 }
 
 /** a tall bookcase, crammed: books, a plant spilling off the top, odds and ends */
 function bookcase(ctx: Ctx, p: Piece, index: number) {
-  const a = against(p)
-  const g = ctx.layer('shelves')
-  const height = 340
+  const a = against(ctx, p)
+  const g = ctx.layer('furniture')
+  const height = fit('bookcase', ctx.plan.height).h
   const z0 = a.z0 + 4
   const z1 = a.z1 - 4
   const wood = [WOOD, 0x3a2418, 0x8a5a3a][index % 3]!
@@ -124,22 +128,26 @@ function bookcase(ctx: Ctx, p: Piece, index: number) {
   potPlant(ctx, g, [a.wx(17), height, a.mid - 14], 0.9, 'pothos', index)
   vines(g, topP.x, topP.y - 2, topP.s, 5, 80, index)
   block(g, a.box(6, 28, height, height + 16, a.mid + 8, a.mid + 34), 0xc8a070)
-  ctx.hit('shelves', (h) =>
+  ctx.hit('furniture', (h) =>
     h.poly(flat([face, 0, z0], [face, 0, z1], [face, height + 20, z1], [face, height + 20, z0])),
   )
 }
 
-function sofa(ctx: Ctx, p: Piece) {
-  const a = against(p)
-  const g = ctx.layer()
-  const colour = [0xc8642e, 0x2f5a5a, 0x7a3a4a][ctx.plan.variant.name.length % 3]!
-  const z0 = a.z0 + 2
-  const z1 = a.z1 - 2
+/** a sofa along the wall; `seats` 2 makes it a little loveseat */
+function sofa(ctx: Ctx, p: Piece, seats: number) {
+  const a = against(ctx, p)
+  const g = ctx.layer('furniture')
+  const colour = [0xc8642e, 0x2f5a5a, 0x7a3a4a, 0xc89a8a][
+    (ctx.plan.variant.name.length + seats) % 4
+  ]!
+  const span = seats === 3 ? (a.z1 - a.z0) / 2 - 2 : Math.min(54, (a.z1 - a.z0) / 2 - 2)
+  const z0 = a.mid - span
+  const z1 = a.mid + span
   for (const z of [z0 + 6, z1 - 8]) block(g, a.box(60, 66, 0, 10, z, z + 4), 0x2a1a10, THIN)
   block(g, a.box(0, 72, 10, 36, z0, z1), shade(colour, -0.1))
   block(g, a.box(0, 22, 36, 90, z0 + 8, z1 - 8), colour)
   // plump seat cushions
-  const n = 3
+  const n = seats
   const step = (z1 - z0 - 28) / n
   for (let i = 0; i < n; i++) {
     const za = z0 + 14 + i * step
@@ -190,8 +198,8 @@ function sofa(ctx: Ctx, p: Piece) {
 }
 
 function armchair(ctx: Ctx, p: Piece) {
-  const a = against(p)
-  const g = ctx.layer()
+  const a = against(ctx, p)
+  const g = ctx.layer('furniture')
   const colour = [0x2f6b66, 0xa8432e, 0x5a4a7a, 0xc88a3a][ctx.plan.variant.paneTop % 4]!
   const z0 = a.mid - 32
   const z1 = a.mid + 32
@@ -222,8 +230,8 @@ function armchair(ctx: Ctx, p: Piece) {
 }
 
 function piano(ctx: Ctx, p: Piece) {
-  const a = against(p)
-  const g = ctx.layer()
+  const a = against(ctx, p)
+  const g = ctx.layer('furniture')
   const black = 0x1a1210
   const z0 = a.mid - 56
   const z1 = a.mid + 56
@@ -286,9 +294,9 @@ function piano(ctx: Ctx, p: Piece) {
 }
 
 function easel(ctx: Ctx, p: Piece) {
-  const a = against(p)
+  const a = against(ctx, p)
   const base = at([a.wx(70), 0, a.mid])
-  const g = ctx.layer()
+  const g = ctx.layer('furniture')
   const s = base.s
   // the a-frame legs
   g.moveTo(base.x - 26 * s, base.y)
@@ -325,8 +333,8 @@ function easel(ctx: Ctx, p: Piece) {
 }
 
 function records(ctx: Ctx, p: Piece) {
-  const a = against(p)
-  const g = ctx.layer()
+  const a = against(ctx, p)
+  const g = ctx.layer('furniture')
   const z0 = a.mid - 44
   const z1 = a.mid + 44
   block(g, a.box(0, 42, 0, 68, z0, z1), 0x8a5a3a)
@@ -358,7 +366,7 @@ function records(ctx: Ctx, p: Piece) {
     .stroke({ color: 0xf2e2bd, width: 0.8, alpha: 0.6 })
   tick.position.set(disc.x, disc.y)
   tick.scale.y = 0.36
-  ctx.back.addChild(tick)
+  ctx.back.addChild(ctx.live(tick))
   ctx.anim.push((t) => {
     tick.rotation = t * 3.5
   })
@@ -371,8 +379,8 @@ function records(ctx: Ctx, p: Piece) {
 }
 
 function plantstand(ctx: Ctx, p: Piece) {
-  const a = against(p)
-  const g = ctx.layer()
+  const a = against(ctx, p)
+  const g = ctx.layer('furniture')
   const plants = ctx.plan.variant.plants
   const steps = [
     { d0: 26, d1: 56, y: 40 },
@@ -404,10 +412,11 @@ function plantstand(ctx: Ctx, p: Piece) {
 
 /** a fiddle-leaf fig nearly up to the ceiling */
 function tree(ctx: Ctx, p: Piece) {
-  const a = against(p)
-  const g = ctx.layer()
+  const a = against(ctx, p)
+  const g = ctx.layer('furniture')
   const base: P3 = [a.wx(38), 0, a.mid]
   const { x, y, s } = at(base)
+  const th = fit('tree', ctx.plan.height).h
   g.moveTo(x - 20 * s, y - 40 * s)
     .lineTo(x + 20 * s, y - 40 * s)
     .quadraticCurveTo(x + 18 * s, y, x + 14 * s, y)
@@ -417,12 +426,19 @@ function tree(ctx: Ctx, p: Piece) {
     .fill(0xe8d8c0)
     .stroke(LINE)
   g.moveTo(x, y - 40 * s)
-    .bezierCurveTo(x - 6 * s, y - 120 * s, x + 10 * s, y - 180 * s, x + 2 * s, y - 280 * s)
+    .bezierCurveTo(
+      x - 6 * s,
+      y - th * 0.4 * s,
+      x + 10 * s,
+      y - th * 0.6 * s,
+      x + 2 * s,
+      y - (th - 20) * s,
+    )
     .stroke({ color: 0x5a3a20, width: 4 * s })
-  const leaves = new Graphics()
+  const leaves = new Container()
   for (let i = 0; i < 26; i++) {
     const t = 0.25 + (i / 26) * 0.75
-    const ly = y - (40 + 240 * t) * s
+    const ly = y - (40 + (th - 60) * t) * s
     const side = i % 2 ? 1 : -1
     const lx = x + side * (10 + ctx.rng() * 22) * s + Math.sin(t * 4) * 6 * s
     const r = (12 + ctx.rng() * 6) * s
@@ -448,20 +464,17 @@ function tree(ctx: Ctx, p: Piece) {
     leaf.position.set(lx, ly)
     leaf.rotation = rot
     leaves.addChild(leaf)
-    const sway = ctx.rng() * 6
-    ctx.anim.push((tt) => {
-      leaf.rotation = rot + Math.sin(tt * 0.7 + sway) * 0.04
-    })
   }
+  ctx.own('furniture', leaves)
   ctx.back.addChild(leaves)
 }
 
 /** a ladder shelf leaning on the wall, shelves getting narrower up the top */
 function ladder(ctx: Ctx, p: Piece) {
-  const a = against(p)
-  const g = ctx.layer()
+  const a = against(ctx, p)
+  const g = ctx.layer('furniture')
   const wood = 0xa86a3a
-  const height = 262
+  const height = fit('ladder', ctx.plan.height).h
   for (const z of [a.mid - 34, a.mid + 34])
     g.poly(flat([a.wx(54), 0, z], [a.wx(4), height, z]), false).stroke({ color: wood, width: 4 })
   const plants = ctx.plan.variant.plants
@@ -495,8 +508,8 @@ function ladder(ctx: Ctx, p: Piece) {
 }
 
 function trunk(ctx: Ctx, p: Piece) {
-  const a = against(p)
-  const g = ctx.layer()
+  const a = against(ctx, p)
+  const g = ctx.layer('furniture')
   const c = 0x3a5a6a
   const box = a.box(4, 52, 0, 50, a.mid - 40, a.mid + 40)
   block(g, box, c)
@@ -532,8 +545,8 @@ function trunk(ctx: Ctx, p: Piece) {
 }
 
 function floorLamp(ctx: Ctx, p: Piece) {
-  const a = against(p)
-  const g = ctx.layer()
+  const a = against(ctx, p)
+  const g = ctx.layer('furniture')
   const base = at([a.wx(36), 0, a.mid])
   const top = at([a.wx(36), 196, a.mid])
   g.ellipse(base.x, base.y, 14 * base.s, 4 * base.s)
@@ -564,7 +577,7 @@ function floorLamp(ctx: Ctx, p: Piece) {
 
 /** a tall arched mirror leaning on the wall */
 function mirror(ctx: Ctx, p: Piece) {
-  const a = against(p)
+  const a = against(ctx, p)
   const X = a.wx(3)
   const [z0, z1] = [a.mid - 40, a.mid + 40]
   const bottom = 4
@@ -582,7 +595,7 @@ function mirror(ctx: Ctx, p: Piece) {
     pts.push([X, bottom + inset, z1 - inset])
     return flat(...pts)
   }
-  const g = ctx.layer()
+  const g = ctx.layer('furniture')
   g.poly(arch(0)).fill(BRASS).stroke(LINE)
   g.poly(arch(6)).fill(mix(shade(hex(ctx.layout.wall), -0.3), 0x8aa0c8, 0.25))
   const refl = new Graphics()
@@ -604,12 +617,12 @@ function mirror(ctx: Ctx, p: Piece) {
   refl.circle(mx + 10, my - 30, 30).fill({ color: 0xffb04a, alpha: 0.2 })
   refl.mask = mask
   ctx.back.addChild(refl, mask)
-  ctx.layer().poly(arch(6)).stroke(THIN)
+  ctx.layer('furniture').poly(arch(6)).stroke(THIN)
 }
 
 function monstera(ctx: Ctx, p: Piece) {
-  const a = against(p)
-  const g = ctx.layer()
+  const a = against(ctx, p)
+  const g = ctx.layer('furniture')
   const { x, y, s } = at([a.wx(36), 0, a.mid])
   g.moveTo(x - 18 * s, y - 34 * s)
     .lineTo(x + 18 * s, y - 34 * s)
@@ -650,11 +663,162 @@ function monstera(ctx: Ctx, p: Piece) {
       .stroke({ color: 0x8ab06a, width: 0.8 })
     leaf.position.set(lx, ly)
     leaf.rotation = ang + Math.PI / 2
+    ctx.own('furniture', leaf)
     ctx.back.addChild(leaf)
-    const sway = ctx.rng() * 6
-    ctx.anim.push((t) => {
-      leaf.rotation = ang + Math.PI / 2 + Math.sin(t * 0.6 + sway) * 0.035
-    })
+  }
+}
+
+/** the slouchy, low, deep kind of chair you sink into in a hotel lobby */
+function lounger(ctx: Ctx, p: Piece) {
+  const a = against(ctx, p)
+  const g = ctx.layer('furniture')
+  const colour = [0xc88a6a, 0x6a8a7a, 0xd8a050, 0x8a5a6a][
+    (ctx.plan.variant.name.length + p.zone.z0) % 4
+  ]!
+  const z0 = a.mid - 36
+  const z1 = a.mid + 36
+  // short splayed legs
+  for (const [d, z] of [
+    [8, z0 + 4],
+    [8, z1 - 8],
+    [60, z0 + 4],
+    [60, z1 - 8],
+  ] as [number, number][]) {
+    g.moveTo(...project([a.wx(d), 14, z]))
+      .lineTo(...project([a.wx(d + (d > 30 ? 4 : -4)), 0, z + (z < a.mid ? -3 : 3)]))
+      .stroke({ color: 0x5a3420, width: 3 })
+  }
+  block(g, a.box(4, 64, 12, 30, z0, z1), shade(colour, -0.12))
+  // a deep rounded back and arms, all soft
+  const back = at([a.wx(14), 62, a.mid])
+  pillow(g, back.x, back.y, 80 * back.s, 48 * back.s, colour, 0)
+  for (const z of [z0 + 6, z1 - 6]) {
+    const arm = at([a.wx(36), 44, z])
+    pillow(g, arm.x, arm.y, 22 * arm.s, 34 * arm.s, shade(colour, -0.05), 0)
+  }
+  cushion(
+    g,
+    [
+      [a.wx(64), 32, z0 + 12],
+      [a.wx(64), 32, z1 - 12],
+      [a.wx(20), 36, z1 - 12],
+      [a.wx(20), 36, z0 + 12],
+    ],
+    shade(colour, 0.1),
+  )
+  const pp = at([a.wx(30), 50, a.mid + 8])
+  pillow(g, pp.x, pp.y, 24 * pp.s, 20 * pp.s, 0xf2e2bd, 0.25)
+}
+
+/** a big squashy bean bag, slumped where someone last sat in it */
+function beanbag(ctx: Ctx, p: Piece) {
+  const a = against(ctx, p)
+  const g = ctx.layer('furniture')
+  const colour = [0x2f6b66, 0xc8642e, 0x8a5a8a, 0xd8b890][(p.zone.z0 + ctx.plan.half) % 4]!
+  const { x, y, s } = at([a.wx(40), 0, a.mid])
+  const w = 44 * s
+  const h = 46 * s
+  const shape = (d: Graphics) => {
+    d.moveTo(x - w, y)
+      .bezierCurveTo(x - w * 1.2, y - h * 0.6, x - w * 0.5, y - h * 1.15, x, y - h)
+      .bezierCurveTo(x + w * 0.6, y - h * 0.9, x + w * 1.25, y - h * 0.5, x + w, y)
+      .quadraticCurveTo(x, y + 6 * s, x - w, y)
+      .closePath()
+  }
+  shape(g)
+  g.fill(colour)
+  // the dent where you sit, and a shine on the top
+  g.ellipse(x + w * 0.1, y - h * 0.45, w * 0.45, h * 0.22).fill(shade(colour, -0.25))
+  g.ellipse(x - w * 0.35, y - h * 0.8, w * 0.25, h * 0.12).fill({
+    color: shade(colour, 0.35),
+    alpha: 0.6,
+  })
+  // corduroy ridges
+  for (let i = -3; i <= 3; i++)
+    g.moveTo(x + i * w * 0.22, y - h * 0.15)
+      .quadraticCurveTo(x + i * w * 0.2, y - h * 0.6, x + i * w * 0.12, y - h * 0.85)
+      .stroke({ color: shade(colour, -0.2), width: 1, alpha: 0.6 })
+  shape(g)
+  g.stroke(LINE)
+}
+
+/** a knitted pouf to put your feet on */
+function pouf(ctx: Ctx, p: Piece) {
+  const a = against(ctx, p)
+  const g = ctx.layer('furniture')
+  const colour = [0xe8dcc8, 0xd8a050, 0x5a7a8a][(p.zone.z0 + ctx.plan.height) % 3]!
+  const { x, y, s } = at([a.wx(40), 0, a.mid])
+  const rx = 26 * s
+  const ry = 8 * s
+  const h = 30 * s
+  g.moveTo(x - rx, y - h)
+    .lineTo(x - rx, y)
+    .ellipse(x, y, rx, ry)
+    .fill(colour)
+  g.rect(x - rx, y - h, rx * 2, h).fill(colour)
+  g.ellipse(x, y, rx, ry).fill(colour)
+  // chunky knit: rows of little chevrons
+  for (let row = 0; row < 3; row++) {
+    for (let i = -4; i <= 4; i++) {
+      const cx = x + i * rx * 0.22
+      const cy = y - h * 0.15 - row * h * 0.3
+      g.moveTo(cx - 3 * s, cy - 3 * s)
+        .lineTo(cx, cy)
+        .lineTo(cx + 3 * s, cy - 3 * s)
+        .stroke({ color: shade(colour, -0.25), width: 1 })
+    }
+  }
+  g.ellipse(x, y - h, rx, ry)
+    .fill(shade(colour, 0.1))
+    .stroke(THIN)
+  g.moveTo(x - rx, y - h)
+    .lineTo(x - rx, y)
+    .moveTo(x + rx, y - h)
+    .lineTo(x + rx, y)
+    .stroke(THIN)
+  g.circle(x, y - h, 2 * s).fill(shade(colour, -0.3))
+}
+
+/** a chest of drawers with the usual things on top */
+function dresser(ctx: Ctx, p: Piece) {
+  const a = against(ctx, p)
+  const g = ctx.layer('furniture')
+  const wood = shade(hex(ctx.layout.desk.color), 0.08)
+  const z0 = a.mid - 42
+  const z1 = a.mid + 42
+  for (const z of [z0 + 4, z1 - 8])
+    block(g, a.box(32, 38, 0, 10, z, z + 4), shade(wood, -0.3), THIN)
+  block(g, a.box(0, 40, 10, 112, z0, z1), wood)
+  const face = a.wx(40)
+  for (let i = 1; i < 4; i++)
+    g.poly(flat([face, 10 + i * 25.5, z0 + 3], [face, 10 + i * 25.5, z1 - 3]), false).stroke(THIN)
+  for (let i = 0; i < 4; i++) {
+    for (const z of [a.mid - 18, a.mid + 18]) {
+      const [kx, ky] = project([face, 10 + i * 25.5 + 12.75, z])
+      g.circle(kx, ky, 2)
+        .fill(BRASS)
+        .stroke({ ...THIN, width: 0.5 })
+    }
+  }
+  block(g, a.box(-2, 42, 112, 116, z0 - 2, z1 + 2), shade(wood, 0.15))
+  // a plant, a jewellery box, perfume
+  potPlant(
+    ctx,
+    g,
+    [a.wx(20), 116, z0 + 16],
+    0.8,
+    ctx.plan.variant.plants[1 % ctx.plan.variant.plants.length]!,
+    2,
+  )
+  block(g, a.box(10, 30, 116, 126, a.mid - 6, a.mid + 14), 0x7a2a3a)
+  for (const [z, c] of [
+    [z1 - 18, 0xe8a0b0],
+    [z1 - 10, 0xc8e8ff],
+  ] as const) {
+    const b = at([a.wx(22), 116, z])
+    g.roundRect(b.x - 3 * b.s, b.y - 10 * b.s, 6 * b.s, 10 * b.s, 1.5)
+      .fill({ color: c, alpha: 0.85 })
+      .stroke({ ...THIN, width: 0.5 })
   }
 }
 

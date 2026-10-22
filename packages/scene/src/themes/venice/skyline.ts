@@ -44,7 +44,9 @@ export class VeniceSkyline extends Container {
       if (chance(rng, 0.6)) {
         const cx = x + range(rng, 10, w - 10)
         far.rect(cx - 4, top - 34, 8, 30).fill(FAR)
-        far.poly([cx - 4, top - 34, cx + 4, top - 34, cx + 10, top - 46, cx - 10, top - 46]).fill(FAR)
+        far
+          .poly([cx - 4, top - 34, cx + 4, top - 34, cx + 10, top - 46, cx - 10, top - 46])
+          .fill(FAR)
       }
       for (let wy = top + 14; wy < BASE - 10; wy += 16) {
         for (let wx = x + 8; wx < x + w - 8; wx += 14) {
@@ -64,12 +66,18 @@ export class VeniceSkyline extends Container {
   private campanile(g: Graphics, cx: number) {
     g.rect(cx - 34, 250, 68, BASE - 250).fill(NEAR)
     // pilaster strips down the brick shaft
-    for (const px of [-28, -10, 8, 26]) g.rect(cx + px, 260, 3, BASE - 270).fill({ color: 0x241a24, alpha: 0.8 })
+    for (const px of [-28, -10, 8, 26])
+      g.rect(cx + px, 260, 3, BASE - 270).fill({ color: 0x241a24, alpha: 0.8 })
     // belfry with its arches lit from inside
     g.rect(cx - 40, 196, 80, 54).fill(NEAR)
     for (let i = 0; i < 4; i++) {
       const ax = cx - 32 + i * 17
-      g.moveTo(ax, 244).lineTo(ax, 214).arc(ax + 6, 214, 6, Math.PI, 0).lineTo(ax + 12, 244).closePath().fill(0xffb050)
+      g.moveTo(ax, 244)
+        .lineTo(ax, 214)
+        .arc(ax + 6, 214, 6, Math.PI, 0)
+        .lineTo(ax + 12, 244)
+        .closePath()
+        .fill(0xffb050)
     }
     g.rect(cx - 44, 192, 88, 6).fill(NEAR)
     g.rect(cx - 34, 150, 68, 42).fill(NEAR)
@@ -95,16 +103,28 @@ export class VeniceSkyline extends Container {
     g.rect(cx - 104, 380, 208, 90).fill(NEAR)
     // the volutes round the drum
     for (const side of [-1, 1]) {
-      for (let i = 0; i < 3; i++) g.circle(cx + side * (116 + i * 10), 470 - i * 18, 13 - i * 2).fill(NEAR)
+      for (let i = 0; i < 3; i++)
+        g.circle(cx + side * (116 + i * 10), 470 - i * 18, 13 - i * 2).fill(NEAR)
     }
-    g.moveTo(cx - 108, 384).bezierCurveTo(cx - 108, 270, cx + 108, 270, cx + 108, 384).closePath().fill(NEAR)
+    g.moveTo(cx - 108, 384)
+      .bezierCurveTo(cx - 108, 270, cx + 108, 270, cx + 108, 384)
+      .closePath()
+      .fill(NEAR)
     g.rect(cx - 22, 274, 44, 30).fill(NEAR)
-    g.moveTo(cx - 26, 278).bezierCurveTo(cx - 26, 240, cx + 26, 240, cx + 26, 278).closePath().fill(NEAR)
+    g.moveTo(cx - 26, 278)
+      .bezierCurveTo(cx - 26, 240, cx + 26, 240, cx + 26, 278)
+      .closePath()
+      .fill(NEAR)
     g.rect(cx - 1.5, 222, 3, 26).fill(NEAR)
     // a row of lit windows round the drum
     for (let i = 0; i < 7; i++) {
       const wx = cx - 84 + i * 28
-      g.moveTo(wx, 448).lineTo(wx, 416).arc(wx + 5, 416, 5, Math.PI, 0).lineTo(wx + 10, 448).closePath().fill({ color: 0xffb050, alpha: 0.75 })
+      g.moveTo(wx, 448)
+        .lineTo(wx, 416)
+        .arc(wx + 5, 416, 5, Math.PI, 0)
+        .lineTo(wx + 10, 448)
+        .closePath()
+        .fill({ color: 0xffb050, alpha: 0.75 })
     }
   }
 

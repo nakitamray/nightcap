@@ -9,6 +9,7 @@ describe('theme ids', () => {
 
   it('accepts real ids and nothing else', () => {
     for (const id of THEME_IDS) expect(isThemeId(id)).toBe(true)
-    for (const bad of ['', 'london', 'Paris', 'new york', null, undefined, 3, {}]) expect(isThemeId(bad)).toBe(false)
+    for (const bad of ['', 'london', 'Paris', 'new york', null, undefined, 3, {}])
+      expect(isThemeId(bad)).toBe(false)
   })
 })

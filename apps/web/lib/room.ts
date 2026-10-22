@@ -1,13 +1,18 @@
 // The room's layout lives with the drawing code in @nightcap/scene; this
 // adds the bits only the editor needs.
 export {
+  ADDABLE,
   BED_STYLES,
+  canAdd,
+  CAT_BREEDS,
   DEFAULT_LAYOUT,
   defaultLayout,
   deskCanGoRight,
+  DOG_BREEDS,
   LAMP_STYLES,
+  MAX_FURNITURE,
   MAX_POSTERS,
-  MAX_SHELVES,
+  NIGHTSTAND_STYLES,
   planRoom,
   POSTER_COUNT,
   POSTER_NAMES,
@@ -15,7 +20,7 @@ export {
   settle,
   VARIANTS,
 } from '@nightcap/scene/layout'
-export type { LampStyle, RoomLayout as Layout } from '@nightcap/scene/layout'
+export type { Extra, LampStyle, Pet, RoomLayout as Layout } from '@nightcap/scene/layout'
 
 // the swatches the editor offers: strong colours, the kind that glow at night
 export const SWATCHES = {
@@ -72,4 +77,36 @@ export const BED_NAMES: Record<string, string> = {
   canopy: 'four-poster',
   brass: 'brass',
   platform: 'low platform',
+}
+
+export const NIGHTSTAND_NAMES: Record<string, string> = {
+  drawers: 'little chest',
+  skirted: 'skirted table',
+  suitcases: 'stacked suitcases',
+}
+
+export const FURNITURE_NAMES: Record<string, string> = {
+  bookcase: 'bookcase',
+  lounger: 'slouchy chair',
+  beanbag: 'beanbag',
+  loveseat: 'mini sofa',
+  armchair: 'armchair',
+  pouf: 'pouf',
+  dresser: 'dresser',
+  plantstand: 'plant stand',
+  floorlamp: 'floor lamp',
+  records: 'record crate',
+  monstera: 'monstera',
+}
+
+export const BREED_NAMES: Record<string, string> = {
+  black: 'black',
+  tabby: 'tabby',
+  white: 'white',
+  persian: 'persian',
+  grey: 'grey',
+  terrier: 'terrier',
+  labradoodle: 'labradoodle',
+  golden: 'golden retriever',
+  shepherd: 'german shepherd',
 }

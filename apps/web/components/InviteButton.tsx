@@ -37,7 +37,13 @@ export function InviteButton({ houseId, userId }: { houseId: string; userId: str
 
   return (
     <span className={styles.invite}>
-      <input className={styles.link} readOnly value={link} onFocus={(e) => e.target.select()} aria-label="invite link" />
+      <input
+        className={styles.link}
+        readOnly
+        value={link}
+        onFocus={(e) => e.target.select()}
+        aria-label="invite link"
+      />
       <button type="button" className={styles.button} onClick={copy}>
         {copied ? 'copied' : 'copy'}
       </button>

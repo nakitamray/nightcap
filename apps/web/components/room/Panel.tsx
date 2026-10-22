@@ -3,12 +3,21 @@
 import { useState, type ReactNode } from 'react'
 import type { Thing } from '@nightcap/scene'
 import {
+  ADDABLE,
   BED_NAMES,
   BED_STYLES,
+  BREED_NAMES,
+  canAdd,
+  CAT_BREEDS,
   deskCanGoRight,
+  DOG_BREEDS,
+  FURNITURE_NAMES,
   LAMP_NAMES,
   LAMP_STYLES,
+  MAX_FURNITURE,
   MAX_POSTERS,
+  NIGHTSTAND_NAMES,
+  NIGHTSTAND_STYLES,
   planRoom,
   POSTER_COUNT,
   POSTER_NAMES,
@@ -43,16 +52,18 @@ interface Props {
 
 const TITLES: Record<Thing, string> = {
   bed: 'the bed',
+  nightstand: 'the nightstand',
   wall: 'the walls',
   window: 'the window',
   posters: 'posters',
-  shelves: 'bookcases',
+  furniture: 'furniture',
   lamp: 'the lamp',
   rug: 'the rug',
   desk: 'the desk',
   led: 'ceiling lights',
   vinyl: 'the record',
   map: 'the map',
+  pet: 'your pet',
 }
 
 export function Panel(props: Props) {
@@ -108,7 +119,10 @@ function Body({
               onPick={(spot) => set('bed', { ...layout.bed, spot })}
             />
           </Row>
-          <Row label="frame">
+          <Row label="nightstand">
+            <NightstandChoice layout={layout} set={set} />
+          </Row>
+          <Row label="wood">
             <Swatches
               colours={SWATCHES.wood}
               value={layout.bed.frame}
@@ -264,39 +278,110 @@ function Body({
       )
     }
 
-    case 'shelves':
+    case 'nightstand':
+      return (
+        <Row label="style">
+          <NightstandChoice layout={layout} set={set} />
+        </Row>
+      )
+
+    case 'furniture': {
+      const full = layout.furniture.length >= MAX_FURNITURE
       return (
         <>
+          {layout.furniture.length > 0 && (
+            <Row label="yours">
+              <div className={styles.options}>
+                {layout.furniture.map((kind, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    className={styles.button}
+                    aria-label={`take out the ${FURNITURE_NAMES[kind]}`}
+                    onClick={() =>
+                      set(
+                        'furniture',
+                        layout.furniture.filter((_, j) => j !== i),
+                      )
+                    }
+                  >
+                    {FURNITURE_NAMES[kind]} ×
+                  </button>
+                ))}
+              </div>
+            </Row>
+          )}
+          <Row label="bring in">
+            <div className={styles.options}>
+              {ADDABLE.map((kind) => (
+                <button
+                  key={kind}
+                  type="button"
+                  className={styles.button}
+                  disabled={full || !canAdd(plan, kind)}
+                  onClick={() => set('furniture', [...layout.furniture, kind])}
+                >
+                  {FURNITURE_NAMES[kind]}
+                </button>
+              ))}
+            </div>
+          </Row>
           <p className={styles.hint}>
-            {layout.shelves === 0
-              ? 'no extra bookcases yet.'
-              : `${layout.shelves} extra bookcase${layout.shelves > 1 ? 's' : ''}.`}{' '}
-            they go against the walls wherever there&apos;s floor, so they might nudge out something
-            the room came with.
+            {full
+              ? 'that’s plenty. take something out to make room.'
+              : plan.free.length === 0
+                ? 'no floor left. take something out first.'
+                : 'your things go in first, so they might nudge out something the room came with.'}
           </p>
-          <div className={styles.options} style={{ marginTop: 12 }}>
-            <button
-              type="button"
-              className={styles.button}
-              disabled={layout.shelves >= plan.maxShelves}
-              onClick={() => set('shelves', layout.shelves + 1)}
-            >
-              add a bookcase
-            </button>
-            <button
-              type="button"
-              className={styles.button}
-              disabled={layout.shelves === 0}
-              onClick={() => set('shelves', layout.shelves - 1)}
-            >
-              take one away
-            </button>
-          </div>
-          {layout.shelves >= plan.maxShelves && (
-            <p className={styles.hint}>that&apos;s all the floor there is.</p>
+        </>
+      )
+    }
+
+    case 'pet': {
+      const pet = layout.pet
+      return (
+        <>
+          <Row label="who lives here">
+            <Choice
+              value={pet.kind}
+              options={[
+                ['none', 'nobody'],
+                ['cat', 'a cat'],
+                ['dog', 'a dog'],
+              ]}
+              onPick={(kind) =>
+                set(
+                  'pet',
+                  kind === 'cat'
+                    ? { kind, breed: 'black' }
+                    : kind === 'dog'
+                      ? { kind, breed: 'golden' }
+                      : { kind },
+                )
+              }
+            />
+          </Row>
+          {pet.kind === 'cat' && (
+            <Row label="coat">
+              <Choice
+                value={pet.breed}
+                options={CAT_BREEDS.map((b) => [b, BREED_NAMES[b] ?? b])}
+                onPick={(breed) => set('pet', { kind: 'cat', breed })}
+              />
+            </Row>
+          )}
+          {pet.kind === 'dog' && (
+            <Row label="breed">
+              <Choice
+                value={pet.breed}
+                options={DOG_BREEDS.map((b) => [b, BREED_NAMES[b] ?? b])}
+                onPick={(breed) => set('pet', { kind: 'dog', breed })}
+              />
+            </Row>
           )}
         </>
       )
+    }
 
     case 'lamp':
       return (
@@ -397,6 +482,22 @@ function Body({
     case 'map':
       return <Location store={store} place={place} onPlace={onPlace} />
   }
+}
+
+function NightstandChoice({
+  layout,
+  set,
+}: {
+  layout: Layout
+  set: (key: 'nightstand', value: Layout['nightstand']) => void
+}) {
+  return (
+    <Choice
+      value={layout.nightstand}
+      options={NIGHTSTAND_STYLES.map((n) => [n, NIGHTSTAND_NAMES[n] ?? n])}
+      onPick={(n) => set('nightstand', n)}
+    />
+  )
 }
 
 function Row({ label, children }: { label: string; children: ReactNode }) {

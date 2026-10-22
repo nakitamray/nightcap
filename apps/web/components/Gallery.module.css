@@ -1,0 +1,101 @@
+.page {
+  position: relative;
+  min-height: 100vh;
+  padding: 56px 24px 96px;
+  background: #050304;
+  font-family: var(--font-body);
+}
+
+/* body scrolls on these pages */
+:global(body):has(.page) {
+  overflow: auto;
+}
+
+/* dim the wall in the middle so the cards read */
+.page::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(
+    closest-side at 50% 50%,
+    rgba(5, 3, 4, 0.78),
+    rgba(5, 3, 4, 0.35) 80%,
+    rgba(5, 3, 4, 0.2)
+  );
+}
+
+.header,
+.grid {
+  position: relative;
+  z-index: 2;
+}
+
+.header {
+  max-width: 1080px;
+  margin: 0 auto 56px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  text-align: left;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: normal;
+  font-size: 46px;
+  color: var(--amber);
+  text-shadow: 0 0 24px rgba(255, 150, 60, 0.4);
+}
+
+.sub {
+  margin: 8px 0 0;
+  font-size: 14px;
+  color: #d8c8a8;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.actions a,
+.actions button {
+  padding: 7px 14px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--paper);
+  text-decoration: none;
+  background: rgba(20, 12, 9, 0.85);
+  border: 1px solid #5a3420;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.actions a:hover,
+.actions button:hover {
+  border-color: var(--amber);
+}
+
+.grid {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 64px 40px;
+}
+
+@media (max-width: 540px) {
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .title {
+    font-size: 36px;
+  }
+}

@@ -1,7 +1,7 @@
 import { Graphics } from 'pixi.js'
 import { at, type Ctx } from './context'
 import { block, fillPoly, hex, INK, LINE, mix, shade, THIN } from './paint'
-import { boxFaces, flat, mirror, onFloor, project, ROOM, type Box, type P3 } from './projection'
+import { flat, mirror, onFloor, project, type Box, type P3 } from './projection'
 import { cushion, drape, pillow, potPlant } from './soft'
 
 export const BOOKS = [
@@ -12,9 +12,8 @@ const BRASS = 0xd9a54a
 
 /** the low bookcase under the window -- only when the bed isn't there */
 export function shelfBox(ctx: Ctx): Box | null {
-  if (ctx.layout.bed.spot === 'window') return null
-  const half = Math.min(ctx.plan.variant.paneHalf - 8, 96)
-  return { x0: -half, x1: half, y0: 0, y1: 82, z0: 364, z1: 400 }
+  const s = ctx.plan.lowShelf
+  return s ? { ...s, y0: 0, y1: 82 } : null
 }
 
 export function drawBookshelf(ctx: Ctx) {
@@ -91,46 +90,47 @@ export function books(g: Graphics, x: number, base: number, w: number, h: number
 // -- the bed -----------------------------------------------------------------
 
 function bedGeometry(ctx: Ctx) {
+  const R = ctx.plan.half
   if (ctx.layout.bed.spot === 'right') {
     return {
-      frame: { x0: 74, x1: 198, y0: 0, y1: 30, z0: 170, z1: 394 } as Box,
+      frame: { x0: R - 124, x1: R - 2, y0: 0, y1: 30, z0: 170, z1: 394 } as Box,
       head: [
-        [72, 397],
-        [200, 397],
+        [R - 128, 397],
+        [R, 397],
       ] as [number, number][],
       foot: [
-        [72, 166],
-        [200, 166],
+        [R - 128, 166],
+        [R, 166],
       ] as [number, number][],
       // which way the free sides face: along x at the foot, along z down the side
-      open: { side: { x: 74, z0: 170, z1: 330 }, foot: { z: 170, x0: 74, x1: 198 } },
-      duvet: { x0: 72, x1: 200, z0: 168, z1: 330 },
+      open: { side: { x: R - 126, z0: 170, z1: 330 }, foot: { z: 170, x0: R - 126, x1: R - 2 } },
+      duvet: { x0: R - 128, x1: R, z0: 168, z1: 330 },
+      fold: { x0: R - 128, x1: R, z0: 318, z1: 332 },
       pillows: [
-        [106, 372],
-        [162, 372],
-        [132, 346],
+        [R - 94, 372],
+        [R - 38, 372],
+        [R - 68, 346],
       ] as [number, number][],
-      cat: [150, 54, 228] as P3,
     }
   }
   return {
-    frame: { x0: -40, x1: 194, y0: 0, y1: 30, z0: 278, z1: 398 } as Box,
+    frame: { x0: -40, x1: R - 6, y0: 0, y1: 30, z0: 278, z1: 396 } as Box,
     head: [
-      [197, 274],
-      [197, 400],
+      [R - 3, 274],
+      [R - 3, 400],
     ] as [number, number][],
     foot: [
       [-44, 274],
       [-44, 400],
     ] as [number, number][],
-    open: { side: null, foot: { z: 278, x0: -40, x1: 194 } },
-    duvet: { x0: -44, x1: 120, z0: 276, z1: 399 },
+    open: { side: null, foot: { z: 278, x0: -40, x1: R - 6 } },
+    duvet: { x0: -44, x1: R - 80, z0: 276, z1: 399 },
+    fold: { x0: R - 90, x1: R - 74, z0: 276, z1: 399 },
     pillows: [
-      [172, 362],
-      [172, 310],
-      [148, 336],
+      [R - 28, 362],
+      [R - 28, 310],
+      [R - 52, 336],
     ] as [number, number][],
-    cat: [20, 54, 320] as P3,
   }
 }
 
@@ -324,26 +324,19 @@ export function drawBed(ctx: Ctx) {
   }
   drape(ctx, quilt, footEdge, hang, shade(bc, -0.05), { wave: 6, folds: 6 })
   // the sheet folded back over the top of the duvet
-  const fold =
-    ctx.layout.bed.spot === 'right'
-      ? [
-          [72, top + 8, 318],
-          [200, top + 8, 318],
-          [200, top + 9, 332],
-          [72, top + 9, 332],
-        ]
-      : [
-          [110, top + 8, 276],
-          [126, top + 8, 276],
-          [126, top + 9, 399],
-          [110, top + 9, 399],
-        ]
+  const f = bg.fold
   quilt
-    .poly(flat(...(fold as unknown as P3[])))
+    .poly(
+      flat(
+        [f.x0, top + 8, f.z0],
+        [f.x1, top + 8, f.z0],
+        [f.x1, top + 9, f.z1],
+        [f.x0, top + 9, f.z1],
+      ),
+    )
     .fill(sh)
     .stroke(THIN)
 
-  drawCat(ctx, bg.cat)
   end(bg.foot, low ? 0 : 60, false)
   if (style === 'canopy') canopyFront(ctx, bg, fc)
 
@@ -352,17 +345,22 @@ export function drawBed(ctx: Ctx) {
     h.poly([
       ...project([f.x0, 0, f.z0]),
       ...project([f.x1, 0, f.z0]),
-      ...project([f.x1, style === 'canopy' ? 320 : 130, f.z1]),
-      ...project([f.x0, style === 'canopy' ? 320 : 130, f.z1]),
+      ...project([f.x1, style === 'canopy' ? canopyHeight(ctx) : 130, f.z1]),
+      ...project([f.x0, style === 'canopy' ? canopyHeight(ctx) : 130, f.z1]),
     ])
   })
 }
 
-const CANOPY = 330
 type BedGeo = ReturnType<typeof bedGeometry>
+
+/** a four-poster's frame stops short of the ceiling */
+function canopyHeight(ctx: Ctx) {
+  return Math.min(330, ctx.plan.height - 60)
+}
 
 /** a gathered panel of sheer fabric hanging down a post, flaring at the floor */
 function panel(ctx: Ctx, g: Graphics, x: number, z: number, alongX: boolean, dir: number) {
+  const CANOPY = canopyHeight(ctx)
   const top: P3[] = []
   for (let i = 0; i <= 3; i++)
     top.push(alongX ? [x + dir * i * 5, CANOPY, z] : [x, CANOPY, z + dir * i * 5])
@@ -371,6 +369,7 @@ function panel(ctx: Ctx, g: Graphics, x: number, z: number, alongX: boolean, dir
 
 /** the two back posts of a four-poster, a swag between them and panels down each */
 function canopyBack(ctx: Ctx, g: Graphics, bg: BedGeo, fc: number) {
+  const CANOPY = canopyHeight(ctx)
   const [[ax, az], [bx, bz]] = bg.head as [[number, number], [number, number]]
   for (const [x, z] of [
     [ax, az],
@@ -388,6 +387,7 @@ function canopyBack(ctx: Ctx, g: Graphics, bg: BedGeo, fc: number) {
 
 /** front posts, the rails across the top, a swag at the front and panels down the posts */
 function canopyFront(ctx: Ctx, bg: BedGeo, fc: number) {
+  const CANOPY = canopyHeight(ctx)
   const g = ctx.layer('bed')
   const [[hx0, hz0], [hx1, hz1]] = bg.head as [[number, number], [number, number]]
   const [[fx0, fz0], [fx1, fz1]] = bg.foot as [[number, number], [number, number]]
@@ -419,54 +419,25 @@ function canopyFront(ctx: Ctx, bg: BedGeo, fc: number) {
   panel(ctx, g, fx0, fz0, fz0 === fz1, 1)
 }
 
-/** a black cat asleep in a ring on the bed, breathing */
-function drawCat(ctx: Ctx, p: P3) {
-  const { x, y, s } = at(p)
-  const body = ctx.container('bed').addChild(new Graphics())
-  const k = s * 1.1
-  body.ellipse(0, 0, 22 * k, 11 * k).fill(0x121014)
-  body.ellipse(-16 * k, -4 * k, 9 * k, 8 * k).fill(0x121014)
-  body
-    .poly([-22 * k, -9 * k, -20 * k, -18 * k, -15 * k, -11 * k])
-    .poly([-14 * k, -11 * k, -10 * k, -18 * k, -8 * k, -9 * k])
-    .fill(0x121014)
-  body
-    .moveTo(20 * k, 2 * k)
-    .quadraticCurveTo(26 * k, 12 * k, 4 * k, 11 * k)
-    .stroke({ color: 0x121014, width: 4 * k })
-  body
-    .moveTo(-20 * k, -4 * k)
-    .lineTo(-17 * k, -3 * k)
-    .moveTo(-14 * k, -4 * k)
-    .lineTo(-11 * k, -3 * k)
-    .stroke({ color: 0xe8c25a, width: 0.8 })
-  body.position.set(x, y - 8 * k)
-  ctx.anim.push((t) => body.scale.set(1, 1 + Math.sin(t * 1.4) * 0.04))
-}
-
 // -- the desk ----------------------------------------------------------------
 
-function deskBoxes(ctx: Ctx) {
-  const flip = ctx.layout.desk.wall === 'right' ? mirror : (b: Box) => b
-  const d = ctx.layout.desk.wall === 'right' ? -1 : 1
-  return { flip, d }
-}
-
-/** draws the desk and its chair; hands back where the lamp stands */
-export function drawDesk(ctx: Ctx): P3 {
-  const { flip, d } = deskBoxes(ctx)
+/** draws the desk and its chair, fitted to the stretch of wall the plan gives it */
+export function drawDesk(ctx: Ctx) {
+  const { wall, z0, z1 } = ctx.plan.desk
+  const flip = wall === 'right' ? mirror : (b: Box) => b
+  // x on the desk's side of the room, measured out from the wall
+  const at_ = (depth: number) => (wall === 'right' ? ctx.plan.half - depth : -ctx.plan.half + depth)
   const c = hex(ctx.layout.desk.color)
   const g = ctx.layer('desk')
   const style = ctx.plan.variant.desk
-  const L = ROOM.left
-  let lamp: P3 = [-178 * d, 76, 250]
+  const L = -ctx.plan.half
+  const mid = (z0 + z1) / 2
   let topY = 76
-  let chairZ = 198
+  let front = 40
 
   if (style === 'trestle') {
     // a long work table on A-frame legs
-    const top = flip({ x0: L, x1: L + 78, y0: 74, y1: 80, z0: 132, z1: 272 })
-    for (const z of [146, 258]) {
+    for (const z of [z0 + 16, z1 - 16]) {
       for (const [x0, x1] of [
         [L + 8, L + 14],
         [L + 60, L + 66],
@@ -478,15 +449,14 @@ export function drawDesk(ctx: Ctx): P3 {
         shade(c, -0.15),
       )
     }
-    block(g, top, c)
+    block(g, flip({ x0: L, x1: L + 78, y0: 74, y1: 80, z0: z0 + 4, z1: z1 - 2 }), c)
     topY = 80
-    lamp = [-176 * d, 80, 256]
     // drawings, a jar of brushes
-    block(g, flip({ x0: L + 20, x1: L + 60, y0: 80, y1: 81, z0: 150, z1: 200 }), 0xf2e2bd, {
+    block(g, flip({ x0: L + 20, x1: L + 60, y0: 80, y1: 81, z0: z0 + 20, z1: mid }), 0xf2e2bd, {
       ...THIN,
       width: 0.6,
     })
-    const jar = at([d > 0 ? L + 30 : -(L + 30), 80, 222])
+    const jar = at([at_(30), 80, mid + 24])
     g.roundRect(jar.x - 5 * jar.s, jar.y - 12 * jar.s, 10 * jar.s, 12 * jar.s, 2)
       .fill({ color: 0xc8e8e0, alpha: 0.8 })
       .stroke(THIN)
@@ -497,159 +467,177 @@ export function drawDesk(ctx: Ctx): P3 {
   } else if (style === 'secretary') {
     // a bureau: drawers below, the flap folded down to write on, pigeonholes
     // behind it and a glass-fronted bookcase on top
-    const body = flip({ x0: L, x1: L + 48, y0: 0, y1: 92, z0: 150, z1: 260 })
+    const za = z0 + 10
+    const zb = z1 - 10
+    const body = flip({ x0: L, x1: L + 48, y0: 0, y1: 92, z0: za, z1: zb })
     block(g, body, c)
-    if (boxFaces(body).side) {
-      for (const y of [30, 60])
-        g.poly(
-          flat(
-            ...([
-              [d > 0 ? L + 48 : -(L + 48), y, 150],
-              [d > 0 ? L + 48 : -(L + 48), y, 260],
-            ] as P3[]),
-          ),
-          false,
-        ).stroke(THIN)
-      for (const y of [16, 46, 76]) {
-        const [kx, ky] = project([d > 0 ? L + 48 : -(L + 48), y, 205])
-        g.circle(kx, ky, 2.2)
-          .fill(BRASS)
-          .stroke({ ...THIN, width: 0.6 })
-      }
+    const face = at_(48)
+    for (const y of [30, 60]) g.poly(flat([face, y, za], [face, y, zb]), false).stroke(THIN)
+    for (const y of [16, 46, 76]) {
+      const [kx, ky] = project([face, y, (za + zb) / 2])
+      g.circle(kx, ky, 2.2)
+        .fill(BRASS)
+        .stroke({ ...THIN, width: 0.6 })
     }
-    // pigeonholes
-    const holes = flip({ x0: L, x1: L + 26, y0: 92, y1: 150, z0: 150, z1: 260 })
-    block(g, holes, shade(c, -0.1))
-    const hx = d > 0 ? L + 26 : -(L + 26)
-    for (let z = 168; z < 260; z += 22) g.poly(flat([hx, 92, z], [hx, 150, z]), false).stroke(THIN)
-    g.poly(flat([hx, 121, 150], [hx, 121, 260]), false).stroke(THIN)
-    for (let z = 156; z < 252; z += 22) {
+    block(g, flip({ x0: L, x1: L + 26, y0: 92, y1: 150, z0: za, z1: zb }), shade(c, -0.1))
+    const hx = at_(26)
+    for (let z = za + 18; z < zb; z += 22)
+      g.poly(flat([hx, 92, z], [hx, 150, z]), false).stroke(THIN)
+    g.poly(flat([hx, 121, za], [hx, 121, zb]), false).stroke(THIN)
+    for (let z = za + 6; z < zb - 8; z += 22) {
       const [lx, ly] = project([hx, 96, z + 8])
       g.rect(lx - 2, ly - 10, 6, 10)
         .fill(0xf2e2bd)
         .stroke({ ...THIN, width: 0.5 })
     }
     // the flap, down
-    block(g, flip({ x0: L + 48, x1: L + 82, y0: 88, y1: 92, z0: 152, z1: 258 }), shade(c, 0.1))
+    block(
+      g,
+      flip({ x0: L + 48, x1: L + 82, y0: 88, y1: 92, z0: za + 2, z1: zb - 2 }),
+      shade(c, 0.1),
+    )
     // glass bookcase on top
-    const upper = flip({ x0: L, x1: L + 30, y0: 150, y1: 236, z0: 150, z1: 260 })
-    block(g, upper, c)
-    const ux = d > 0 ? L + 30 : -(L + 30)
+    block(g, flip({ x0: L, x1: L + 30, y0: 150, y1: 236, z0: za, z1: zb }), c)
+    const ux = at_(30)
     for (const y of [178, 206])
-      g.poly(flat([ux, y, 156], [ux, y, 254]), false).stroke({ color: shade(c, -0.3), width: 2 })
+      g.poly(flat([ux, y, za + 6], [ux, y, zb - 6]), false).stroke({
+        color: shade(c, -0.3),
+        width: 2,
+      })
     for (const [y0, y1] of [
       [152, 176],
       [180, 204],
       [208, 232],
-    ]) {
-      let z = 158
-      let n = Math.floor(ctx.rng() * 9)
-      while (z < 250) {
-        const bw = 4 + (n % 3) * 2
-        g.poly(
-          flat(
-            [ux, y0!, z],
-            [ux, y0!, z + bw],
-            [ux, y0! + (y1! - y0!) * (0.7 + (n % 4) * 0.08), z + bw],
-            [ux, y0! + (y1! - y0!) * (0.7 + (n % 4) * 0.08), z],
-          ),
-        )
-          .fill(BOOKS[n % BOOKS.length]!)
-          .stroke({ ...THIN, width: 0.4 })
-        z += bw + 0.6
-        n++
-      }
-    }
-    g.poly(flat([ux, 150, 154], [ux, 150, 256], [ux, 236, 256], [ux, 236, 154])).fill({
+    ] as [number, number][])
+      shelfOfBooks(ctx, g, ux, y0, y1, za + 8, zb - 8)
+    g.poly(flat([ux, 150, za + 4], [ux, 150, zb - 4], [ux, 236, zb - 4], [ux, 236, za + 4])).fill({
       color: 0xc8e8ff,
       alpha: 0.12,
     })
-    block(g, flip({ x0: L - 2, x1: L + 34, y0: 236, y1: 244, z0: 146, z1: 264 }), shade(c, 0.15))
+    block(
+      g,
+      flip({ x0: L - 2, x1: L + 34, y0: 236, y1: 244, z0: za - 4, z1: zb + 4 }),
+      shade(c, 0.15),
+    )
     topY = 92
-    lamp = [-(L + 64) * d, 92, 242]
-    chairZ = 190
+    front = 66
   } else {
     // a plain table, maybe with a hutch of shelves along the wall
-    const top = flip({ x0: L, x1: L + 84, y0: 68, y1: 76, z0: 128, z1: 274 })
     for (const l of [
-      { x0: L + 76, x1: L + 82, z0: 132, z1: 138 },
-      { x0: L + 76, x1: L + 82, z0: 264, z1: 270 },
-      { x0: L + 4, x1: L + 10, z0: 132, z1: 138 },
+      { x0: L + 76, x1: L + 82, z0: z0 + 4, z1: z0 + 10 },
+      { x0: L + 76, x1: L + 82, z0: z1 - 10, z1: z1 - 4 },
+      { x0: L + 4, x1: L + 10, z0: z0 + 4, z1: z0 + 10 },
     ])
       block(g, flip({ ...l, y0: 0, y1: 68 }), shade(c, -0.1))
-    block(g, flip({ x0: L + 2, x1: L + 80, y0: 44, y1: 68, z0: 204, z1: 270 }), c)
-    const kx = d > 0 ? L + 80 : -(L + 80)
-    g.poly(flat([kx, 56, 204], [kx, 56, 270]), false).stroke(THIN)
+    const dz0 = Math.max(z0 + 14, z1 - 70)
+    block(g, flip({ x0: L + 2, x1: L + 80, y0: 44, y1: 68, z0: dz0, z1: z1 - 4 }), c)
+    const kx = at_(80)
+    g.poly(flat([kx, 56, dz0], [kx, 56, z1 - 4]), false).stroke(THIN)
     for (const y of [50, 62]) {
-      const [px, py] = project([kx, y, 237])
+      const [px, py] = project([kx, y, (dz0 + z1) / 2])
       g.circle(px, py, 2)
         .fill(BRASS)
         .stroke({ ...THIN, width: 0.6 })
     }
-    block(g, top, c)
+    block(g, flip({ x0: L, x1: L + 84, y0: 68, y1: 76, z0, z1 }), c)
     if (style === 'hutch') {
-      block(g, flip({ x0: L, x1: L + 24, y0: 76, y1: 180, z0: 132, z1: 270 }), shade(c, -0.05))
-      const hx = d > 0 ? L + 24 : -(L + 24)
+      block(
+        g,
+        flip({ x0: L, x1: L + 24, y0: 76, y1: 180, z0: z0 + 4, z1: z1 - 4 }),
+        shade(c, -0.05),
+      )
+      const hx = at_(24)
       for (const [y0, y1] of [
         [80, 124],
         [128, 176],
-      ]) {
-        g.poly(flat([hx, y1!, 132], [hx, y1!, 270]), false).stroke({
+      ] as [number, number][]) {
+        g.poly(flat([hx, y1, z0 + 4], [hx, y1, z1 - 4]), false).stroke({
           color: shade(c, -0.35),
           width: 2,
         })
-        let z = 138
-        let n = Math.floor(ctx.rng() * 9)
-        while (z < 262) {
-          const bw = 4 + (n % 3) * 2
-          if (n % 7 === 3) {
-            potPlant(
-              ctx,
-              g,
-              [hx, y0!, z + 8],
-              0.55,
-              ctx.plan.variant.plants[n % ctx.plan.variant.plants.length]!,
-              n,
-            )
-            z += 20
-          } else {
-            g.poly(
-              flat(
-                [hx, y0!, z],
-                [hx, y0!, z + bw],
-                [hx, y0! + (y1! - y0!) * (0.65 + (n % 4) * 0.08), z + bw],
-                [hx, y0! + (y1! - y0!) * (0.65 + (n % 4) * 0.08), z],
-              ),
-            )
-              .fill(BOOKS[n % BOOKS.length]!)
-              .stroke({ ...THIN, width: 0.4 })
-            z += bw + 0.6
-          }
-          n++
-        }
+        shelfOfBooks(ctx, g, hx, y0, y1, z0 + 10, z1 - 12, true)
       }
-      block(g, flip({ x0: L - 2, x1: L + 28, y0: 178, y1: 184, z0: 128, z1: 274 }), shade(c, 0.15))
+      block(g, flip({ x0: L - 2, x1: L + 28, y0: 178, y1: 184, z0, z1 }), shade(c, 0.15))
     }
-    lamp = [-(L + 22) * d, 76, 250]
   }
 
   // things on the desk: notebook, a mug that steams, a plant
-  const deskFront = style === 'secretary' ? L + 66 : L + 40
-  const note = flip({
-    x0: deskFront - 16,
-    x1: deskFront + 14,
-    y0: topY,
-    y1: topY + 1,
-    z0: 176,
-    z1: 212,
+  block(
+    g,
+    flip({
+      x0: L + front - 16,
+      x1: L + front + 14,
+      y0: topY,
+      y1: topY + 1,
+      z0: mid - 20,
+      z1: mid + 16,
+    }),
+    0xf2e2bd,
+    { ...THIN, width: 0.6 },
+  )
+  steamingMug(ctx, g, [at_(front + 22), topY, z1 - 32])
+  if (style !== 'secretary')
+    potPlant(ctx, g, [at_(16), topY, z0 + 18], 0.85, ctx.plan.variant.plants[0]!, 3)
+
+  drawChair(ctx, flip, mid - 21, topY)
+
+  ctx.hit('desk', (h) => {
+    const x = at_(90)
+    const tall = style === 'secretary' ? 244 : style === 'hutch' ? 184 : 110
+    h.poly([
+      ...project([x, 0, z0]),
+      ...project([x, 0, z1]),
+      ...project([x, tall, z1]),
+      ...project([x, tall, z0]),
+    ])
   })
-  block(g, note, 0xf2e2bd, { ...THIN, width: 0.6 })
-  const mp = at([d > 0 ? L + 62 : -(L + 62), topY, 236])
+}
+
+/** a shelf's worth of book spines on a wall-facing plane, the odd plant among them */
+function shelfOfBooks(
+  ctx: Ctx,
+  g: Graphics,
+  x: number,
+  y0: number,
+  y1: number,
+  za: number,
+  zb: number,
+  plants = false,
+) {
+  let z = za
+  let n = Math.floor(ctx.rng() * 9)
+  while (z < zb) {
+    const bw = 4 + (n % 3) * 2
+    if (plants && n % 7 === 3) {
+      potPlant(
+        ctx,
+        g,
+        [x, y0, z + 8],
+        0.55,
+        ctx.plan.variant.plants[n % ctx.plan.variant.plants.length]!,
+        n,
+      )
+      z += 20
+    } else {
+      const top = y0 + (y1 - y0) * (0.65 + (n % 4) * 0.08)
+      g.poly(flat([x, y0, z], [x, y0, z + bw], [x, top, z + bw], [x, top, z]))
+        .fill(BOOKS[n % BOOKS.length]!)
+        .stroke({ ...THIN, width: 0.4 })
+      z += bw + 0.6
+    }
+    n++
+  }
+}
+
+/** a mug with steam curling off it */
+export function steamingMug(ctx: Ctx, g: Graphics, p: P3) {
+  const mp = at(p)
   g.roundRect(mp.x - 5 * mp.s, mp.y - 11 * mp.s, 10 * mp.s, 11 * mp.s, 2)
     .fill(0xf2e2bd)
     .stroke(THIN)
   g.circle(mp.x + 6 * mp.s, mp.y - 6 * mp.s, 3 * mp.s).stroke({ color: 0xf2e2bd, width: 1.5 })
-  const steam = ctx.layer('desk')
+  const steam = ctx.layer()
+  ctx.live(steam)
   ctx.anim.push((t) => {
     steam.clear()
     for (let i = 0; i < 2; i++) {
@@ -661,28 +649,11 @@ export function drawDesk(ctx: Ctx): P3 {
         .stroke({ color: 0xffffff, width: 1, alpha: 0.35 })
     }
   })
-  if (style !== 'secretary')
-    potPlant(ctx, g, [d > 0 ? L + 16 : -(L + 16), topY, 146], 0.85, ctx.plan.variant.plants[0]!, 3)
-
-  drawChair(ctx, flip, chairZ, topY)
-
-  ctx.hit('desk', (h) => {
-    const a = flip({ x0: L, x1: L + 90, y0: 0, y1: 0, z0: 128, z1: 274 })
-    const x = d > 0 ? a.x1 : a.x0
-    const tall = style === 'secretary' ? 244 : style === 'hutch' ? 184 : 110
-    h.poly([
-      ...project([x, 0, 128]),
-      ...project([x, 0, 274]),
-      ...project([x, tall, 274]),
-      ...project([x, tall, 128]),
-    ])
-  })
-  return lamp
 }
 
 /** a café chair pulled up to the desk, with a cushion that's seen some use */
 function drawChair(ctx: Ctx, flip: (b: Box) => Box, z: number, deskTop: number) {
-  const L = ROOM.left
+  const L = -ctx.plan.half
   const g = ctx.layer('desk')
   const wood = shade(hex(ctx.layout.desk.color), 0.1)
   const seatY = Math.min(46, deskTop - 30)
@@ -700,16 +671,11 @@ function drawChair(ctx: Ctx, flip: (b: Box) => Box, z: number, deskTop: number) 
       THIN,
     )
   block(g, flip({ x0, x1: x0 + 38, y0: seatY, y1: seatY + 5, z0: z, z1: z + 42 }), wood)
-  const back = flip({
-    x0: x0 + 34,
-    x1: x0 + 39,
-    y0: seatY + 5,
-    y1: seatY + 58,
-    z0: z + 2,
-    z1: z + 40,
-  })
-  block(g, back, wood)
-  const c = hex(ctx.layout.bed.pillows)
+  block(
+    g,
+    flip({ x0: x0 + 34, x1: x0 + 39, y0: seatY + 5, y1: seatY + 58, z0: z + 2, z1: z + 40 }),
+    wood,
+  )
   const sx = (v: number) => flip({ x0: v, x1: v, y0: 0, y1: 0, z0: 0, z1: 0 }).x0
   cushion(
     g,
@@ -719,15 +685,126 @@ function drawChair(ctx: Ctx, flip: (b: Box) => Box, z: number, deskTop: number) 
       [sx(x0 + 33), seatY + 9, z + 39],
       [sx(x0 + 3), seatY + 9, z + 39],
     ],
-    c,
+    hex(ctx.layout.bed.pillows),
   )
+}
+
+// -- the nightstand --------------------------------------------------------------
+
+/** the nightstand by the head of the bed; hands back where the lamp stands */
+export function drawNightstand(ctx: Ctx): P3 {
+  const n = ctx.plan.nightstand
+  const g = ctx.layer('nightstand')
+  const wood = hex(ctx.layout.desk.color)
+  const cx = (n.x0 + n.x1) / 2
+  const cz = (n.z0 + n.z1) / 2
+  let top = n.h
+  switch (ctx.layout.nightstand) {
+    case 'drawers': {
+      for (const [lx, lz] of [
+        [n.x0 + 2, n.z0 + 2],
+        [n.x1 - 6, n.z0 + 2],
+      ] as [number, number][])
+        block(g, { x0: lx, x1: lx + 4, y0: 0, y1: 10, z0: lz, z1: lz + 4 }, shade(wood, -0.2), THIN)
+      const body = { x0: n.x0, x1: n.x1, y0: 10, y1: n.h, z0: n.z0, z1: n.z1 }
+      block(g, body, wood)
+      // two drawers with brass knobs on the front
+      for (const y of [10 + (n.h - 10) / 2])
+        g.poly(flat([n.x0, y, n.z0], [n.x1, y, n.z0]), false).stroke(THIN)
+      for (const y of [10 + (n.h - 10) * 0.25, 10 + (n.h - 10) * 0.75]) {
+        const [kx, ky] = project([cx, y, n.z0])
+        g.circle(kx, ky, 2.4)
+          .fill(BRASS)
+          .stroke({ ...THIN, width: 0.6 })
+      }
+      block(
+        g,
+        { ...body, y0: n.h, y1: n.h + 3, x0: n.x0 - 2, x1: n.x1 + 2, z0: n.z0 - 2 },
+        shade(wood, 0.15),
+      )
+      top = n.h + 3
+      break
+    }
+    case 'skirted': {
+      // a round table under a long cloth that pools on the floor
+      const cloth = mix(hex(ctx.layout.window.curtainColor), 0xf2e2bd, 0.4)
+      const rx = (n.x1 - n.x0) / 2 + 2
+      const rz = (n.z1 - n.z0) / 2 + 2
+      const rim: P3[] = []
+      for (let i = 0; i <= 12; i++) {
+        const a = Math.PI + (i / 12) * Math.PI
+        rim.push([cx + Math.cos(a) * rx, n.h, cz - Math.sin(a) * rz * -1])
+      }
+      drape(ctx, g, rim, n.h, cloth, { wave: 3, folds: 6 })
+      const topRim: number[] = []
+      for (let i = 0; i < 24; i++) {
+        const a = (i / 24) * Math.PI * 2
+        topRim.push(...project([cx + Math.cos(a) * rx, n.h, cz + Math.sin(a) * rz]))
+      }
+      const lid = ctx.layer('nightstand')
+      lid.poly(topRim).fill(shade(cloth, 0.12)).stroke(THIN)
+      top = n.h
+      break
+    }
+    case 'suitcases': {
+      // old suitcases stacked up, biggest at the bottom
+      const cases = [
+        { h: 24, c: 0x8a5a2a, inset: 0 },
+        { h: 20, c: 0x2f6b66, inset: 3 },
+        { h: 18, c: 0xa8432e, inset: 6 },
+      ]
+      let y = 0
+      for (const k of cases) {
+        const box = {
+          x0: n.x0 + k.inset,
+          x1: n.x1 - k.inset,
+          y0: y,
+          y1: y + k.h,
+          z0: n.z0 + k.inset,
+          z1: n.z1 - k.inset,
+        }
+        block(g, box, k.c)
+        for (const sx of [box.x0 + (box.x1 - box.x0) * 0.3, box.x0 + (box.x1 - box.x0) * 0.7])
+          g.poly(flat([sx, y, box.z0], [sx, y + k.h, box.z0]), false).stroke({
+            color: 0x3a2418,
+            width: 2.5,
+          })
+        const [hx, hy] = project([cx, y + k.h * 0.55, box.z0])
+        g.rect(hx - 3, hy - 2, 6, 4).fill(BRASS)
+        y += k.h
+      }
+      top = y
+      break
+    }
+  }
+  // a book and a glass of water next to the lamp
+  const off = (n.x1 - n.x0) * 0.28
+  block(
+    g,
+    { x0: cx + off - 8, x1: cx + off + 6, y0: top, y1: top + 3, z0: cz - 10, z1: cz + 6 },
+    0x2a4a8a,
+    { ...THIN, width: 0.5 },
+  )
+  const glass = at([cx - off, top, cz + 4])
+  g.rect(glass.x - 2.5 * glass.s, glass.y - 9 * glass.s, 5 * glass.s, 9 * glass.s)
+    .fill({ color: 0xc8e8ff, alpha: 0.5 })
+    .stroke({ ...THIN, width: 0.6 })
+  ctx.hit('nightstand', (h) =>
+    h.poly([
+      ...project([n.x0, 0, n.z0]),
+      ...project([n.x1, 0, n.z0]),
+      ...project([n.x1, top, n.z0]),
+      ...project([n.x0, top, n.z0]),
+    ]),
+  )
+  return [cx, top, cz + 2]
 }
 
 export function drawRug(ctx: Ctx) {
   const { shape, color } = ctx.layout.rug
   if (shape === 'none') return
   const c = hex(color)
-  const cx = ctx.layout.bed.spot === 'right' ? -10 : 0
+  const cx = ctx.layout.bed.spot === 'right' ? -ctx.plan.half * 0.05 : 0
   const cz = 186
   const outline = (k: number): [number, number][] => {
     const corners = (...ps: [number, number][]) =>

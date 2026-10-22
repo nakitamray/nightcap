@@ -38,7 +38,8 @@ export class StreetScene {
       preference: 'webgl',
       antialias: true,
       autoDensity: true,
-      resolution: Math.min(window.devicePixelRatio || 1, 2),
+      // past 1.5x the extra pixels cost a lot of filter work for little gain
+      resolution: Math.min(window.devicePixelRatio || 1, 1.5),
       background: palette.skyTop,
     })
     // text in the scene is drawn to canvas, so the font has to be there first

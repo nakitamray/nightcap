@@ -3,6 +3,7 @@
 export * from './room/layout'
 export type { Layout as RoomLayout } from './room/layout'
 export { POSTER_NAMES } from './room/posters'
-export { planRoom } from './room/plan'
+export { canAdd, planRoom } from './room/plan'
 export type { Plan } from './room/plan'
 export { VARIANTS, variantFor } from './room/variants'
+export type { Extra } from './room/variants'

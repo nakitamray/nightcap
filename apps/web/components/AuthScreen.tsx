@@ -6,7 +6,11 @@ import { WindowWallBackground } from './WindowWallBackground'
 import styles from './NightCard.module.css'
 
 /** the front door: sign in or make an account, with the demo for anyone just looking */
-export function AuthScreen(props: { mode: 'signin' | 'signup'; next?: string; verified?: boolean }) {
+export function AuthScreen(props: {
+  mode: 'signin' | 'signup'
+  next?: string
+  verified?: boolean
+}) {
   return (
     <main className={styles.page}>
       <WindowWallBackground />

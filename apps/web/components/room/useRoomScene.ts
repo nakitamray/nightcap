@@ -14,6 +14,7 @@ export function useRoomScene(
     room: number
     playing: boolean
     pins: Pin[]
+    editable: boolean
   },
   onPick: (thing: Thing) => void,
 ) {

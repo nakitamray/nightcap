@@ -107,7 +107,8 @@ export class RoomWindow extends Container {
       [this.curtainR, 1],
     ] as const) {
       panel.rect(0, 0, w / 2 + 2, h).fill(0xffffff)
-      for (let fx = 5; fx < w / 2; fx += 9) panel.rect(fx, 0, 3, h).fill({ color: 0x000000, alpha: 0.22 })
+      for (let fx = 5; fx < w / 2; fx += 9)
+        panel.rect(fx, 0, 3, h).fill({ color: 0x000000, alpha: 0.22 })
       panel.rect(0, 0, w / 2 + 2, 6).fill({ color: 0x000000, alpha: 0.35 })
       panel.pivot.set(side ? w / 2 + 2 : 0, 0)
       panel.x = side ? w : 0
@@ -178,7 +179,10 @@ export class RoomWindow extends Container {
     const floor = h - 2
     const all: Prop[] = ['cat', 'lamp', 'plant', 'figure', 'shelf', 'gramophone']
     const first = pick(rng, all)
-    const second = pick(rng, all.filter((p) => p !== first))
+    const second = pick(
+      rng,
+      all.filter((p) => p !== first),
+    )
     const props = chance(rng, 0.7) ? [first, second] : [first]
     // keep the two props on opposite sides
     const firstLeft = chance(rng, 0.5)
@@ -189,7 +193,16 @@ export class RoomWindow extends Container {
         case 'lamp': {
           g.rect(x - 1.5, floor - 70, 3, 70).fill(ink)
           g.ellipse(x, floor, 10, 3).fill(ink)
-          g.poly([x - 13, floor - 70, x + 13, floor - 70, x + 8, floor - 88, x - 8, floor - 88]).fill(0x3a160c)
+          g.poly([
+            x - 13,
+            floor - 70,
+            x + 13,
+            floor - 70,
+            x + 8,
+            floor - 88,
+            x - 8,
+            floor - 88,
+          ]).fill(0x3a160c)
           this.hotspot.position.set(x, floor - 76)
           break
         }
@@ -198,7 +211,12 @@ export class RoomWindow extends Container {
           for (let l = 0; l < 7; l++) {
             const a = -Math.PI / 2 + range(rng, -1.1, 1.1)
             const len = range(rng, 18, 34)
-            g.ellipse(x + Math.cos(a) * len * 0.6, floor - 18 + Math.sin(a) * len * 0.6, 4, len / 2.2).fill(ink)
+            g.ellipse(
+              x + Math.cos(a) * len * 0.6,
+              floor - 18 + Math.sin(a) * len * 0.6,
+              4,
+              len / 2.2,
+            ).fill(ink)
           }
           break
         }
@@ -206,8 +224,19 @@ export class RoomWindow extends Container {
           // tall and thin, the way the posters drew people
           const fh = range(rng, 92, 108)
           g.circle(x, floor - fh, 7).fill(ink)
-          g.poly([x - 5, floor - fh + 8, x + 5, floor - fh + 8, x + 11, floor, x - 9, floor]).fill(ink)
-          g.poly([x + 4, floor - fh + 14, x + 18, floor - fh + 40, x + 15, floor - fh + 42, x + 3, floor - fh + 24]).fill(ink)
+          g.poly([x - 5, floor - fh + 8, x + 5, floor - fh + 8, x + 11, floor, x - 9, floor]).fill(
+            ink,
+          )
+          g.poly([
+            x + 4,
+            floor - fh + 14,
+            x + 18,
+            floor - fh + 40,
+            x + 15,
+            floor - fh + 42,
+            x + 3,
+            floor - fh + 24,
+          ]).fill(ink)
           break
         }
         case 'shelf': {
@@ -299,7 +328,8 @@ export class RoomWindow extends Container {
     this.open += (this.openTarget - this.open) * Math.min(1, dt * 3)
 
     // lamps breathe a little; nobody's bulb is perfectly steady
-    const breathe = 1 + Math.sin(time * 1.3 + this.phase) * 0.025 + Math.sin(time * 7.1 + this.phase) * 0.01
+    const breathe =
+      1 + Math.sin(time * 1.3 + this.phase) * 0.025 + Math.sin(time * 7.1 + this.phase) * 0.01
     const L = this.light * breathe
 
     const drawnDim = 0.55 + this.open * 0.45
@@ -320,7 +350,8 @@ export class RoomWindow extends Container {
     this.curtainL.tint = this.curtainR.tint = tint
     this.curtainL.alpha = this.curtainR.alpha = 1 - this.light * 0.12
 
-    if (this.catTail && !reducedMotion) this.catTail.rotation = Math.sin(time * 1.6 + this.phase) * 0.25
+    if (this.catTail && !reducedMotion)
+      this.catTail.rotation = Math.sin(time * 1.6 + this.phase) * 0.25
 
     this.frame.tint = this.hovered ? 0xffe0b8 : 0xffffff
   }

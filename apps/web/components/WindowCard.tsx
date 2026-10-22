@@ -42,7 +42,9 @@ export function WindowCard({ member, bounds }: Props) {
       </p>
       <p className={styles.status} data-home={member.home}>
         {member.home ? 'home' : 'out'}
-        {member.curtains === 'drawn' && <span className={styles.curtains}> &middot; curtains drawn</span>}
+        {member.curtains === 'drawn' && (
+          <span className={styles.curtains}> &middot; curtains drawn</span>
+        )}
       </p>
     </div>
   )

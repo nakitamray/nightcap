@@ -1,16 +1,16 @@
-// What someone's room looks like. Everyone moves into the same room and
-// changes it from there; this is the bit that gets saved (memberships.layout).
-// Anything that comes back from the database goes through readLayout so a
-// half-written or old layout can't break the page.
+// What someone's room looks like: the bit that gets saved (memberships.layout).
+// Every room starts from its own defaults (see variants.ts) and anything that
+// comes back from the database goes through readLayout, so a half-written or
+// old layout can't break the page.
 
-import { variantFor } from './variants'
+import { variantFor, type Extra } from './variants'
 
 export type Side = 'left' | 'right'
 export type BedSpot = 'right' | 'window'
 export type BedStyle = 'iron' | 'wood' | 'canopy' | 'brass' | 'platform'
 export const BED_STYLES: BedStyle[] = ['iron', 'wood', 'canopy', 'brass', 'platform']
 export type PaneShape = 'rect' | 'arch' | 'circle'
-/** table lamps sit on the desk; the lantern hangs from the ceiling */
+/** table lamps stand on the nightstand; the lantern hangs from the ceiling */
 export type LampStyle = 'tiffany' | 'fringe' | 'scallop' | 'floral' | 'banker' | 'lantern'
 export const LAMP_STYLES: LampStyle[] = [
   'tiffany',
@@ -21,6 +21,32 @@ export const LAMP_STYLES: LampStyle[] = [
   'lantern',
 ]
 export type RugShape = 'none' | 'rect' | 'circle' | 'oval' | 'diamond'
+export type NightstandStyle = 'drawers' | 'skirted' | 'suitcases'
+export const NIGHTSTAND_STYLES: NightstandStyle[] = ['drawers', 'skirted', 'suitcases']
+
+export type PetKind = 'none' | 'cat' | 'dog'
+export const CAT_BREEDS = ['black', 'tabby', 'white', 'persian', 'grey'] as const
+export const DOG_BREEDS = ['terrier', 'labradoodle', 'golden', 'shepherd'] as const
+export type CatBreed = (typeof CAT_BREEDS)[number]
+export type DogBreed = (typeof DOG_BREEDS)[number]
+export type Pet =
+  { kind: 'none' } | { kind: 'cat'; breed: CatBreed } | { kind: 'dog'; breed: DogBreed }
+
+/** furniture you can add yourself, on top of what the room comes with */
+export const ADDABLE: Extra[] = [
+  'bookcase',
+  'lounger',
+  'beanbag',
+  'loveseat',
+  'armchair',
+  'pouf',
+  'dresser',
+  'plantstand',
+  'floorlamp',
+  'records',
+  'monstera',
+]
+export const MAX_FURNITURE = 5
 
 export interface Layout {
   wall: string
@@ -32,21 +58,22 @@ export interface Layout {
     pillows: string
     blanket: string
   }
+  nightstand: NightstandStyle
   window: { shape: PaneShape; curtains: boolean; curtainColor: string }
   /** poster designs, in the order they go up on the walls */
   posters: number[]
-  /** extra bookcases asked for, on top of what the room comes with */
-  shelves: number
+  /** furniture added on top of what the room comes with, placed first */
+  furniture: Extra[]
   lamp: LampStyle
   rug: { shape: RugShape; color: string }
   desk: { wall: Side; color: string }
   /** colour of the strip round the ceiling, or null when it's off */
   led: string | null
+  pet: Pet
 }
 
 export const POSTER_COUNT = 16
 export const MAX_POSTERS = 10
-export const MAX_SHELVES = 3
 
 /** how a room starts out, before its owner changes anything */
 export function defaultLayout(room = 0): Layout {
@@ -61,13 +88,15 @@ export function defaultLayout(room = 0): Layout {
       pillows: v.pillows,
       blanket: v.blanket,
     },
+    nightstand: NIGHTSTAND_STYLES[room % NIGHTSTAND_STYLES.length]!,
     window: { shape: v.shape, curtains: true, curtainColor: v.curtains },
     posters: v.posters,
-    shelves: 0,
+    furniture: [],
     lamp: v.lamp,
     rug: { shape: 'rect', color: v.rug },
     desk: { wall: v.deskWall ?? 'left', color: v.desk },
     led: v.led,
+    pet: { kind: 'cat', breed: 'black' },
   }
 }
 
@@ -108,15 +137,14 @@ export function readLayout(raw: unknown, room = 0): Layout {
       pillows: colour(bed.pillows, d.bed.pillows),
       blanket: colour(bed.blanket, d.bed.blanket),
     },
+    nightstand: pick(r.nightstand, NIGHTSTAND_STYLES, d.nightstand),
     window: {
       shape: pick(win.shape, ['rect', 'arch', 'circle'], d.window.shape),
       curtains: typeof win.curtains === 'boolean' ? win.curtains : d.window.curtains,
       curtainColor: colour(win.curtainColor, d.window.curtainColor),
     },
     posters: readPosters(r, d.posters),
-    shelves: Number.isInteger(r.shelves)
-      ? Math.max(0, Math.min(MAX_SHELVES, r.shelves as number))
-      : 0,
+    furniture: readFurniture(r),
     lamp: pick(r.lamp, LAMP_STYLES, d.lamp),
     rug: {
       shape: pick(rug.shape, ['none', 'rect', 'circle', 'oval', 'diamond'], d.rug.shape),
@@ -127,6 +155,7 @@ export function readLayout(raw: unknown, room = 0): Layout {
       color: colour(desk.color, d.desk.color),
     },
     led: r.led === null ? null : colour(r.led, d.led ?? '') || null,
+    pet: readPet(r.pet, d.pet),
   }
   return settle(layout, room)
 }
@@ -144,6 +173,25 @@ function readPosters(r: Record<string, unknown>, fallback: number[]) {
       .map((f) => obj(f).art)
       .filter(ok)
       .map((n) => n % POSTER_COUNT)
+  return fallback
+}
+
+function readFurniture(r: Record<string, unknown>): Extra[] {
+  if (Array.isArray(r.furniture)) {
+    return r.furniture
+      .filter((k): k is Extra => ADDABLE.includes(k as Extra))
+      .slice(0, MAX_FURNITURE)
+  }
+  // rooms saved before furniture could only ask for extra bookcases
+  const shelves = Number.isInteger(r.shelves) ? Math.max(0, Math.min(3, r.shelves as number)) : 0
+  return Array.from({ length: shelves }, () => 'bookcase' as const)
+}
+
+function readPet(raw: unknown, fallback: Pet): Pet {
+  const p = obj(raw)
+  if (p.kind === 'none') return { kind: 'none' }
+  if (p.kind === 'dog') return { kind: 'dog', breed: pick(p.breed, DOG_BREEDS, 'golden') }
+  if (p.kind === 'cat') return { kind: 'cat', breed: pick(p.breed, CAT_BREEDS, 'black') }
   return fallback
 }
 

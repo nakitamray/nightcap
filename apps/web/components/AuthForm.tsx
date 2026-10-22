@@ -64,7 +64,14 @@ function SignIn({ next, verified }: { next: string; verified?: boolean }) {
       <form className={styles.form} onSubmit={submit}>
         <label className={styles.label}>
           Email
-          <input className={styles.input} type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <input
+            className={styles.input}
+            type="email"
+            required
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
         </label>
         <label className={styles.label}>
           Password
@@ -136,7 +143,8 @@ function SignUp() {
       <>
         <Tabs mode="signup" />
         <p className={styles.note}>
-          Nearly there. We sent a link to <strong>{email}</strong>. Click it to verify, then sign in.
+          Nearly there. We sent a link to <strong>{email}</strong>. Click it to verify, then sign
+          in.
         </p>
       </>
     )
@@ -165,7 +173,14 @@ function SignUp() {
         </label>
         <label className={styles.label}>
           Email
-          <input className={styles.input} type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <input
+            className={styles.input}
+            type="email"
+            required
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
         </label>
         <label className={styles.label}>
           Password

@@ -7,7 +7,9 @@ import { palette } from '../palette'
  */
 export function ironRail(x: number, y: number, width: number, height: number, g = new Graphics()) {
   const c = palette.iron
-  g.rect(x, y, width, 3).rect(x, y + height - 3, width, 3).fill(c)
+  g.rect(x, y, width, 3)
+    .rect(x, y + height - 3, width, 3)
+    .fill(c)
   const pitch = 9
   for (let bx = x + 2; bx < x + width - 1; bx += pitch) g.rect(bx, y, 1.6, height).fill(c)
   const midY = y + height * 0.52

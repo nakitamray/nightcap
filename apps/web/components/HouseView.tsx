@@ -11,7 +11,6 @@ import { InviteButton } from './InviteButton'
 import styles from './HouseView.module.css'
 import streetStyles from './Street.module.css'
 import { useStreetScene } from './useStreetScene'
-import { useWindowClicks } from './useWindowClicks'
 import { WindowCard } from './WindowCard'
 
 interface Props {
@@ -49,42 +48,39 @@ export function HouseView({
 
   const myRoom = members.findIndex((m) => m?.id === userId)
 
-  const toggleCurtains = useCallback(
-    async (index: number) => {
-      // you can only touch your own curtains
-      if (index !== myRoom) return
-      const me = members[index]
-      if (!me) return
-      const curtains = me.curtains === 'open' ? 'drawn' : 'open'
-      setMembers((prev) => prev.map((m, i) => (i === index && m ? { ...m, curtains } : m)))
-      await supabase
-        .from('memberships')
-        .update({ curtains })
-        .eq('house_id', houseId)
-        .eq('user_id', userId)
-      channelRef.current?.send({
-        type: 'broadcast',
-        event: 'curtains',
-        payload: { userId, curtains },
-      })
-    },
-    [members, myRoom, supabase, houseId, userId],
-  )
+  const me = myRoom >= 0 ? members[myRoom] : null
+
+  // you can only touch your own curtains
+  async function toggleCurtains() {
+    if (!me) return
+    const curtains = me.curtains === 'open' ? 'drawn' : 'open'
+    setMembers((prev) => prev.map((m, i) => (i === myRoom && m ? { ...m, curtains } : m)))
+    await supabase
+      .from('memberships')
+      .update({ curtains })
+      .eq('house_id', houseId)
+      .eq('user_id', userId)
+    channelRef.current?.send({
+      type: 'broadcast',
+      event: 'curtains',
+      payload: { userId, curtains },
+    })
+  }
 
   const [claiming, setClaiming] = useState<number | null>(null)
   const [claimError, setClaimError] = useState('')
 
+  // a lit window is someone's room to look round; a dark one is up for grabs
   const goInside = useCallback(
     (index: number) => {
-      if (index === myRoom) router.push(`/h/${houseId}/room`)
-      else if (!members[index]) {
+      if (members[index]) router.push(`/h/${houseId}/room/${index}`)
+      else {
         setClaimError('')
         setClaiming(index)
       }
     },
-    [myRoom, members, router, houseId],
+    [members, router, houseId],
   )
-  const onWindowClick = useWindowClicks(toggleCurtains, goInside)
 
   async function claim() {
     if (claiming === null) return
@@ -94,7 +90,7 @@ export function HouseView({
     router.refresh()
   }
 
-  const { hover, ready } = useStreetScene(hostRef, rooms, marquee, theme, onWindowClick)
+  const { hover, ready } = useStreetScene(hostRef, rooms, marquee, theme, goInside)
 
   // presence: everyone with the house open is "home"
   useEffect(() => {
@@ -173,6 +169,16 @@ export function HouseView({
           keyring
         </Link>
         <span className={styles.name}>{houseName}</span>
+        {me && (
+          <>
+            <Link className={styles.button} href={`/h/${houseId}/room/${myRoom}`}>
+              go to my room
+            </Link>
+            <button type="button" className={styles.button} onClick={toggleCurtains}>
+              {me.curtains === 'open' ? 'draw my curtains' : 'open my curtains'}
+            </button>
+          </>
+        )}
         <InviteButton houseId={houseId} userId={userId} />
         <button type="button" className={styles.button} onClick={signOut}>
           sign out
@@ -184,9 +190,7 @@ export function HouseView({
           <span className={streetStyles.number}>{home}</span> of {residents.length} home
         </p>
         <p className={streetStyles.hint}>
-          {myRoom >= 0
-            ? 'click your window for the curtains, double click to go inside'
-            : 'double click an empty window to claim it'}
+          {myRoom >= 0 ? 'click a window to look inside' : 'click an empty window to make it yours'}
           {unplaced.length > 0 && ` · ${listNames(unplaced)} still picking a room`}
         </p>
       </footer>
