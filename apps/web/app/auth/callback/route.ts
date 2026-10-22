@@ -1,12 +1,12 @@
 import { NextResponse, type NextRequest } from 'next/server'
+import { safePath } from '@/lib/paths'
 import { supabaseServer } from '@/lib/supabase/server'
 
 // the magic link lands here with a one-time code; swap it for a session
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl
   const code = searchParams.get('code')
-  const next = searchParams.get('next') ?? '/home'
-  const safe = next.startsWith('/') && !next.startsWith('//') ? next : '/home'
+  const safe = safePath(searchParams.get('next'), '/home')
 
   if (code) {
     const supabase = await supabaseServer()

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Member } from '@/lib/house'
+import { BEAT_MS, isHome } from '@/lib/presence'
 import type { Theme } from '@/lib/themes'
 import { supabaseBrowser } from '@/lib/supabase/browser'
 import { ClaimCard } from './ClaimCard'
@@ -20,6 +21,8 @@ interface Props {
   initialRooms: (Member | null)[]
   /** people who live here but haven't picked a window yet */
   roomless: { id: string; name: string }[]
+  /** when each person last had the house open, by user id */
+  initialSeen: Record<string, string>
   marquee: string[]
   theme: Theme
 }
@@ -30,20 +33,23 @@ export function HouseView({
   userId,
   initialRooms,
   roomless,
+  initialSeen,
   marquee,
   theme,
 }: Props) {
   const router = useRouter()
   const supabase = useMemo(() => supabaseBrowser(), [])
   const hostRef = useRef<HTMLDivElement>(null)
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
   const [members, setMembers] = useState(initialRooms)
-  const [online, setOnline] = useState<Set<string>>(new Set())
+  const [seen, setSeen] = useState(initialSeen)
+  const [now, setNow] = useState(() => Date.now())
+  const [problem, setProblem] = useState('')
 
-  // a window's light is on when that person actually has the site open
+  // a window's light is on while that person has the house open (see presence.ts)
   const rooms = useMemo(
-    () => members.map((m) => (m ? { ...m, home: online.has(m.id) } : null)),
-    [members, online],
+    () =>
+      members.map((m) => (m ? { ...m, home: m.id === userId || isHome(seen[m.id], now) } : null)),
+    [members, seen, now, userId],
   )
 
   const myRoom = members.findIndex((m) => m?.id === userId)
@@ -54,17 +60,19 @@ export function HouseView({
   async function toggleCurtains() {
     if (!me) return
     const curtains = me.curtains === 'open' ? 'drawn' : 'open'
+    const before = me.curtains
     setMembers((prev) => prev.map((m, i) => (i === myRoom && m ? { ...m, curtains } : m)))
-    await supabase
+    // everyone else hears about it from the database, once it's really saved
+    const { error } = await supabase
       .from('memberships')
       .update({ curtains })
       .eq('house_id', houseId)
       .eq('user_id', userId)
-    channelRef.current?.send({
-      type: 'broadcast',
-      event: 'curtains',
-      payload: { userId, curtains },
-    })
+    if (error) {
+      console.error('saving curtains', error)
+      setMembers((prev) => prev.map((m, i) => (i === myRoom && m ? { ...m, curtains: before } : m)))
+      setProblem('couldn’t move your curtains, try again')
+    }
   }
 
   const [claiming, setClaiming] = useState<number | null>(null)
@@ -92,29 +100,66 @@ export function HouseView({
 
   const { hover, ready } = useStreetScene(hostRef, rooms, marquee, theme, goInside)
 
-  // presence: everyone with the house open is "home"
+  // check in while the house is on screen, and once more whenever it comes back
   useEffect(() => {
-    const channel = supabase.channel(`house:${houseId}`, { config: { presence: { key: userId } } })
-    channelRef.current = channel
-    channel
-      .on('presence', { event: 'sync' }, () =>
-        setOnline(new Set(Object.keys(channel.presenceState()))),
-      )
-      .on('broadcast', { event: 'curtains' }, ({ payload }) => {
-        setMembers((prev) =>
-          prev.map((m) =>
-            m && m.id === payload.userId ? { ...m, curtains: payload.curtains } : m,
-          ),
-        )
-      })
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') channel.track({ since: Date.now() })
-      })
-    return () => {
-      channelRef.current = null
-      supabase.removeChannel(channel)
+    async function beat() {
+      if (document.visibilityState !== 'visible') return
+      const { error } = await supabase.rpc('here', { h: houseId })
+      if (error) console.error('checking in', error)
     }
-  }, [supabase, houseId, userId])
+    beat()
+    const t = setInterval(beat, BEAT_MS)
+    document.addEventListener('visibilitychange', beat)
+    // lights go out on their own as check-ins get old
+    const tick = setInterval(() => setNow(Date.now()), 20_000)
+    return () => {
+      clearInterval(t)
+      clearInterval(tick)
+      document.removeEventListener('visibilitychange', beat)
+    }
+  }, [supabase, houseId])
+
+  // lights and curtains arrive as database changes, on a channel only people
+  // who live here can join; realtime checks each row against its own rules
+  useEffect(() => {
+    let channel: ReturnType<typeof supabase.channel> | null = null
+    let stopped = false
+    supabase.realtime.setAuth().then(() => {
+      if (stopped) return
+      channel = supabase
+        .channel(`house:${houseId}`, { config: { private: true } })
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'presence', filter: `house_id=eq.${houseId}` },
+          ({ new: row }) => {
+            const r = row as { user_id?: string; seen_at?: string }
+            if (r.user_id && r.seen_at) setSeen((prev) => ({ ...prev, [r.user_id!]: r.seen_at! }))
+          },
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'memberships',
+            filter: `house_id=eq.${houseId}`,
+          },
+          ({ new: row }) => {
+            const r = row as { user_id: string; curtains: Member['curtains'] }
+            setMembers((prev) =>
+              prev.map((m) => (m && m.id === r.user_id ? { ...m, curtains: r.curtains } : m)),
+            )
+          },
+        )
+        .subscribe((status, err) => {
+          if (err) console.error('house channel', status, err)
+        })
+    })
+    return () => {
+      stopped = true
+      if (channel) supabase.removeChannel(channel)
+    }
+  }, [supabase, houseId])
 
   // first visit: pick up your time zone from the browser so friends see your local time
   useEffect(() => {
@@ -125,7 +170,8 @@ export function HouseView({
         .from('profiles')
         .update({ time_zone: zone })
         .eq('id', userId)
-        .then(() => {
+        .then(({ error }) => {
+          if (error) return console.error('saving time zone', error)
           setMembers((prev) => prev.map((m) => (m?.id === userId ? { ...m, timeZone: zone } : m)))
         })
     }
@@ -152,6 +198,12 @@ export function HouseView({
       {everyone < 2 && (
         <p className={styles.banner} data-ready={ready}>
           just you in here so far. this house only sticks around once a friend moves in
+        </p>
+      )}
+
+      {problem && (
+        <p className={styles.banner} data-ready={ready} role="alert" onClick={() => setProblem('')}>
+          {problem}
         </p>
       )}
 
@@ -194,6 +246,18 @@ export function HouseView({
           {unplaced.length > 0 && ` · ${listNames(unplaced)} still picking a room`}
         </p>
       </footer>
+      {/* the windows only exist in the canvas, so here they are again as buttons */}
+      <ul className="sr-only" aria-label="windows">
+        {rooms.map((m, i) => (
+          <li key={i}>
+            <button type="button" onClick={() => goInside(i)}>
+              {m
+                ? `${m.id === userId ? 'your room' : `${m.name}'s room`}, ${m.home ? 'home' : 'out'}, curtains ${m.curtains}`
+                : `room ${i + 1} is empty, claim it`}
+            </button>
+          </li>
+        ))}
+      </ul>
     </main>
   )
 }

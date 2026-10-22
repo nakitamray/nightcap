@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto'
 import { NextResponse, type NextRequest } from 'next/server'
-import { authorizeUrl, safePath, spotifyConfigured } from '@/lib/spotify'
+import { safePath } from '@/lib/paths'
+import { authorizeUrl, spotifyConfigured } from '@/lib/spotify'
 import { currentUserId } from '@/lib/supabase/server'
 
 export async function GET(req: NextRequest) {

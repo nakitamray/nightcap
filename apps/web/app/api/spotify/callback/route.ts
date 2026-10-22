@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import { exchangeCode, safePath } from '@/lib/spotify'
+import { safePath } from '@/lib/paths'
+import { exchangeCode } from '@/lib/spotify'
 import { currentUserId, supabaseServer } from '@/lib/supabase/server'
 
 export async function GET(req: NextRequest) {

@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import { safePath } from '@/lib/spotify'
+import { safePath } from '@/lib/paths'
 import { currentUserId, supabaseServer } from '@/lib/supabase/server'
 
 export async function POST(req: NextRequest) {

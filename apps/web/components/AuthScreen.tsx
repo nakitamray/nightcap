@@ -32,6 +32,3 @@ export function AuthScreen(props: {
 }
 
 /** only ever send people back to a page on this site */
-export function safeNext(next: string | undefined) {
-  return next && next.startsWith('/') && !next.startsWith('//') ? next : '/keys'
-}

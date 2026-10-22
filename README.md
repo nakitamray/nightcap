@@ -40,7 +40,9 @@ else needs a Supabase project:
    minimum password length 8, require uppercase + symbols
 3. Authentication -> URL Configuration: add `http://localhost:3000/login`
    (and your deployed url later) to the redirect urls
-4. copy `apps/web/.env.example` to `apps/web/.env.local` and fill in the
+4. Realtime -> Settings: turn off "Allow public access", so only private
+   channels work. The house channel is private and members only.
+5. copy `apps/web/.env.example` to `apps/web/.env.local` and fill in the
    project url + publishable key
 
 How it fits together:
@@ -50,12 +52,16 @@ How it fits together:
 - `/keys` is your keyring: up to five houses, each an arched window onto its
   city. Click one to go to that house's street.
 - `/new` names a house and picks the city, then `/h/<id>/invite` hands you
-  a 7-day `/join/<code>` link. A house needs two people; one that's still
+  a 7-day `/join/<code>` link. Opening the link shows the house and asks
+  first; moving in is a button, so no other site can join you up behind
+  your back. A house needs two people; one that's still
   just you after a week gets swept away.
 - `/h/<id>` is the street. Click an empty window to claim it (one room
   each), or a lit one to look round that person's room. "go to my room" and
-  your curtains are up in the corner. Lights are live presence: a window is
-  lit while that person has the house open.
+  your curtains are up in the corner. A window is lit while that person has
+  the house open: the page checks in every minute while it's on screen, and
+  the light stays on for three minutes after the last check-in. The
+  database stamps the time, so nobody can be home for someone else.
 - `/h/<id>/room/<n>` is a room. Anyone in the house can look; only the person
   who lives there can change anything (the database agrees: you can only
   update your own membership). `/h/<id>/room` takes you to yours.
@@ -82,8 +88,21 @@ everything. Nothing is saved. It's on whenever you run
 
 Privacy is enforced in the database with row level security, not in the
 ui: you can only read a house, its rooms and its people if you live there.
+Map pins are rounded to about 10km by the database itself, layouts have a
+size limit, and nobody can edit a house once it's made.
 Creating, joining and claiming go through `create_house`, `join_house` and
 `claim_room`, which hold the limits (5 houses, 12 people, one room each).
+
+### database tests
+
+`supabase/tests/policies.sql` signs in as a few made-up people and checks
+the rules above actually hold: outsiders see nothing, you can't touch
+someone else's room or curtains, room claiming, the five-house and
+twelve-person limits, the sweep, pins, the live channel. `pnpm test:db` runs
+every migration against a scratch Postgres (with a small stand-in for
+Supabase's `auth` and `realtime` schemas) and then the tests. It needs a
+Postgres to talk to, e.g. `PGHOST=localhost PGUSER=postgres pnpm test:db`.
+CI runs it on every push.
 
 ### spotify (optional)
 

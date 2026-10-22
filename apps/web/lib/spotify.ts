@@ -50,6 +50,3 @@ export function refresh(refreshToken: string) {
 }
 
 /** only same-site paths, so the redirect can't be pointed somewhere else */
-export function safePath(next: string | null) {
-  return next && next.startsWith('/') && !next.startsWith('//') ? next : '/keys'
-}

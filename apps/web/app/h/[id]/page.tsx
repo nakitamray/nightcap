@@ -26,15 +26,21 @@ export default async function HousePage({ params }: { params: Promise<{ id: stri
   if (error) return <HouseError message={error.message} />
   if (!house || !userId) notFound()
 
-  const { data: rooms } = await supabase
+  const { data: rooms, error: roomsError } = await supabase
     .from('memberships')
     .select('user_id, room, curtains')
     .eq('house_id', id)
+  if (roomsError) return <HouseError message={roomsError.message} />
   const ids = (rooms ?? []).map((r) => r.user_id)
-  const { data: people } = await supabase
-    .from('profiles')
-    .select('id, display_name, city, time_zone')
-    .in('id', ids)
+  const [{ data: people, error: peopleError }, { data: presence, error: presenceError }] =
+    await Promise.all([
+      supabase.from('profiles').select('id, display_name, city, time_zone').in('id', ids),
+      supabase.from('presence').select('user_id, seen_at').eq('house_id', id),
+    ])
+  // the street still works without names or lights, so note these and carry on
+  if (peopleError) console.error(`house ${id}: profiles`, peopleError)
+  if (presenceError) console.error(`house ${id}: presence`, presenceError)
+  const seen = Object.fromEntries((presence ?? []).map((p) => [p.user_id, p.seen_at]))
 
   const members: (Member | null)[] = Array.from({ length: 12 }, () => null)
   const roomless: { id: string; name: string }[] = []
@@ -50,7 +56,7 @@ export default async function HousePage({ params }: { params: Promise<{ id: stri
       name: p?.display_name ?? '?',
       city: p?.city ?? '',
       timeZone: p?.time_zone ?? 'UTC',
-      // lights come from who's actually online, filled in on the client
+      // lights come from check-ins, worked out on the client as time passes
       home: false,
       curtains: r.curtains,
     }
@@ -64,6 +70,7 @@ export default async function HousePage({ params }: { params: Promise<{ id: stri
       userId={userId}
       initialRooms={members}
       roomless={roomless}
+      initialSeen={seen}
       marquee={marquee}
       theme={isTheme(house.theme) ? house.theme : 'paris'}
     />
