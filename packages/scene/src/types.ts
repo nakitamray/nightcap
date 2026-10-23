@@ -1,3 +1,4 @@
+import type { Conditions } from './conditions'
 import type { ThemeId } from './themes/types'
 
 export type Curtains = 'open' | 'drawn'
@@ -32,4 +33,6 @@ export interface SceneOptions {
   theme?: ThemeId
   seed?: number
   reducedMotion?: boolean
+  /** time of day and weather; a night street if left out */
+  conditions?: Conditions
 }

@@ -34,7 +34,8 @@ const PARIS_GLOWS: readonly Glow[] = [
 export class Sky extends Container {
   private stars: Star[] = []
   private clouds: Cloud[] = []
-  private moon: { x: number; y: number; r: number }
+  /** where the moon hangs; the sun takes the same spot by day */
+  readonly moon: { x: number; y: number; r: number }
 
   constructor(seed: number, options: SkyOptions = {}) {
     super()

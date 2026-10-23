@@ -36,7 +36,7 @@ export default async function RoomPage({ params }: { params: Promise<{ id: strin
 
   const { data: people } = await supabase
     .from('profiles')
-    .select('id, display_name, city, lat, lon')
+    .select('id, display_name, city, lat, lon, time_zone')
     .in(
       'id',
       (everyone ?? []).map((m) => m.user_id),
@@ -67,6 +67,7 @@ export default async function RoomPage({ params }: { params: Promise<{ id: strin
       initialLayout={readLayout(owner.layout, room)}
       place={{ city: person?.city ?? '', lat: person?.lat ?? null, lon: person?.lon ?? null }}
       housemates={housemates}
+      ownerTimeZone={person?.time_zone ?? undefined}
       spotify={spotify}
       backHref={`/h/${house.id}`}
       backLabel={`back to ${house.name}`}

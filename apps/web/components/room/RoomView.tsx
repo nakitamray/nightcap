@@ -1,10 +1,11 @@
 'use client'
 
-import type { Pin, ThemeId, Thing } from '@nightcap/scene'
+import type { Conditions, Pin, ThemeId, Thing, Weather } from '@nightcap/scene'
 import Link from 'next/link'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { settle, VARIANTS, type Layout } from '@/lib/room'
 import { memoryStore, supabaseStore } from '@/lib/roomStore'
+import { conditionsFor, fetchWeather, localTime, WEATHER_WORDS } from '@/lib/weather'
 import { Panel, type Place } from './Panel'
 import { useRoomScene } from './useRoomScene'
 import styles from './Room.module.css'
@@ -43,6 +44,10 @@ interface Props {
   myRoomHref?: string | null
   /** where to go to make a real house, shown with the sandbox warning */
   signUpHref?: string
+  /** the owner's time zone, so the sky outside is theirs */
+  ownerTimeZone?: string
+  /** a fixed sky instead of the real one, for trying things out */
+  sky?: Conditions
 }
 
 const THINGS: [Thing, string][] = [
@@ -63,6 +68,18 @@ const THINGS: [Thing, string][] = [
 
 const FAKE_TRACK: Track = { title: 'La Vie en rose', artist: 'Édith Piaf', art: null, url: null }
 
+// a clock that ticks once a minute, and isn't there at all on the server
+let minute = 0
+const clock = (tick: () => void) => {
+  const t = setInterval(() => {
+    minute = Date.now()
+    tick()
+  }, 30_000)
+  return () => clearInterval(t)
+}
+const readClock = () => minute || (minute = Date.now())
+const noClock = () => 0
+
 export function RoomView({
   mode,
   houseId,
@@ -78,6 +95,8 @@ export function RoomView({
   backLabel,
   myRoomHref,
   signUpHref = '/signup',
+  ownerTimeZone,
+  sky,
 }: Props) {
   const editable = mode !== 'visit'
   const store = useMemo(
@@ -112,6 +131,37 @@ export function RoomView({
     }
   }, [spotify, mode])
 
+  // the sky outside: their time, their weather
+  const now = useSyncExternalStore(clock, readClock, noClock)
+  const [weather, setWeather] = useState<Weather | null>(null)
+  useEffect(() => {
+    if (sky || place.lat == null || place.lon == null) return
+    const { lat, lon } = place
+    let stop = false
+    const check = () =>
+      fetchWeather(lat, lon).then((w) => {
+        if (!stop) setWeather(w)
+      })
+    check()
+    const t = setInterval(check, 10 * 60_000)
+    return () => {
+      stop = true
+      clearInterval(t)
+    }
+  }, [sky, place])
+  const phase =
+    ownerTimeZone && now ? conditionsFor(ownerTimeZone, null, new Date(now)).phase : null
+  const conditions = useMemo<Conditions | undefined>(
+    () => sky ?? (phase ? { phase, ...(weather ? { weather } : {}) } : undefined),
+    [sky, phase, weather],
+  )
+  const clockLine =
+    ownerTimeZone && now
+      ? [localTime(ownerTimeZone, new Date(now)), weather && WEATHER_WORDS[weather]]
+          .filter(Boolean)
+          .join(' · ')
+      : ''
+
   const pins: Pin[] = useMemo(
     () => [
       ...housemates,
@@ -126,7 +176,7 @@ export function RoomView({
   const pick = useCallback((thing: Thing) => editable && setOpen(thing), [editable])
   const ready = useRoomScene(
     hostRef,
-    { layout, theme, seed: houseId, room, playing: !!track, pins, editable },
+    { layout, theme, seed: houseId, room, playing: !!track, pins, editable, conditions },
     pick,
   )
 
@@ -156,6 +206,7 @@ export function RoomView({
         </Link>
         <span className={styles.title}>
           {owner ? `${owner}’s ${name.replace(/^the /, '')}` : name}
+          {clockLine && <span className={styles.clock}>{clockLine}</span>}
         </span>
         {myRoomHref && (
           <Link className={styles.button} href={myRoomHref}>
