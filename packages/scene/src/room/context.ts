@@ -20,6 +20,7 @@ export type Thing =
   | 'vinyl'
   | 'map'
   | 'pet'
+  | 'notes'
 
 /** a pool of light, for the night-time shading pass (view units) */
 export interface Light {

@@ -138,7 +138,13 @@ export function RoomView({
   )
 
   // visitors can look around, but clicking things doesn't open anything
-  const pick = useCallback((thing: Thing) => editable && setOpen(thing), [editable])
+  const pick = useCallback(
+    (thing: Thing) => {
+      if (thing === 'notes') setPanel('notes')
+      else if (editable) setOpen(thing)
+    },
+    [editable],
+  )
   const ready = useRoomScene(
     hostRef,
     {
@@ -150,6 +156,7 @@ export function RoomView({
       pins,
       editable,
       people: company.guests,
+      notes: ownerId === userId ? company.unread : 0,
     },
     pick,
   )

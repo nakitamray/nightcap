@@ -53,6 +53,7 @@ const TITLES: Record<Thing, string> = {
   vinyl: 'the record',
   map: 'the map',
   pet: 'your pet',
+  notes: 'notes',
 }
 
 export function Panel(props: Props) {
@@ -310,5 +311,9 @@ function Body({
 
     case 'map':
       return <LocationPanel store={store} place={place} onPlace={onPlace} />
+
+    // notes open their own pile, not a panel
+    case 'notes':
+      return null
   }
 }

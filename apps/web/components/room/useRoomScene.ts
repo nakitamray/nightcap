@@ -16,6 +16,7 @@ export function useRoomScene(
     pins: Pin[]
     editable: boolean
     people: Guest[]
+    notes: number
   },
   onPick: (thing: Thing) => void,
 ) {
@@ -63,6 +64,10 @@ export function useRoomScene(
   useEffect(() => {
     if (ready) sceneRef.current?.setPeople(opts.people)
   }, [opts.people, ready])
+
+  useEffect(() => {
+    if (ready) sceneRef.current?.setNotes(opts.notes)
+  }, [opts.notes, ready])
 
   return ready
 }

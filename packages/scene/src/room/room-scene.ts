@@ -32,6 +32,7 @@ import { drawExtra } from './extras'
 import { drawBed, drawBookshelf, drawDesk, drawNightstand, drawRug } from './furniture'
 import { drawGuests } from './guests'
 import { drawLamp } from './lamps'
+import { drawNotes } from './notes'
 import type { Layout } from './layout'
 import { drawPet } from './pets'
 import { planRoom } from './plan'
@@ -53,6 +54,8 @@ export interface RoomOptions {
   editable?: boolean
   /** whoever's in the room right now */
   people?: Guest[]
+  /** unread notes under the door */
+  notes?: number
 }
 
 export interface RoomEvents extends Record<string, unknown> {
@@ -209,6 +212,7 @@ export class RoomScene {
     drawPet(ctx)
     drawDesk(ctx)
     pieces.filter((p) => p.zone.name !== 'back').forEach((p, i) => drawExtra(ctx, p, i + 3))
+    drawNotes(ctx, o.notes ?? 0)
     drawGuests(ctx, o.people ?? [])
     drawFloorThings(ctx)
     drawHangingPlants(ctx)
@@ -395,6 +399,12 @@ export class RoomScene {
       now.every((p, i) => p.id === people[i]!.id && p.avatar === people[i]!.avatar)
     if (same) return
     this.options = { ...this.options, people }
+    this.draw()
+  }
+
+  setNotes(notes: number) {
+    if (notes === (this.options.notes ?? 0)) return
+    this.options = { ...this.options, notes }
     this.draw()
   }
 
