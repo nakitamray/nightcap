@@ -9,6 +9,7 @@ import {
   Texture,
   type PointData,
 } from 'pixi.js'
+import type { Guest } from '../characters/guest'
 import { Emitter } from '../emitter'
 import { PaperFilter } from '../filters/PaperFilter'
 import { loadDisplayFont } from '../fonts'
@@ -29,6 +30,7 @@ import {
 } from './decor'
 import { drawExtra } from './extras'
 import { drawBed, drawBookshelf, drawDesk, drawNightstand, drawRug } from './furniture'
+import { drawGuests } from './guests'
 import { drawLamp } from './lamps'
 import type { Layout } from './layout'
 import { drawPet } from './pets'
@@ -49,6 +51,8 @@ export interface RoomOptions {
   reducedMotion?: boolean
   /** off when you're looking round someone else's room */
   editable?: boolean
+  /** whoever's in the room right now */
+  people?: Guest[]
 }
 
 export interface RoomEvents extends Record<string, unknown> {
@@ -205,6 +209,7 @@ export class RoomScene {
     drawPet(ctx)
     drawDesk(ctx)
     pieces.filter((p) => p.zone.name !== 'back').forEach((p, i) => drawExtra(ctx, p, i + 3))
+    drawGuests(ctx, o.people ?? [])
     drawFloorThings(ctx)
     drawHangingPlants(ctx)
     drawFan(ctx)
@@ -379,6 +384,17 @@ export class RoomScene {
   setPlaying(playing: boolean) {
     if (playing === (this.options.playing ?? false)) return
     this.options = { ...this.options, playing }
+    this.draw()
+  }
+
+  setPeople(people: Guest[]) {
+    const now = this.options.people ?? []
+    // the same people as before (it's polled) shouldn't rebuild the room
+    const same =
+      now.length === people.length &&
+      now.every((p, i) => p.id === people[i]!.id && p.avatar === people[i]!.avatar)
+    if (same) return
+    this.options = { ...this.options, people }
     this.draw()
   }
 

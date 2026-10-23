@@ -3,18 +3,19 @@
 import type { Pin, ThemeId, Thing } from '@nightcap/scene'
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { NoteComposer } from '@/components/notes/NoteComposer'
+import { NotesPanel, type Note } from '@/components/notes/NotesPanel'
+import notesStyles from '@/components/notes/Notes.module.css'
+import { useNowPlaying, type Track } from '@/components/useNowPlaying'
 import { settle, VARIANTS, type Layout } from '@/lib/room'
 import { memoryStore, supabaseStore } from '@/lib/roomStore'
+import type { Seen } from '@/lib/together'
 import { Panel, type Place } from './Panel'
+import { useRoomCompany, type Housemate } from './useRoomCompany'
 import { useRoomScene } from './useRoomScene'
 import styles from './Room.module.css'
 
-export interface Track {
-  title: string
-  artist: string
-  art: string | null
-  url: string | null
-}
+export type { Track }
 
 /**
  * - mine: your own room, saved as you go
@@ -32,9 +33,18 @@ interface Props {
   room: number
   /** whose room it is, for the title; null when it's yours */
   owner: string | null
+  ownerId: string | null
   initialLayout: Layout
   place: Place
-  housemates: Pin[]
+  /** everyone else's pins for the map poster */
+  pins: Pin[]
+  /** everyone in the house, so whoever's in this room can be drawn */
+  housemates: Housemate[]
+  initialSeen?: Record<string, Seen>
+  /** notes under the door, when it's your room */
+  initialNotes?: Note[]
+  /** what whoever lives here is playing, when you're visiting */
+  initialOwnerTrack?: (Track & { at: string }) | null
   spotify: 'off' | 'unlinked' | 'linked' | 'dev'
   /** back out to the street */
   backHref: string
@@ -70,9 +80,14 @@ export function RoomView({
   theme,
   room,
   owner,
+  ownerId,
   initialLayout,
   place: initialPlace,
+  pins: others,
   housemates,
+  initialSeen = {},
+  initialNotes = [],
+  initialOwnerTrack = null,
   spotify,
   backHref,
   backLabel,
@@ -89,44 +104,53 @@ export function RoomView({
   const [open, setOpen] = useState<Thing | null>(null)
   const [saved, setSaved] = useState<'saved' | 'saving' | 'error'>('saved')
   const [place, setPlace] = useState(initialPlace)
-  const [track, setTrack] = useState<Track | null>(null)
+  const [fakeTrack, setFakeTrack] = useState<Track | null>(null)
+  const [panel, setPanel] = useState<'notes' | 'write' | null>(null)
+  const [writeTo, setWriteTo] = useState<{ id: string; name: string } | null>(null)
   // the sandbox warning shows the first time you change something
   const [warned, setWarned] = useState<'no' | 'showing' | 'done'>('no')
   const saveTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   useEffect(() => () => clearTimeout(saveTimer.current), [])
 
-  // what's on the record player
-  useEffect(() => {
-    if (mode !== 'mine' || spotify !== 'linked') return
-    let stop = false
-    async function poll() {
-      const res = await fetch('/api/spotify/now-playing').catch(() => null)
-      const body = res?.ok ? await res.json() : null
-      if (!stop) setTrack(body?.playing ? body.track : null)
-    }
-    poll()
-    const t = setInterval(poll, 20_000)
-    return () => {
-      stop = true
-      clearInterval(t)
-    }
-  }, [spotify, mode])
+  const company = useRoomCompany({
+    live: mode !== 'sandbox',
+    houseId,
+    userId,
+    ownerId,
+    room,
+    housemates,
+    initialSeen,
+    initialNotes,
+    initialOwnerTrack,
+  })
+  // what's on the record player: yours from spotify, theirs from the house
+  const myTrack = useNowPlaying(mode === 'mine' && spotify === 'linked')
+  const track = mode === 'visit' ? company.ownerTrack : mode === 'mine' ? myTrack : fakeTrack
 
   const pins: Pin[] = useMemo(
     () => [
-      ...housemates,
+      ...others,
       ...(place.lat != null && place.lon != null
         ? [{ lat: place.lat, lon: place.lon, name: owner ?? 'you', me: true }]
         : []),
     ],
-    [housemates, place, owner],
+    [others, place, owner],
   )
 
   // visitors can look around, but clicking things doesn't open anything
   const pick = useCallback((thing: Thing) => editable && setOpen(thing), [editable])
   const ready = useRoomScene(
     hostRef,
-    { layout, theme, seed: houseId, room, playing: !!track, pins, editable },
+    {
+      layout,
+      theme,
+      seed: houseId,
+      room,
+      playing: !!track,
+      pins,
+      editable,
+      people: company.guests,
+    },
     pick,
   )
 
@@ -162,6 +186,32 @@ export function RoomView({
             go to my room
           </Link>
         )}
+        {ownerId === userId ? (
+          <button
+            type="button"
+            className={styles.button}
+            data-on={panel === 'notes'}
+            onClick={() => setPanel(panel === 'notes' ? null : 'notes')}
+          >
+            <span className={notesStyles.badge}>
+              notes {company.unread > 0 && <b aria-label="new">{company.unread}</b>}
+            </span>
+          </button>
+        ) : (
+          ownerId &&
+          owner && (
+            <button
+              type="button"
+              className={styles.button}
+              onClick={() => {
+                setWriteTo({ id: ownerId, name: owner })
+                setPanel('write')
+              }}
+            >
+              leave {owner} a note
+            </button>
+          )
+        )}
         <span className={styles.saved} aria-live="polite">
           {saved === 'saving' ? 'saving…' : saved === 'error' ? 'couldn’t save, try again' : ''}
         </span>
@@ -170,7 +220,37 @@ export function RoomView({
       {track && (
         <p className={styles.nowPlaying}>
           ♪ {track.title} · {track.artist}
+          {mode === 'visit' && owner && <> · {owner}&apos;s listening</>}
+          {mode === 'visit' && track.url && (
+            <>
+              {' '}
+              <a href={track.url} target="_blank" rel="noreferrer">
+                play it too
+              </a>
+            </>
+          )}
         </p>
+      )}
+
+      {panel === 'notes' && (
+        <NotesPanel
+          notes={company.notes}
+          onRead={company.markRead}
+          onThrowAway={company.throwAway}
+          onReply={(n) => {
+            setWriteTo({ id: n.from, name: n.fromName })
+            setPanel('write')
+          }}
+          onClose={() => setPanel(null)}
+        />
+      )}
+
+      {panel === 'write' && writeTo && (
+        <NoteComposer
+          to={writeTo.name}
+          onSend={(body) => company.sendNote(writeTo.id, body)}
+          onClose={() => setPanel(null)}
+        />
       )}
 
       {warned === 'showing' && (
@@ -197,7 +277,7 @@ export function RoomView({
           onClose={() => setOpen(null)}
           spotify={mode === 'sandbox' ? 'dev' : spotify}
           track={track}
-          onFakePlay={() => setTrack((t) => (t ? null : FAKE_TRACK))}
+          onFakePlay={() => setFakeTrack((t) => (t ? null : FAKE_TRACK))}
           houseId={houseId}
           store={store}
           place={place}

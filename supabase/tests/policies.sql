@@ -213,6 +213,100 @@ reset role;
 select t.ok((select count(*) from public.houses where created_by = :dee) = 0, 'lonely houses are swept');
 select t.ok(exists (select 1 from public.houses where id = (select house from ids)), 'shared ones stay');
 
+-- characters ----------------------------------------------------------------------
+
+reset role;
+select t.login(:alice);
+select t.ok(t.rows($$update public.profiles set avatar = '{"skin": 3, "top": "hoodie"}'
+  where id = auth.uid()$$) = 1, 'you can save your character');
+select t.fails($$update public.profiles set avatar = jsonb_build_object('junk', repeat('x', 3000))
+  where id = auth.uid()$$, 'characters have a size limit');
+select t.ok(t.rows($$update public.profiles set avatar = '{}'
+  where id = '00000000-0000-0000-0000-00000000000b'$$) = 0, 'you can''t dress up someone else');
+
+-- where you are -------------------------------------------------------------------
+
+reset role;
+select t.login(:bob);
+select public.here((select house from ids), 'room:3');
+select t.ok((select place from public.presence where user_id = auth.uid()) = 'room:3',
+  'presence knows which room you''re in');
+select public.here((select house from ids), 'lounge');
+select t.fails($$select public.here((select house from ids), 'the roof')$$, 'only real places');
+
+-- notes ---------------------------------------------------------------------------
+
+insert into public.notes (house_id, from_user, to_user, body)
+  values ((select house from ids), auth.uid(), :alice, 'pizza at 9?');
+select t.fails($$insert into public.notes (house_id, from_user, to_user, body)
+  values ((select house from ids), '00000000-0000-0000-0000-00000000000a', auth.uid(), 'i owe bob £20')$$,
+  'you can''t write a note as someone else');
+select t.fails($$insert into public.notes (house_id, from_user, to_user, body)
+  values ((select house from ids), auth.uid(), '00000000-0000-0000-0000-00000000000c', 'hi')$$,
+  'notes only go to people who live there');
+select t.fails($$insert into public.notes (house_id, from_user, to_user, body)
+  values ((select house from ids), auth.uid(), '00000000-0000-0000-0000-00000000000a', '   ')$$,
+  'a note has to say something');
+select t.ok((select count(*) from public.notes) = 1, 'you can see notes you sent');
+select t.ok(t.rows($$update public.notes set read_at = now()$$) = 0,
+  'you can''t mark your own note read for them');
+reset role;
+select t.login(:alice);
+select t.ok((select body from public.notes) = 'pizza at 9?', 'the note is under alice''s door');
+select t.fails($$update public.notes set body = 'no pizza'$$, 'nobody can change what a note says');
+select t.ok(t.rows($$update public.notes set read_at = now()$$) = 1, 'you can mark notes read');
+reset role;
+select t.login(:carol);
+select t.ok(not exists (select 1 from public.notes), 'nobody else can read them');
+select t.fails($$insert into public.notes (house_id, from_user, to_user, body)
+  values ((select house from ids), auth.uid(), '00000000-0000-0000-0000-00000000000a', 'hello')$$,
+  'outsiders can''t slip notes in');
+reset role;
+select t.login(:bob);
+insert into public.notes (house_id, from_user, to_user, body)
+  select (select house from ids), auth.uid(), :alice, 'note ' || n from generate_series(2, 30) n;
+select t.fails($$insert into public.notes (house_id, from_user, to_user, body)
+  values ((select house from ids), auth.uid(), '00000000-0000-0000-0000-00000000000a', 'one more')$$,
+  'thirty notes a day each');
+
+-- now playing ---------------------------------------------------------------------
+
+insert into public.now_playing (user_id, title, artist, url)
+  values (auth.uid(), 'Moon River', 'Audrey Hepburn', 'https://open.spotify.com/track/x');
+select t.fails($$insert into public.now_playing (user_id, title, artist)
+  values ('00000000-0000-0000-0000-00000000000a', 'Never Gonna Give You Up', 'Rick Astley')$$,
+  'you can''t say what someone else is playing');
+select t.fails($$update public.now_playing set url = 'https://evil.example/x' where user_id = auth.uid()$$,
+  'links only go to spotify');
+reset role;
+select t.login(:alice);
+select t.ok((select title from public.now_playing) = 'Moon River', 'housemates see what you''re playing');
+reset role;
+select t.login(:carol);
+select t.ok(not exists (select 1 from public.now_playing), 'nobody else does');
+
+-- keeping a house -----------------------------------------------------------------
+
+reset role;
+select t.login(:dee);
+create temp table lonely as select public.create_house('waiting', 'venice') as house;
+select public.keep_house((select house from lonely));
+select public.keep_house((select house from lonely));
+select public.keep_house((select house from lonely));
+select t.fails($$select public.keep_house((select house from lonely))$$, 'a house can wait three extra weeks');
+reset role;
+update public.houses set created_at = now() - interval '8 days' where id = (select house from lonely);
+select t.login(:dee);
+select public.sweep_lonely_houses();
+reset role;
+select t.ok(exists (select 1 from public.houses where id = (select house from lonely)),
+  'a kept house isn''t swept');
+select t.login(:carol);
+select t.fails($$select public.keep_house((select house from lonely))$$, 'only people who live there');
+reset role;
+select t.login(:alice);
+select t.fails($$select public.keep_house((select house from ids))$$, 'a shared house doesn''t need it');
+
 -- signed out ----------------------------------------------------------------------
 
 select t.login(null);

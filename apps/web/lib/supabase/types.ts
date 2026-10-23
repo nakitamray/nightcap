@@ -5,6 +5,8 @@ export interface HouseRow {
   name: string
   theme: Theme
   marquee: string[]
+  created_at: string
+  keep_until: string | null
 }
 
 export interface RoomRow {

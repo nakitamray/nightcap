@@ -6,6 +6,10 @@ import type { Resident, ThemeId } from '@nightcap/scene'
 export interface Member extends Resident {
   city: string
   timeZone: string
+  /** where in the house they are, when they're home ("in the living room") */
+  where?: string | null
+  /** what they're listening to, "title · artist" */
+  playing?: string | null
 }
 
 const m = (

@@ -41,11 +41,12 @@ export function WindowCard({ member, bounds }: Props) {
         {localTime(member.timeZone, now)}, {partOfDay(member.timeZone, now)}
       </p>
       <p className={styles.status} data-home={member.home}>
-        {member.home ? 'home' : 'out'}
+        {member.home ? (member.where ?? 'home') : 'out'}
         {member.curtains === 'drawn' && (
           <span className={styles.curtains}> &middot; curtains drawn</span>
         )}
       </p>
+      {member.playing && <p className={styles.meta}>♪ {member.playing}</p>}
     </div>
   )
 }

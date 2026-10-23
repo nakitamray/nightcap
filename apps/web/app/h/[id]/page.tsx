@@ -5,6 +5,7 @@ import { WindowWallBackground } from '@/components/WindowWallBackground'
 import styles from '@/components/NightCard.module.css'
 import { HouseView } from '@/components/HouseView'
 import type { Member } from '@/lib/house'
+import { spotifyConfigured } from '@/lib/spotify'
 import { currentUserId, supabaseServer } from '@/lib/supabase/server'
 import type { HouseRow } from '@/lib/supabase/types'
 import { isTheme } from '@/lib/themes'
@@ -19,7 +20,7 @@ export default async function HousePage({ params }: { params: Promise<{ id: stri
   // row level security means this comes back empty unless you live here
   const { data: house, error } = await supabase
     .from('houses')
-    .select('id, name, theme, marquee')
+    .select('id, name, theme, marquee, created_at, keep_until')
     .eq('id', id)
     .maybeSingle<HouseRow>()
   // a real error (permissions, a missing table) shouldn't pretend to be a 404
@@ -32,20 +33,46 @@ export default async function HousePage({ params }: { params: Promise<{ id: stri
     .eq('house_id', id)
   if (roomsError) return <HouseError message={roomsError.message} />
   const ids = (rooms ?? []).map((r) => r.user_id)
-  const [{ data: people, error: peopleError }, { data: presence, error: presenceError }] =
-    await Promise.all([
-      supabase.from('profiles').select('id, display_name, city, time_zone').in('id', ids),
-      supabase.from('presence').select('user_id, seen_at').eq('house_id', id),
-    ])
-  // the street still works without names or lights, so note these and carry on
-  if (peopleError) console.error(`house ${id}: profiles`, peopleError)
-  if (presenceError) console.error(`house ${id}: presence`, presenceError)
-  const seen = Object.fromEntries((presence ?? []).map((p) => [p.user_id, p.seen_at]))
+  const [people, presence, playing, notes, spotify] = await Promise.all([
+    supabase.from('profiles').select('id, display_name, city, time_zone').in('id', ids),
+    supabase.from('presence').select('user_id, seen_at, place').eq('house_id', id),
+    supabase.from('now_playing').select('user_id, title, artist, updated_at').in('user_id', ids),
+    supabase
+      .from('notes')
+      .select('id', { count: 'exact', head: true })
+      .eq('house_id', id)
+      .eq('to_user', userId)
+      .is('read_at', null),
+    spotifyConfigured()
+      ? supabase.from('spotify_links').select('user_id').eq('user_id', userId).maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+  ])
+  // the street still works without names, lights or music, so note these and carry on
+  for (const [what, r] of Object.entries({ people, presence, playing, notes, spotify }))
+    if (r.error) console.error(`house ${id}: ${what}`, r.error)
+  const seen = Object.fromEntries(
+    (presence.data ?? []).map((p) => [p.user_id, { at: p.seen_at, place: p.place }]),
+  )
+  const songs = Object.fromEntries(
+    (playing.data ?? []).map((p) => [
+      p.user_id,
+      { title: p.title, artist: p.artist, at: p.updated_at },
+    ]),
+  )
+  const waiting = (rooms ?? []).length < 2
+  const goesAt = waiting
+    ? new Date(
+        Math.max(
+          Date.parse(house.created_at) + 7 * 24 * 3600_000,
+          house.keep_until ? Date.parse(house.keep_until) : 0,
+        ),
+      ).toISOString()
+    : null
 
   const members: (Member | null)[] = Array.from({ length: 12 }, () => null)
   const roomless: { id: string; name: string }[] = []
   for (const r of rooms ?? []) {
-    const p = people?.find((p) => p.id === r.user_id)
+    const p = people.data?.find((p) => p.id === r.user_id)
     // people who haven't picked a room yet don't light up a window
     if (r.room == null) {
       roomless.push({ id: r.user_id, name: p?.display_name ?? '?' })
@@ -71,6 +98,10 @@ export default async function HousePage({ params }: { params: Promise<{ id: stri
       initialRooms={members}
       roomless={roomless}
       initialSeen={seen}
+      initialPlaying={songs}
+      unreadNotes={notes.count ?? 0}
+      spotify={!!spotify.data}
+      goesAt={goesAt}
       marquee={marquee}
       theme={isTheme(house.theme) ? house.theme : 'paris'}
     />

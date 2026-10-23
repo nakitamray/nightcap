@@ -1,0 +1,167 @@
+.panel {
+  position: absolute;
+  top: 64px;
+  right: 16px;
+  width: 300px;
+  max-height: calc(100% - 140px);
+  overflow-y: auto;
+  padding: 16px 18px;
+  background: rgba(16, 10, 8, 0.94);
+  border: 1px solid var(--amber);
+  border-radius: 2px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.head h2 {
+  margin: 0 0 12px;
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: normal;
+  color: var(--amber);
+}
+
+/* a folded slip of paper, slightly crooked, like it came under the door */
+.note {
+  position: relative;
+  margin: 0 0 14px;
+  padding: 12px 14px 10px;
+  color: #2a1a10;
+  text-transform: none;
+  background: linear-gradient(180deg, #f6ead0 0%, #f2e2bd 55%, #e8d4a8 100%);
+  border-radius: 1px;
+  box-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.25),
+    0 6px 14px rgba(0, 0, 0, 0.45);
+  transform: rotate(-0.8deg);
+}
+
+.note:nth-child(even) {
+  transform: rotate(0.7deg);
+}
+
+/* the crease from being folded in half */
+.note::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  border-top: 1px solid rgba(90, 52, 32, 0.12);
+}
+
+.note[data-new='true'] {
+  box-shadow:
+    0 0 0 1px var(--amber),
+    0 6px 14px rgba(0, 0, 0, 0.45);
+}
+
+.body,
+.from,
+.actions button,
+.paper,
+.compose p {
+  text-transform: none;
+}
+
+.body {
+  margin: 0 0 8px;
+  font-size: 15px;
+  line-height: 1.35;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.from {
+  margin: 0;
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.actions button {
+  padding: 0;
+  font: inherit;
+  font-size: 11px;
+  color: #8e2416;
+  background: none;
+  border: 0;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.compose {
+  position: absolute;
+  left: 50%;
+  bottom: 90px;
+  transform: translateX(-50%);
+  width: min(360px, calc(100% - 32px));
+  padding: 16px 18px;
+  background: rgba(16, 10, 8, 0.94);
+  border: 1px solid var(--amber);
+  border-radius: 2px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+}
+
+.compose p {
+  margin: 0 0 8px;
+  font-size: 13px;
+  text-transform: none;
+}
+
+.paper {
+  width: 100%;
+  min-height: 110px;
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.35;
+  color: #2a1a10;
+  text-transform: none;
+  background: #f2e2bd;
+  border: 0;
+  border-radius: 1px;
+  resize: vertical;
+}
+
+.paper:focus {
+  outline: 2px solid var(--amber);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 11px;
+  opacity: 0.9;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.badge b {
+  display: inline-block;
+  min-width: 18px;
+  padding: 0 5px;
+  font-size: 11px;
+  line-height: 18px;
+  text-align: center;
+  color: #1a0e08;
+  background: var(--amber);
+  border-radius: 9px;
+}

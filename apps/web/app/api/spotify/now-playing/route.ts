@@ -17,6 +17,31 @@ interface Playing {
   } | null
 }
 
+interface Track {
+  title: string
+  artist: string
+  art: string | null
+  url: string | null
+}
+
+type Server = Awaited<ReturnType<typeof supabaseServer>>
+
+// whatever's on goes into now_playing so housemates can see it; nothing on
+// clears it. Only fields that pass the table's checks are kept.
+async function share(supabase: Server, userId: string, track: Track | null) {
+  const { error } = track
+    ? await supabase.from('now_playing').upsert({
+        user_id: userId,
+        title: track.title.slice(0, 300),
+        artist: track.artist.slice(0, 300),
+        art: track.art?.startsWith('https://') ? track.art.slice(0, 500) : null,
+        url: track.url?.startsWith('https://open.spotify.com/') ? track.url.slice(0, 500) : null,
+        updated_at: new Date().toISOString(),
+      })
+    : await supabase.from('now_playing').delete().eq('user_id', userId)
+  if (error) console.error('sharing now playing', error)
+}
+
 export async function GET() {
   if (!spotifyConfigured()) return NextResponse.json(NOTHING)
   const userId = await currentUserId()
@@ -55,21 +80,22 @@ export async function GET() {
     },
   )
   // 204 means nothing's on
-  if (res.status !== 200) return NextResponse.json(NOTHING)
-  const body: Playing = await res.json()
-  if (!body.is_playing || !body.item) return NextResponse.json(NOTHING)
+  const body: Playing | null = res.status === 200 ? await res.json() : null
+  if (!body?.is_playing || !body.item) {
+    await share(supabase, userId, null)
+    return NextResponse.json(NOTHING)
+  }
 
   const item = body.item
   const images = item.album?.images ?? item.images ?? []
   const small =
     [...images].sort((a, b) => a.width - b.width).find((i) => i.width >= 64) ?? images[0]
-  return NextResponse.json({
-    playing: true,
-    track: {
-      title: item.name,
-      artist: item.artists?.map((a) => a.name).join(', ') ?? item.show?.name ?? '',
-      art: small?.url ?? null,
-      url: item.external_urls?.spotify ?? null,
-    },
-  })
+  const track: Track = {
+    title: item.name,
+    artist: item.artists?.map((a) => a.name).join(', ') ?? item.show?.name ?? '',
+    art: small?.url ?? null,
+    url: item.external_urls?.spotify ?? null,
+  }
+  await share(supabase, userId, track)
+  return NextResponse.json({ playing: true, track })
 }

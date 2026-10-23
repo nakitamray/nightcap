@@ -1,38 +1,27 @@
 'use client'
 
-import { useState, type ReactNode } from 'react'
 import type { Thing } from '@nightcap/scene'
+import type { Track } from '@/components/useNowPlaying'
 import {
-  ADDABLE,
   BED_NAMES,
   BED_STYLES,
-  BREED_NAMES,
-  canAdd,
-  CAT_BREEDS,
   deskCanGoRight,
-  DOG_BREEDS,
-  FURNITURE_NAMES,
   LAMP_NAMES,
   LAMP_STYLES,
-  MAX_FURNITURE,
-  MAX_POSTERS,
-  NIGHTSTAND_NAMES,
-  NIGHTSTAND_STYLES,
   planRoom,
-  POSTER_COUNT,
-  POSTER_NAMES,
   SWATCHES,
   type Layout,
 } from '@/lib/room'
-import type { Found, RoomStore } from '@/lib/roomStore'
-import type { Track } from './RoomView'
+import type { RoomStore } from '@/lib/roomStore'
+import { Choice, NightstandChoice, Row, Swatches } from './panel/controls'
+import { FurniturePanel } from './panel/FurniturePanel'
+import { LocationPanel, type Place } from './panel/LocationPanel'
+import { PetPanel } from './panel/PetPanel'
+import { PostersPanel } from './panel/PostersPanel'
+import { RecordPanel, type Spotify } from './panel/RecordPanel'
 import styles from './Room.module.css'
 
-export interface Place {
-  city: string
-  lat: number | null
-  lon: number | null
-}
+export type { Place }
 
 interface Props {
   thing: Thing
@@ -41,7 +30,7 @@ interface Props {
   room: number
   onChange: (layout: Layout) => void
   onClose: () => void
-  spotify: 'off' | 'unlinked' | 'linked' | 'dev'
+  spotify: Spotify
   track: Track | null
   onFakePlay?: () => void
   houseId: string
@@ -205,78 +194,8 @@ function Body({
         </>
       )
 
-    case 'posters': {
-      const spots = plan.posters.length
-      const hung = layout.posters.slice(0, spots)
-      return (
-        <>
-          {hung.map((design, i) => (
-            <Row key={i} label={`${i + 1}. ${POSTER_NAMES[design]}`}>
-              <div className={styles.options}>
-                <button
-                  type="button"
-                  className={styles.button}
-                  onClick={() =>
-                    set(
-                      'posters',
-                      layout.posters.map((d, j) =>
-                        j === i ? (d + POSTER_COUNT - 1) % POSTER_COUNT : d,
-                      ),
-                    )
-                  }
-                >
-                  ‹
-                </button>
-                <button
-                  type="button"
-                  className={styles.button}
-                  onClick={() =>
-                    set(
-                      'posters',
-                      layout.posters.map((d, j) => (j === i ? (d + 1) % POSTER_COUNT : d)),
-                    )
-                  }
-                >
-                  ›
-                </button>
-                <button
-                  type="button"
-                  className={styles.button}
-                  onClick={() =>
-                    set(
-                      'posters',
-                      layout.posters.filter((_, j) => j !== i),
-                    )
-                  }
-                >
-                  take down
-                </button>
-              </div>
-            </Row>
-          ))}
-          {hung.length < Math.min(spots, MAX_POSTERS) ? (
-            <button
-              type="button"
-              className={styles.button}
-              onClick={() => {
-                const unused =
-                  Array.from({ length: POSTER_COUNT }, (_, d) => d).find(
-                    (d) => !hung.includes(d),
-                  ) ?? 0
-                set('posters', [...hung, unused])
-              }}
-            >
-              put up another
-            </button>
-          ) : null}
-          <p className={styles.hint}>
-            {spots - hung.length > 0
-              ? `room on the walls for ${spots - hung.length} more.`
-              : 'the walls are full. take one down, or move some furniture to free up wall.'}
-          </p>
-        </>
-      )
-    }
+    case 'posters':
+      return <PostersPanel layout={layout} plan={plan} set={set} />
 
     case 'nightstand':
       return (
@@ -285,103 +204,11 @@ function Body({
         </Row>
       )
 
-    case 'furniture': {
-      const full = layout.furniture.length >= MAX_FURNITURE
-      return (
-        <>
-          {layout.furniture.length > 0 && (
-            <Row label="yours">
-              <div className={styles.options}>
-                {layout.furniture.map((kind, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    className={styles.button}
-                    aria-label={`take out the ${FURNITURE_NAMES[kind]}`}
-                    onClick={() =>
-                      set(
-                        'furniture',
-                        layout.furniture.filter((_, j) => j !== i),
-                      )
-                    }
-                  >
-                    {FURNITURE_NAMES[kind]} ×
-                  </button>
-                ))}
-              </div>
-            </Row>
-          )}
-          <Row label="bring in">
-            <div className={styles.options}>
-              {ADDABLE.map((kind) => (
-                <button
-                  key={kind}
-                  type="button"
-                  className={styles.button}
-                  disabled={full || !canAdd(plan, kind)}
-                  onClick={() => set('furniture', [...layout.furniture, kind])}
-                >
-                  {FURNITURE_NAMES[kind]}
-                </button>
-              ))}
-            </div>
-          </Row>
-          <p className={styles.hint}>
-            {full
-              ? 'that’s plenty. take something out to make room.'
-              : plan.free.length === 0
-                ? 'no floor left. take something out first.'
-                : 'your things go in first, so they might nudge out something the room came with.'}
-          </p>
-        </>
-      )
-    }
+    case 'furniture':
+      return <FurniturePanel layout={layout} plan={plan} set={set} />
 
-    case 'pet': {
-      const pet = layout.pet
-      return (
-        <>
-          <Row label="who lives here">
-            <Choice
-              value={pet.kind}
-              options={[
-                ['none', 'nobody'],
-                ['cat', 'a cat'],
-                ['dog', 'a dog'],
-              ]}
-              onPick={(kind) =>
-                set(
-                  'pet',
-                  kind === 'cat'
-                    ? { kind, breed: 'black' }
-                    : kind === 'dog'
-                      ? { kind, breed: 'golden' }
-                      : { kind },
-                )
-              }
-            />
-          </Row>
-          {pet.kind === 'cat' && (
-            <Row label="coat">
-              <Choice
-                value={pet.breed}
-                options={CAT_BREEDS.map((b) => [b, BREED_NAMES[b] ?? b])}
-                onPick={(breed) => set('pet', { kind: 'cat', breed })}
-              />
-            </Row>
-          )}
-          {pet.kind === 'dog' && (
-            <Row label="breed">
-              <Choice
-                value={pet.breed}
-                options={DOG_BREEDS.map((b) => [b, BREED_NAMES[b] ?? b])}
-                onPick={(breed) => set('pet', { kind: 'dog', breed })}
-              />
-            </Row>
-          )}
-        </>
-      )
-    }
+    case 'pet':
+      return <PetPanel layout={layout} plan={plan} set={set} />
 
     case 'lamp':
       return (
@@ -477,252 +304,11 @@ function Body({
       )
 
     case 'vinyl':
-      return <Record spotify={spotify} track={track} houseId={houseId} onFakePlay={onFakePlay} />
+      return (
+        <RecordPanel spotify={spotify} track={track} houseId={houseId} onFakePlay={onFakePlay} />
+      )
 
     case 'map':
-      return <Location store={store} place={place} onPlace={onPlace} />
+      return <LocationPanel store={store} place={place} onPlace={onPlace} />
   }
-}
-
-function NightstandChoice({
-  layout,
-  set,
-}: {
-  layout: Layout
-  set: (key: 'nightstand', value: Layout['nightstand']) => void
-}) {
-  return (
-    <Choice
-      value={layout.nightstand}
-      options={NIGHTSTAND_STYLES.map((n) => [n, NIGHTSTAND_NAMES[n] ?? n])}
-      onPick={(n) => set('nightstand', n)}
-    />
-  )
-}
-
-function Row({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className={styles.row}>
-      <span className={styles.label}>{label}</span>
-      {children}
-    </div>
-  )
-}
-
-function Choice<T extends string>({
-  value,
-  options,
-  onPick,
-  disabled = [],
-}: {
-  value: T
-  options: [T, string][]
-  onPick: (v: T) => void
-  disabled?: T[]
-}) {
-  return (
-    <div className={styles.options}>
-      {options.map(([v, label]) => (
-        <button
-          key={v}
-          type="button"
-          className={styles.button}
-          data-on={v === value}
-          disabled={disabled.includes(v)}
-          onClick={() => onPick(v)}
-        >
-          {label}
-        </button>
-      ))}
-    </div>
-  )
-}
-
-function Swatches({
-  colours,
-  value,
-  onPick,
-}: {
-  colours: string[]
-  value: string
-  onPick: (c: string) => void
-}) {
-  return (
-    <div className={styles.options}>
-      {colours.map((c) => (
-        <button
-          key={c}
-          type="button"
-          className={styles.swatch}
-          style={{ background: c }}
-          data-on={c === value}
-          onClick={() => onPick(c)}
-          aria-label={c}
-        />
-      ))}
-    </div>
-  )
-}
-
-function Record({
-  spotify,
-  track,
-  houseId,
-  onFakePlay,
-}: {
-  spotify: Props['spotify']
-  track: Track | null
-  houseId: string
-  onFakePlay?: () => void
-}) {
-  if (spotify === 'dev') {
-    return (
-      <>
-        <p className={styles.hint}>
-          dev mode: no spotify here, but you can see what it looks like.
-        </p>
-        <button type="button" className={styles.button} onClick={onFakePlay}>
-          {track ? 'stop the record' : 'pretend something’s playing'}
-        </button>
-      </>
-    )
-  }
-  if (spotify === 'off') {
-    return <p className={styles.hint}>spotify isn&apos;t hooked up on this site yet.</p>
-  }
-  if (spotify === 'unlinked') {
-    return (
-      <>
-        <p className={styles.hint}>
-          connect spotify and the record lights up when you&apos;re listening. everyone in the house
-          can see what&apos;s on.
-        </p>
-        <p>
-          <a className={styles.button} href={`/api/spotify/login?next=/h/${houseId}/room`}>
-            connect spotify
-          </a>
-        </p>
-      </>
-    )
-  }
-  return (
-    <>
-      {track ? (
-        <div className={styles.track}>
-          {/* album art comes straight off spotify's cdn, tiny already */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          {track.art && <img src={track.art} alt="" />}
-          <div>
-            <p>{track.title}</p>
-            <p className={styles.hint}>{track.artist}</p>
-            {track.url && (
-              <a className={styles.hint} href={track.url} target="_blank" rel="noreferrer">
-                open in spotify
-              </a>
-            )}
-          </div>
-        </div>
-      ) : (
-        <p className={styles.hint}>nothing playing right now.</p>
-      )}
-      <form
-        action="/api/spotify/disconnect"
-        method="post"
-        className={styles.row}
-        style={{ marginTop: 14 }}
-      >
-        <input type="hidden" name="next" value={`/h/${houseId}/room`} />
-        <button type="submit" className={styles.button}>
-          disconnect
-        </button>
-      </form>
-    </>
-  )
-}
-
-function Location({
-  store,
-  place,
-  onPlace,
-}: {
-  store: RoomStore
-  place: Place
-  onPlace: (p: Place) => void
-}) {
-  const [typed, setTyped] = useState('')
-  const [status, setStatus] = useState('')
-
-  async function save(found: Found) {
-    const zone = found.zone ?? Intl.DateTimeFormat().resolvedOptions().timeZone
-    if (!(await store.savePlace({ ...found, zone })))
-      return setStatus('couldn’t save that, try again')
-    onPlace({ city: found.city, lat: found.lat, lon: found.lon })
-    setStatus('')
-  }
-
-  function here() {
-    if (!navigator.geolocation) return setStatus('your browser won’t share a location')
-    setStatus('finding you…')
-    navigator.geolocation.getCurrentPosition(
-      async ({ coords }) => {
-        // only the town gets saved, rounded off, never the exact spot
-        const lat = Math.round(coords.latitude * 10) / 10
-        const lon = Math.round(coords.longitude * 10) / 10
-        const res = await fetch(
-          `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`,
-        ).catch(() => null)
-        const body = res?.ok ? await res.json() : {}
-        await save({
-          city: body.city || body.locality || body.principalSubdivision || 'somewhere',
-          lat,
-          lon,
-        })
-      },
-      () => setStatus('no luck. type your city instead?'),
-      { timeout: 10_000 },
-    )
-  }
-
-  async function search(e: React.FormEvent) {
-    e.preventDefault()
-    if (!typed.trim()) return
-    setStatus('looking…')
-    const res = await fetch(
-      `https://geocoding-api.open-meteo.com/v1/search?count=1&name=${encodeURIComponent(typed.trim())}`,
-    ).catch(() => null)
-    const hit = res?.ok ? (await res.json()).results?.[0] : null
-    if (!hit) return setStatus('couldn’t find that one')
-    await save({
-      city: hit.name,
-      lat: Math.round(hit.latitude * 10) / 10,
-      lon: Math.round(hit.longitude * 10) / 10,
-      zone: hit.timezone,
-    })
-    setTyped('')
-  }
-
-  return (
-    <>
-      <p className={styles.hint}>
-        {place.city
-          ? `you’re pinned in ${place.city}.`
-          : 'put yourself on the map so the house knows where you are.'}
-      </p>
-      <div className={styles.row} style={{ marginTop: 12 }}>
-        <button type="button" className={styles.button} onClick={here}>
-          use where I am
-        </button>
-      </div>
-      <form onSubmit={search} className={styles.row}>
-        <span className={styles.label}>or type a city</span>
-        <input
-          className={styles.input}
-          value={typed}
-          onChange={(e) => setTyped(e.target.value)}
-          placeholder="Lisbon"
-        />
-      </form>
-      {status && <p className={styles.hint}>{status}</p>}
-    </>
-  )
 }

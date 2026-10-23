@@ -118,3 +118,14 @@
   gap: 10px;
   margin-top: 12px;
 }
+
+/* a link-looking button inside a line of text */
+.inline {
+  padding: 0;
+  font: inherit;
+  color: var(--amber);
+  background: none;
+  border: 0;
+  text-decoration: underline;
+  cursor: pointer;
+}

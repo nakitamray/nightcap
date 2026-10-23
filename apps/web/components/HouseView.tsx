@@ -4,14 +4,19 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Member } from '@/lib/house'
-import { BEAT_MS, isHome } from '@/lib/presence'
+import { isHome } from '@/lib/presence'
+import { stillPlaying, whereabouts, type Seen } from '@/lib/together'
 import type { Theme } from '@/lib/themes'
 import { supabaseBrowser } from '@/lib/supabase/browser'
 import { ClaimCard } from './ClaimCard'
 import { InviteButton } from './InviteButton'
 import styles from './HouseView.module.css'
 import streetStyles from './Street.module.css'
+import { useCheckIn } from './useCheckIn'
+import { useHouseChannel } from './useHouseChannel'
+import { useNowPlaying } from './useNowPlaying'
 import { useStreetScene } from './useStreetScene'
+import notesStyles from './notes/Notes.module.css'
 import { WindowCard } from './WindowCard'
 
 interface Props {
@@ -21,8 +26,16 @@ interface Props {
   initialRooms: (Member | null)[]
   /** people who live here but haven't picked a window yet */
   roomless: { id: string; name: string }[]
-  /** when each person last had the house open, by user id */
-  initialSeen: Record<string, string>
+  /** when each person last had the house open, and where in it, by user id */
+  initialSeen: Record<string, Seen>
+  /** what each person's playing, by user id */
+  initialPlaying: Record<string, { title: string; artist: string; at: string }>
+  /** notes under your door you haven't read */
+  unreadNotes: number
+  /** whether you've hooked up spotify, so the street can share what you're playing */
+  spotify: boolean
+  /** a house still waiting for a friend goes away at this point */
+  goesAt: string | null
   marquee: string[]
   theme: Theme
 }
@@ -34,6 +47,10 @@ export function HouseView({
   initialRooms,
   roomless,
   initialSeen,
+  initialPlaying,
+  unreadNotes,
+  spotify,
+  goesAt: initialGoesAt,
   marquee,
   theme,
 }: Props) {
@@ -42,15 +59,27 @@ export function HouseView({
   const hostRef = useRef<HTMLDivElement>(null)
   const [members, setMembers] = useState(initialRooms)
   const [seen, setSeen] = useState(initialSeen)
+  const [playing, setPlaying] = useState(initialPlaying)
+  const [unread, setUnread] = useState(unreadNotes)
+  const [goesAt, setGoesAt] = useState(initialGoesAt)
   const [now, setNow] = useState(() => Date.now())
   const [problem, setProblem] = useState('')
 
   // a window's light is on while that person has the house open (see presence.ts)
-  const rooms = useMemo(
-    () =>
-      members.map((m) => (m ? { ...m, home: m.id === userId || isHome(seen[m.id], now) } : null)),
-    [members, seen, now, userId],
-  )
+  const rooms = useMemo(() => {
+    const names = members.map((m) => m?.name ?? null)
+    return members.map((m, i): Member | null => {
+      if (!m) return null
+      const home = m.id === userId || isHome(seen[m.id]?.at, now)
+      const song = playing[m.id]
+      return {
+        ...m,
+        home,
+        where: home ? whereabouts(m.id === userId ? 'street' : seen[m.id]?.place, i, names) : null,
+        playing: song && stillPlaying(song.at, now) ? `${song.title} · ${song.artist}` : null,
+      }
+    })
+  }, [members, seen, playing, now, userId])
 
   const myRoom = members.findIndex((m) => m?.id === userId)
 
@@ -100,66 +129,38 @@ export function HouseView({
 
   const { hover, ready } = useStreetScene(hostRef, rooms, marquee, theme, goInside)
 
-  // check in while the house is on screen, and once more whenever it comes back
+  // you're out front looking at the house; lights go out as check-ins get old
+  useCheckIn(supabase, houseId, 'street')
   useEffect(() => {
-    async function beat() {
-      if (document.visibilityState !== 'visible') return
-      const { error } = await supabase.rpc('here', { h: houseId })
-      if (error) console.error('checking in', error)
-    }
-    beat()
-    const t = setInterval(beat, BEAT_MS)
-    document.addEventListener('visibilitychange', beat)
-    // lights go out on their own as check-ins get old
     const tick = setInterval(() => setNow(Date.now()), 20_000)
-    return () => {
-      clearInterval(t)
-      clearInterval(tick)
-      document.removeEventListener('visibilitychange', beat)
-    }
-  }, [supabase, houseId])
+    return () => clearInterval(tick)
+  }, [])
+  // and if you're listening to something, the house can see it from here too
+  useNowPlaying(spotify)
 
-  // lights and curtains arrive as database changes, on a channel only people
-  // who live here can join; realtime checks each row against its own rules
-  useEffect(() => {
-    let channel: ReturnType<typeof supabase.channel> | null = null
-    let stopped = false
-    supabase.realtime.setAuth().then(() => {
-      if (stopped) return
-      channel = supabase
-        .channel(`house:${houseId}`, { config: { private: true } })
-        .on(
-          'postgres_changes',
-          { event: '*', schema: 'public', table: 'presence', filter: `house_id=eq.${houseId}` },
-          ({ new: row }) => {
-            const r = row as { user_id?: string; seen_at?: string }
-            if (r.user_id && r.seen_at) setSeen((prev) => ({ ...prev, [r.user_id!]: r.seen_at! }))
-          },
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'memberships',
-            filter: `house_id=eq.${houseId}`,
-          },
-          ({ new: row }) => {
-            const r = row as { user_id: string; curtains: Member['curtains'] }
-            setMembers((prev) =>
-              prev.map((m) => (m && m.id === r.user_id ? { ...m, curtains: r.curtains } : m)),
-            )
-          },
-        )
-        .subscribe((status, err) => {
-          if (err) console.error('house channel', status, err)
-        })
-    })
-    return () => {
-      stopped = true
-      if (channel) supabase.removeChannel(channel)
-    }
-  }, [supabase, houseId])
+  useHouseChannel(supabase, houseId, {
+    onSeen: (id, s) => setSeen((prev) => ({ ...prev, [id]: s })),
+    onCurtains: (id, curtains) =>
+      setMembers((prev) => prev.map((m) => (m && m.id === id ? { ...m, curtains } : m))),
+    onNote: (note, event) => {
+      if (note.to_user !== userId) return
+      if (event === 'INSERT') setUnread((n) => n + 1)
+      else if (event === 'UPDATE' && note.read_at) setUnread((n) => Math.max(0, n - 1))
+    },
+    onPlaying: (id, row) =>
+      setPlaying((prev) => {
+        const next = { ...prev }
+        if (row) next[id] = { title: row.title, artist: row.artist, at: row.updated_at }
+        else delete next[id]
+        return next
+      }),
+  })
+
+  async function keepHouse() {
+    const { data, error } = await supabase.rpc('keep_house', { h: houseId })
+    if (error) return setProblem(error.message)
+    setGoesAt(data as string)
+  }
 
   // first visit: pick up your time zone from the browser so friends see your local time
   useEffect(() => {
@@ -197,7 +198,12 @@ export function HouseView({
 
       {everyone < 2 && (
         <p className={styles.banner} data-ready={ready}>
-          just you in here so far. this house only sticks around once a friend moves in
+          just you in here so far. a house sticks around once a friend moves in
+          {goesAt && <> · until then it&apos;s here till {new Date(goesAt).toLocaleDateString()}</>}
+          {' · '}
+          <button type="button" className={styles.inline} onClick={keepHouse}>
+            give it another week
+          </button>
         </p>
       )}
 
@@ -221,10 +227,19 @@ export function HouseView({
           keyring
         </Link>
         <span className={styles.name}>{houseName}</span>
+        <Link className={styles.button} href={`/h/${houseId}/lounge`}>
+          living room
+        </Link>
         {me && (
           <>
             <Link className={styles.button} href={`/h/${houseId}/room/${myRoom}`}>
-              go to my room
+              {unread > 0 ? (
+                <span className={notesStyles.badge}>
+                  go to my room <b aria-label={`${unread} new notes`}>{unread}</b>
+                </span>
+              ) : (
+                'go to my room'
+              )}
             </Link>
             <button type="button" className={styles.button} onClick={toggleCurtains}>
               {me.curtains === 'open' ? 'draw my curtains' : 'open my curtains'}
