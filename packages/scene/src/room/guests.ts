@@ -7,8 +7,8 @@ import type { P3 } from './projection'
 // natural places to be, in the order people fill them: perched on the bed,
 // cross-legged on the rug, standing about.
 
-/** characters are drawn about 300 units tall; a person here is about 225 */
-const SIZE = 0.75
+/** characters stand about 270 units tall; a person here is about 215 */
+const SIZE = 0.8
 
 interface Spot {
   p: P3

@@ -24,6 +24,15 @@ export default async function Keyring() {
   if (!userId) redirect('/login')
   const supabase = await supabaseServer()
 
+  // first time in: make yourself before anything else. If the column isn't
+  // there yet (an older database) this errors, and we just carry on.
+  const { data: look, error: lookError } = await supabase
+    .from('profiles')
+    .select('avatar')
+    .eq('id', userId)
+    .maybeSingle()
+  if (!lookError && look && look.avatar == null) redirect('/you?next=/keys')
+
   // houses nobody joined within a week quietly go
   await supabase.rpc('sweep_lonely_houses')
 
