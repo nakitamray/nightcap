@@ -1,6 +1,6 @@
 import { Graphics } from 'pixi.js'
 import { at, type Ctx } from './context'
-import type { CatBreed, DogBreed } from './layout'
+import type { CatBreed, DogBreed, Pet } from './layout'
 import { shade, THIN } from './paint'
 import type { P3 } from './projection'
 
@@ -34,15 +34,28 @@ const DOGS: Record<
 
 export function drawPet(ctx: Ctx) {
   const pet = ctx.layout.pet
-  if (pet.kind === 'cat') cat(ctx, pet.breed)
-  else if (pet.kind === 'dog') dog(ctx, pet.breed)
+  if (pet.kind === 'cat') {
+    // curled up on the duvet
+    const top = ctx.layout.bed.style === 'platform' ? 30 : 46
+    cat(
+      ctx,
+      pet.breed,
+      ctx.layout.bed.spot === 'right' ? [ctx.plan.half - 56, top + 8, 300] : [20, top + 8, 320],
+    )
+  } else if (pet.kind === 'dog') dog(ctx, pet.breed, [0, 0, 150], true)
 }
 
-/** a cat asleep in a ring on the duvet */
-function cat(ctx: Ctx, breed: CatBreed) {
-  const top = ctx.layout.bed.style === 'platform' ? 30 : 46
-  const p: P3 =
-    ctx.layout.bed.spot === 'right' ? [ctx.plan.half - 56, top + 8, 300] : [20, top + 8, 320]
+/**
+ * A pet anywhere: on a seat, by someone's feet. `p` is where it lies; dogs
+ * can bring their cushion along.
+ */
+export function drawPetAt(ctx: Ctx, pet: Pet, p: P3, opts: { cushion?: boolean } = {}) {
+  if (pet.kind === 'cat') cat(ctx, pet.breed, p)
+  else if (pet.kind === 'dog') dog(ctx, pet.breed, p, opts.cushion ?? false)
+}
+
+/** a cat asleep in a ring */
+function cat(ctx: Ctx, breed: CatBreed, p: P3) {
   const { x, y, s } = at(p)
   const look = CATS[breed]
   const k = s * 1.1
@@ -95,27 +108,27 @@ function cat(ctx: Ctx, breed: CatBreed) {
   ctx.hit('pet', (h) => h.ellipse(x, y - 8 * k, 28 * k, 16 * k))
 }
 
-/** a dog stretched out on its cushion by the rug, head on its paws */
-function dog(ctx: Ctx, breed: DogBreed) {
+/** a dog stretched out (on its cushion, if it brought it), head on its paws */
+function dog(ctx: Ctx, breed: DogBreed, spot: P3, withCushion: boolean) {
   const look = DOGS[breed]
-  const spot: P3 = [0, 0, 150]
   const { x, y, s } = at(spot)
   const k = s * 0.9 * look.size
-  // the cushion
-  const bed = ctx.layer('pet')
-  const fabric = shade(0x8a4a3a, 0.1)
-  bed
-    .ellipse(x, y - 4 * s, 60 * s, 16 * s)
-    .fill(shade(fabric, -0.25))
-    .stroke(THIN)
-  bed.ellipse(x, y - 9 * s, 52 * s, 11 * s).fill(fabric)
-  bed.ellipse(x, y - 9 * s, 40 * s, 7 * s).fill(shade(fabric, 0.12))
+  if (withCushion) {
+    const bed = ctx.layer('pet')
+    const fabric = shade(0x8a4a3a, 0.1)
+    bed
+      .ellipse(x, y - 4 * s, 60 * s, 16 * s)
+      .fill(shade(fabric, -0.25))
+      .stroke(THIN)
+    bed.ellipse(x, y - 9 * s, 52 * s, 11 * s).fill(fabric)
+    bed.ellipse(x, y - 9 * s, 40 * s, 7 * s).fill(shade(fabric, 0.12))
+  }
 
   const pup = ctx.live(ctx.container('pet'))
   const tail = new Graphics()
   const body = new Graphics()
   pup.addChild(tail, body)
-  pup.position.set(x, y - 12 * s)
+  pup.position.set(x, y - (withCushion ? 12 : 2) * s)
   const coat = look.coat
   // tail first so it tucks behind
   tail

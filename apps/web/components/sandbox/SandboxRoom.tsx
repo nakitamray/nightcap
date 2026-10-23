@@ -15,7 +15,7 @@ const FRIENDS = [
 ]
 
 // everyone in the made-up house has their own taste in pets and chairs
-const TASTE: { pet: Pet; furniture: Extra[] }[] = [
+export const DEMO_TASTE: { pet: Pet; furniture: Extra[] }[] = [
   { pet: { kind: 'cat', breed: 'tabby' }, furniture: ['beanbag'] },
   { pet: { kind: 'dog', breed: 'golden' }, furniture: ['lounger', 'pouf'] },
   { pet: { kind: 'none' }, furniture: [] },
@@ -53,7 +53,7 @@ export function SandboxRoom({
       theme={theme}
       room={room}
       owner={mine ? null : (resident?.name ?? 'nobody')}
-      initialLayout={readLayout(resident ? TASTE[room] : null, room)}
+      initialLayout={readLayout(resident ? DEMO_TASTE[room] : null, room)}
       place={{ city: 'Chicago', lat: 41.9, lon: -87.6 }}
       housemates={FRIENDS}
       spotify="dev"

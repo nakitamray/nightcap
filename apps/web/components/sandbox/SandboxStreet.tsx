@@ -37,6 +37,9 @@ export function SandboxStreet({ theme, base }: { theme: Theme; base: '/demo' | '
           {base === '/dev' ? 'all cities' : 'sign in'}
         </Link>
         <span className={houseStyles.name}>{THEME_NAMES[theme]}</span>
+        <Link className={houseStyles.button} href={`${base}/${theme}/lounge`}>
+          living room
+        </Link>
       </nav>
 
       <footer className={streetStyles.footer} data-ready={ready}>
