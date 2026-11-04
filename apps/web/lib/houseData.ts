@@ -1,5 +1,4 @@
 import type { Housemate } from '@/components/room/useRoomCompany'
-import { readAvatar } from '@nightcap/scene/layout'
 import { readLayout } from './room'
 import type { supabaseServer } from './supabase/server'
 import type { Seen } from './together'
@@ -13,13 +12,12 @@ export interface Profile {
   time_zone: string
   lat: number | null
   lon: number | null
-  avatar: unknown
 }
 
 const PROFILE = 'id, display_name, city, time_zone, lat, lon'
 
 /**
- * Everyone in a house, with what they look like, their pets and where they
+ * Everyone in a house, with their pets and where they
  * are, for the pages inside it. Anything that fails is logged and left out
  * rather than taking the page down.
  */
@@ -31,10 +29,7 @@ export async function loadHouse(supabase: Server, houseId: string) {
   if (error) console.error(`house ${houseId}: memberships`, error)
   const ids = (members ?? []).map((m) => m.user_id)
 
-  // characters arrived later than the rest of the profile; cope without them
-  let profiles = await supabase.from('profiles').select(`${PROFILE}, avatar`).in('id', ids)
-  if (profiles.error?.code === '42703')
-    profiles = (await supabase.from('profiles').select(PROFILE).in('id', ids)) as typeof profiles
+  const profiles = await supabase.from('profiles').select(PROFILE).in('id', ids)
   if (profiles.error) console.error(`house ${houseId}: profiles`, profiles.error)
   const people = (profiles.data ?? []) as Profile[]
 
@@ -52,7 +47,6 @@ export async function loadHouse(supabase: Server, houseId: string) {
     return {
       id: m.user_id,
       name: p?.display_name ?? '?',
-      avatar: readAvatar(p?.avatar),
       pet: readLayout(m.layout, m.room ?? 0).pet,
     }
   })

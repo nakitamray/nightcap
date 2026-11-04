@@ -242,3 +242,10 @@
   justify-content: center;
   margin-top: 10px;
 }
+
+.here {
+  font-size: 12px;
+  text-transform: none;
+  color: var(--amber);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.9);
+}

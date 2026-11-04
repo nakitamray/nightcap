@@ -213,17 +213,6 @@ reset role;
 select t.ok((select count(*) from public.houses where created_by = :dee) = 0, 'lonely houses are swept');
 select t.ok(exists (select 1 from public.houses where id = (select house from ids)), 'shared ones stay');
 
--- characters ----------------------------------------------------------------------
-
-reset role;
-select t.login(:alice);
-select t.ok(t.rows($$update public.profiles set avatar = '{"skin": 3, "top": "hoodie"}'
-  where id = auth.uid()$$) = 1, 'you can save your character');
-select t.fails($$update public.profiles set avatar = jsonb_build_object('junk', repeat('x', 3000))
-  where id = auth.uid()$$, 'characters have a size limit');
-select t.ok(t.rows($$update public.profiles set avatar = '{}'
-  where id = '00000000-0000-0000-0000-00000000000b'$$) = 0, 'you can''t dress up someone else');
-
 -- where you are -------------------------------------------------------------------
 
 reset role;

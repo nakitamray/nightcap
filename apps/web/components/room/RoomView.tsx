@@ -155,7 +155,6 @@ export function RoomView({
       playing: !!track,
       pins,
       editable,
-      people: company.guests,
       notes: ownerId === userId ? company.unread : 0,
     },
     pick,
@@ -218,6 +217,11 @@ export function RoomView({
               leave {owner} a note
             </button>
           )
+        )}
+        {company.others.length > 0 && (
+          <span className={styles.here} aria-live="polite">
+            here with you: {listNames(company.others.map((g) => g.name))}
+          </span>
         )}
         <span className={styles.saved} aria-live="polite">
           {saved === 'saving' ? 'saving…' : saved === 'error' ? 'couldn’t save, try again' : ''}
@@ -309,4 +313,9 @@ export function RoomView({
       )}
     </main>
   )
+}
+
+function listNames(names: string[]) {
+  if (names.length <= 2) return names.join(' and ')
+  return `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`
 }

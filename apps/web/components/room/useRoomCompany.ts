@@ -1,6 +1,6 @@
 'use client'
 
-import type { Avatar, Guest, Pet } from '@nightcap/scene'
+import type { Guest, Pet } from '@nightcap/scene'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Note } from '@/components/notes/NotesPanel'
 import { useCheckIn } from '@/components/useCheckIn'
@@ -12,7 +12,6 @@ import type { Track } from '@/components/useNowPlaying'
 export interface Housemate {
   id: string
   name: string
-  avatar: Avatar
   pet?: Pet
 }
 
@@ -93,12 +92,9 @@ export function useRoomCompany(o: Options) {
       .map((h) => ({
         id: h.id,
         name: h.name,
-        avatar: h.avatar,
-        // the room already has its own pet; visitors bring theirs
-        pet: h.id === o.ownerId ? undefined : h.pet,
         me: h.id === o.userId,
       }))
-  }, [live, seen, now, o.room, o.userId, o.ownerId, o.housemates])
+  }, [live, seen, now, o.room, o.userId, o.housemates])
 
   const markRead = useCallback(
     async (ids: string[]) => {
@@ -139,7 +135,8 @@ export function useRoomCompany(o: Options) {
   )
 
   return {
-    guests,
+    /** everyone else in this room right now */
+    others: guests.filter((g) => !g.me),
     notes,
     unread: notes.filter((n) => !n.read).length,
     markRead,

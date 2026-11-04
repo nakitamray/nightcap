@@ -1,6 +1,5 @@
 'use client'
 
-import { avatarFromSeed } from '@nightcap/scene/layout'
 import type { Note } from '@/components/notes/NotesPanel'
 import { RoomView } from '@/components/room/RoomView'
 import type { Housemate } from '@/components/room/useRoomCompany'
@@ -33,9 +32,9 @@ const TASTE: { pet: Pet; furniture: Extra[] }[] = [
   { pet: { kind: 'cat', breed: 'tabby' }, furniture: ['records', 'monstera'] },
 ]
 
-// and what they look like, with their pets in tow
+// and their pets
 const HOUSEMATES: Housemate[] = demoRooms.flatMap((r, i) =>
-  r ? [{ id: r.id, name: r.name, avatar: avatarFromSeed(r.id), pet: TASTE[i]?.pet }] : [],
+  r ? [{ id: r.id, name: r.name, pet: TASTE[i]?.pet }] : [],
 )
 
 // the panel only opens in the browser, so the demo notes can be dated from now

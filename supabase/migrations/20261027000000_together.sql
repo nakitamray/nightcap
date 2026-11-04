@@ -1,18 +1,9 @@
 -- nightcap: being in the house together
 --
--- - everyone has a character (profiles.avatar)
--- - presence says where in the house you are, so people show up in rooms
+-- - presence says where in the house you are (the living room, someone's room)
 -- - notes slipped under someone's door
 -- - what you're listening to, for your housemates to see
 -- - a house still waiting for a friend can be kept a little longer
-
--- characters ----------------------------------------------------------------
-
-alter table public.profiles add column if not exists avatar jsonb;
-alter table public.profiles
-  add constraint profiles_avatar_shape
-  check (avatar is null or (jsonb_typeof(avatar) = 'object' and octet_length(avatar::text) <= 2048));
-grant update (display_name, city, time_zone, lat, lon, avatar) on public.profiles to authenticated;
 
 -- where you are -------------------------------------------------------------
 
