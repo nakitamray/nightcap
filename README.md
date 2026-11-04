@@ -78,6 +78,21 @@ How it fits together:
   everything goes so nothing overlaps. The record
   on the wall connects Spotify and spins while you're listening; the map
   poster pins where you are (to the nearest town) next to everyone else.
+- The street through someone's window shows their sky: their time of day
+  (dawn, morning, midday, afternoon, dusk, night) and their actual weather,
+  from open-meteo at their pinned town.
+- Notes: leave someone a note from their room and it's slipped under their
+  door. Unread ones lie folded on the floor inside yours; click them to read,
+  write back or throw them away. Thirty a day each, at most.
+- What you're playing on Spotify shows on your window's card on the street,
+  and in your room when someone visits (with a link to play it too).
+- `/h/<id>/lounge` is the house's living room, different for every city and
+  every house: big, high-ceilinged, full of shelves, lamps, plants and rugs.
+  Everyone gets a seat; when you're in, yours is lit by your own lantern,
+  with your cushion, a mug going and your pet beside you. Empty seats stay
+  dark, the same way the windows do outside.
+- A house that's still just you goes after a week, unless you ask for
+  another week (up to three times).
 
 ### dev mode
 
@@ -166,6 +181,8 @@ embedding before this goes anywhere public.
 
 ## next
 
-- notes under the door, gifts on the step
-- weather and local time per window
-- what everyone's listening to, from the street
+- gifts on the step
+- a nudge when something happens: a note for you, friends home, a house about to go
+- installable on phones
+- a house-warming moment when the second person moves in
+- seasons: snow in December, lanterns at new year, fireworks on house birthdays

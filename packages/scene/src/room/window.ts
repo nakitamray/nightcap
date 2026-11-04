@@ -13,7 +13,7 @@ const FRAME = 0x2a1a14
 const SILL_Y = 100
 
 /** which bit of the street you see, in street-world units */
-const VIEWS: Record<ThemeId, { cx: number; cy: number; h: number; tint: number }> = {
+export const VIEWS: Record<ThemeId, { cx: number; cy: number; h: number; tint: number }> = {
   paris: { cx: 1880, cy: 690, h: 1100, tint: 0xffa040 },
   'new-york': { cx: 560, cy: 660, h: 1200, tint: 0xff9030 },
   venice: { cx: 1700, cy: 760, h: 1080, tint: 0xffb850 },

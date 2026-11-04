@@ -1,4 +1,5 @@
 import type { Resident, ThemeId } from '@nightcap/scene'
+import type { Extra, Pet } from '@nightcap/scene/layout'
 
 // Placeholder house until there's a backend. Facade order: top floor first,
 // left to right.
@@ -60,3 +61,22 @@ export function roomIndex(raw: string): number | null {
   const n = Number(raw)
   return Number.isInteger(n) && n >= 0 && n < 12 && /^\d+$/.test(raw) ? n : null
 }
+
+// everyone in the made-up house has their own taste in pets and chairs
+export const DEMO_TASTE: { pet: Pet; furniture: Extra[] }[] = [
+  { pet: { kind: 'cat', breed: 'tabby' }, furniture: ['beanbag'] },
+  { pet: { kind: 'dog', breed: 'golden' }, furniture: ['lounger', 'pouf'] },
+  { pet: { kind: 'none' }, furniture: [] },
+  { pet: { kind: 'cat', breed: 'white' }, furniture: ['dresser'] },
+  { pet: { kind: 'dog', breed: 'terrier' }, furniture: ['loveseat'] },
+  { pet: { kind: 'cat', breed: 'black' }, furniture: ['lounger', 'plantstand'] },
+  { pet: { kind: 'cat', breed: 'persian' }, furniture: ['armchair'] },
+  { pet: { kind: 'dog', breed: 'labradoodle' }, furniture: ['beanbag', 'floorlamp'] },
+  { pet: { kind: 'cat', breed: 'grey' }, furniture: ['bookcase'] },
+  { pet: { kind: 'dog', breed: 'shepherd' }, furniture: ['loveseat', 'pouf'] },
+  { pet: { kind: 'none' }, furniture: [] },
+  { pet: { kind: 'cat', breed: 'tabby' }, furniture: ['records', 'monstera'] },
+]
+
+/** the made-up house has a room for you too, so "go to my room" has somewhere to go */
+export const SANDBOX_ME = demoRooms.findIndex((r) => r?.id === 'nakita')

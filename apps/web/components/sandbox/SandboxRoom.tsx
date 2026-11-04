@@ -4,8 +4,8 @@ import type { Conditions } from '@nightcap/scene'
 import type { Note } from '@/components/notes/NotesPanel'
 import { RoomView } from '@/components/room/RoomView'
 import type { Housemate } from '@/components/room/useRoomCompany'
-import { demoRooms } from '@/lib/house'
-import { readLayout, type Extra, type Pet } from '@/lib/room'
+import { DEMO_TASTE, demoRooms, SANDBOX_ME } from '@/lib/house'
+import { readLayout } from '@/lib/room'
 import { THEME_NAMES, type Theme } from '@/lib/themes'
 
 // made-up housemates so the map poster has pins on it
@@ -17,25 +17,9 @@ const PINS = [
   { lat: 30.3, lon: -97.7, name: 'Dev' },
 ]
 
-// everyone in the made-up house has their own taste in pets and chairs
-const TASTE: { pet: Pet; furniture: Extra[] }[] = [
-  { pet: { kind: 'cat', breed: 'tabby' }, furniture: ['beanbag'] },
-  { pet: { kind: 'dog', breed: 'golden' }, furniture: ['lounger', 'pouf'] },
-  { pet: { kind: 'none' }, furniture: [] },
-  { pet: { kind: 'cat', breed: 'white' }, furniture: ['dresser'] },
-  { pet: { kind: 'dog', breed: 'terrier' }, furniture: ['loveseat'] },
-  { pet: { kind: 'cat', breed: 'black' }, furniture: ['lounger', 'plantstand'] },
-  { pet: { kind: 'cat', breed: 'persian' }, furniture: ['armchair'] },
-  { pet: { kind: 'dog', breed: 'labradoodle' }, furniture: ['beanbag', 'floorlamp'] },
-  { pet: { kind: 'cat', breed: 'grey' }, furniture: ['bookcase'] },
-  { pet: { kind: 'dog', breed: 'shepherd' }, furniture: ['loveseat', 'pouf'] },
-  { pet: { kind: 'none' }, furniture: [] },
-  { pet: { kind: 'cat', breed: 'tabby' }, furniture: ['records', 'monstera'] },
-]
-
 // and their pets
 const HOUSEMATES: Housemate[] = demoRooms.flatMap((r, i) =>
-  r ? [{ id: r.id, name: r.name, pet: TASTE[i]?.pet }] : [],
+  r ? [{ id: r.id, name: r.name, pet: DEMO_TASTE[i]?.pet }] : [],
 )
 
 // the panel only opens in the browser, so the demo notes can be dated from now
@@ -81,9 +65,6 @@ const CITY_TIME: Record<Theme, { zone: string; at: [number, number]; name: strin
   tokyo: { zone: 'Asia/Tokyo', at: [35.7, 139.7], name: 'Tokyo' },
 }
 
-/** the made-up house has a room for you too, so "go to my room" has somewhere to go */
-export const SANDBOX_ME = demoRooms.findIndex((r) => r?.id === 'nakita')
-
 /** any room in the demo or dev house: have a play, nothing gets saved */
 export function SandboxRoom({
   theme,
@@ -111,7 +92,7 @@ export function SandboxRoom({
       room={room}
       owner={mine ? null : (resident?.name ?? 'nobody')}
       ownerId={resident?.id ?? null}
-      initialLayout={readLayout(resident ? TASTE[room] : null, room)}
+      initialLayout={readLayout(resident ? DEMO_TASTE[room] : null, room)}
       place={{ city: resident?.city ?? fallback.name, lat, lon }}
       ownerTimeZone={resident?.timeZone ?? fallback.zone}
       sky={sky}
