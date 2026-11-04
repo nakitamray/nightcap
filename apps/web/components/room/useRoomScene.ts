@@ -1,6 +1,6 @@
 'use client'
 
-import type { Pin, RoomScene, ThemeId, Thing } from '@nightcap/scene'
+import type { Conditions, Pin, RoomScene, ThemeId, Thing } from '@nightcap/scene'
 import { useEffect, useRef, useState, type RefObject } from 'react'
 import type { Layout } from '@/lib/room'
 
@@ -16,6 +16,7 @@ export function useRoomScene(
     pins: Pin[]
     editable: boolean
     notes: number
+    conditions?: Conditions
   },
   onPick: (thing: Thing) => void,
 ) {
@@ -63,6 +64,10 @@ export function useRoomScene(
   useEffect(() => {
     if (ready) sceneRef.current?.setNotes(opts.notes)
   }, [opts.notes, ready])
+
+  useEffect(() => {
+    if (ready && opts.conditions) sceneRef.current?.setConditions(opts.conditions)
+  }, [opts.conditions, ready])
 
   return ready
 }

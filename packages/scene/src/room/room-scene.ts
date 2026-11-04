@@ -9,6 +9,7 @@ import {
   Texture,
   type PointData,
 } from 'pixi.js'
+import type { Conditions } from '../conditions'
 import { Emitter } from '../emitter'
 import { PaperFilter } from '../filters/PaperFilter'
 import { loadDisplayFont } from '../fonts'
@@ -52,6 +53,8 @@ export interface RoomOptions {
   editable?: boolean
   /** unread notes under the door */
   notes?: number
+  /** the sky outside: the owner's time of day and weather (a night street if left out) */
+  conditions?: Conditions
 }
 
 export interface RoomEvents extends Record<string, unknown> {
@@ -85,6 +88,8 @@ export class RoomScene {
   private runs: Container[] = []
   private highlight = new Container()
   private street: StreetWorld
+  /** the street is drawn through this, so the street's own filters (the daylight) apply */
+  private streetHolder = new Container()
   private streetTexture: RenderTexture | null = null
   private streetSprite = new Sprite()
   private streetMatrix = new Matrix()
@@ -106,6 +111,8 @@ export class RoomScene {
       reducedMotion: options.reducedMotion ?? false,
     })
     this.street.lowDetail()
+    this.streetHolder.addChild(this.street)
+    if (options.conditions) this.street.setConditions(options.conditions)
   }
 
   static async create(host: HTMLElement, options: RoomOptions) {
@@ -286,6 +293,13 @@ export class RoomScene {
     const f = streetFrame(this.options.theme, v, this.options.room)
     this.streetMatrix.set(f.scale * k, 0, 0, f.scale * k, f.x * k, f.y * k)
     this.street.setRainTop(f.top - 100)
+    // the sun goes high in the corner of whatever slice of sky the window shows
+    const seen = { x: -f.x / f.scale, y: -f.y / f.scale, w: w / f.scale, h: h / f.scale }
+    this.street.setSunSpot({
+      x: seen.x + seen.w * 0.62,
+      y: seen.y + seen.h * 0.055,
+      r: seen.w * 0.05,
+    })
   }
 
   /**
@@ -366,7 +380,7 @@ export class RoomScene {
     if (this.frame++ % 2 === 0 && this.streetTexture) {
       this.street.update(this.app.renderer, this.time, dt * 2, 0, reduced)
       this.app.renderer.render({
-        container: this.street,
+        container: this.streetHolder,
         target: this.streetTexture,
         transform: this.streetMatrix,
         clear: true,
@@ -390,6 +404,12 @@ export class RoomScene {
     if (notes === (this.options.notes ?? 0)) return
     this.options = { ...this.options, notes }
     this.draw()
+  }
+
+  /** the weather or the hour changed where the owner is */
+  setConditions(conditions: Conditions) {
+    this.options = { ...this.options, conditions }
+    this.street.setConditions(conditions)
   }
 
   setPins(pins: Pin[]) {

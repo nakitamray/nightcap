@@ -47,6 +47,16 @@
   text-transform: none;
 }
 
+.clock {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--paper);
+  opacity: 0.75;
+  text-transform: lowercase;
+}
+
 .saved {
   font-size: 12px;
   opacity: 0.7;

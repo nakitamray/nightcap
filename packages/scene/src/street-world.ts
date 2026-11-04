@@ -1,7 +1,10 @@
 import { AdvancedBloomFilter } from 'pixi-filters'
 import { Container, type Renderer } from 'pixi.js'
+import { NIGHT, type Conditions } from './conditions'
+import { DaySky, Fog, grading, Lightning, lookFor, mix, NightClouds, Snow } from './layers/daylight'
 import type { BaseHouse } from './layers/house-base'
 import { Rain } from './layers/rain'
+import { Sky } from './layers/sky'
 import { Reflection } from './layers/reflection'
 import { themes, type BuiltTheme } from './themes'
 import type { ThemeId } from './themes/types'
@@ -24,10 +27,24 @@ export class StreetWorld extends Container {
   readonly house: BaseHouse
   private rain: Rain
   private reflection: Reflection
+  private seed: number
+  private rainTop = -900
+  private conditions: Conditions = NIGHT
+  private sunAt: { x: number; y: number; r: number } | null = null
+  /** everything setConditions adds, so it can all go again */
+  private weather: {
+    sky?: DaySky
+    clouds?: NightClouds
+    storm?: Rain
+    snow?: Snow
+    fog?: Fog
+    lightning?: Lightning
+  } = {}
 
   constructor(options: StreetWorldOptions) {
     super()
     const { seed, reducedMotion: reduced } = options
+    this.seed = seed
     const street = (this.street = themes[options.theme].build({
       seed,
       lights: this.lights,
@@ -72,7 +89,86 @@ export class StreetWorld extends Container {
 
   /** rain has to start above whatever slice of sky is showing */
   setRainTop(top: number) {
+    this.rainTop = top
     this.rain.setTop(top)
+    this.weather.storm?.setTop(top)
+    this.weather.snow?.setTop(top)
+  }
+
+  /**
+   * The street at a given time of day and in given weather. The plain night
+   * (no weather given) is exactly the street as drawn; everything else is
+   * layered over it and graded, and rebuilt whenever this is called.
+   */
+  setConditions(c: Conditions, force = false) {
+    if (!force && c.phase === this.conditions.phase && c.weather === this.conditions.weather) return
+    this.conditions = c
+    this.clearWeather()
+
+    const look = lookFor(c)
+    const grade = look ? grading(look) : null
+    this.filters = grade ? [grade.filter] : []
+    this.lights.alpha = look?.lights ?? 1
+    this.street.pools.alpha = look?.pools ?? 1
+
+    const sky = this.street.backdrop[0]
+    const skyAt = sky ? this.upper.getChildIndex(sky) + 1 : 0
+    if (look && grade) {
+      const moon = sky instanceof Sky ? sky.moon : { x: 430, y: 200, r: 105 }
+      this.weather.sky = new DaySky(
+        look,
+        grade.paint,
+        c.weather,
+        this.sunAt ?? moon,
+        this.seed + 21,
+      )
+      this.upper.addChildAt(this.weather.sky, skyAt)
+    } else if (c.weather && c.weather !== 'clear') {
+      this.weather.clouds = new NightClouds(this.seed + 22, c.weather)
+      this.upper.addChildAt(this.weather.clouds, skyAt)
+    }
+
+    const w = c.weather
+    // the city's own drizzle only falls when it's raining (or nobody said)
+    this.rain.visible = w === undefined || w === 'rain' || w === 'storm'
+    if (w === 'storm') {
+      this.weather.storm = new Rain(this.seed + 23, 200)
+      this.weather.storm.setTop(this.rainTop)
+      this.weather.lightning = new Lightning(this.seed + 24)
+      this.upper.addChildAt(this.weather.lightning.sky, skyAt + 1)
+      this.addChild(this.weather.storm, this.weather.lightning)
+    }
+    if (w === 'snow') {
+      this.weather.snow = new Snow(this.seed + 25, 260)
+      this.weather.snow.setTop(this.rainTop)
+      this.addChild(this.weather.snow)
+    }
+    if (w === 'fog') {
+      const haze = look && grade ? grade.paint(mix(look.sky[2], 0xd8d8d8, 0.5)) : 0x3a4060
+      this.weather.fog = new Fog(this.seed + 26, haze, !look)
+      // in front of the buildings, behind the people
+      this.addChildAt(this.weather.fog, this.getChildIndex(this.upper) + 1)
+    }
+  }
+
+  /**
+   * Where the sun should hang, in world units. Through a room's window only a
+   * slice of sky shows, so the room puts the sun in it.
+   */
+  setSunSpot(spot: { x: number; y: number; r: number }) {
+    const old = this.sunAt
+    if (old && Math.abs(old.x - spot.x) < 1 && Math.abs(old.y - spot.y) < 1) return
+    this.sunAt = spot
+    if (this.weather.sky) this.setConditions(this.conditions, true)
+  }
+
+  private clearWeather() {
+    const w = this.weather
+    w.lightning?.sky.destroy()
+    for (const layer of [w.sky, w.clouds, w.storm, w.snow, w.fog, w.lightning]) {
+      layer?.destroy({ children: true })
+    }
+    this.weather = {}
   }
 
   update(renderer: Renderer, t: number, dt: number, pointerX: number, reduced: boolean) {
@@ -80,6 +176,13 @@ export class StreetWorld extends Container {
     this.house.update(t, dt, reduced)
     this.street.people.update(dt, reduced)
     this.rain.update(reduced ? dt * 0.4 : dt)
+    const w = this.weather
+    w.sky?.update(dt)
+    w.clouds?.update(dt)
+    w.storm?.update(reduced ? dt * 0.4 : dt)
+    w.snow?.update(reduced ? dt * 0.4 : dt)
+    w.fog?.update(dt)
+    if (!reduced) w.lightning?.update(dt)
     this.reflection.update(renderer, t)
   }
 
@@ -95,6 +198,7 @@ export class StreetWorld extends Container {
   }
 
   override destroy() {
+    this.clearWeather()
     this.reflection.destroy()
     super.destroy({ children: true })
   }

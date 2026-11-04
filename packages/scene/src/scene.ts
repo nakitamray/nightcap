@@ -1,4 +1,5 @@
 import { Application, type PointData } from 'pixi.js'
+import type { Conditions } from './conditions'
 import { Emitter } from './emitter'
 import { PaperFilter } from './filters/PaperFilter'
 import { loadDisplayFont } from './fonts'
@@ -80,12 +81,18 @@ export class StreetScene {
     })
     app.canvas.addEventListener('pointerleave', () => this.hover(null))
 
+    if (options.conditions) this.world.setConditions(options.conditions)
     this.house.marquee.setLines(options.marquee)
     this.setRooms(options.rooms)
 
     this.layout(app.screen.width, app.screen.height)
     app.renderer.on('resize', (w: number, h: number) => this.layout(w, h))
     app.ticker.add((ticker) => this.tick(ticker.deltaMS))
+  }
+
+  /** a time of day and weather for the street; it's night unless told otherwise */
+  setConditions(conditions: Conditions) {
+    this.world.setConditions(conditions)
   }
 
   private windowAt(global: PointData) {

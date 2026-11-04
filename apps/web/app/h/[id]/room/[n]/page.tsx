@@ -100,6 +100,7 @@ export default async function RoomPage({ params }: { params: Promise<{ id: strin
             }
           : null
       }
+      ownerTimeZone={person?.time_zone ?? undefined}
       spotify={spotify}
       backHref={`/h/${house.id}`}
       backLabel={`back to ${house.name}`}
