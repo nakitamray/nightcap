@@ -5,7 +5,6 @@ import { glowTexture } from '../../textures'
 
 const BASE = 760
 const FAR = 0x0e0c18
-const NEAR = 0x15111c
 
 // The city over the bars: blocks with billboards on their roofs and red
 // aircraft lights blinking, and Tokyo Tower lit up orange and white.

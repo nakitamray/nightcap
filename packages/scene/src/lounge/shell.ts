@@ -535,7 +535,6 @@ function sills(ctx: Ctx, plan: LoungePlan) {
       const x = p.x0 + ((k + 0.5) / n) * (p.x1 - p.x0) + (k % 2 ? 10 : -10)
       if (plan.theme === 'paris' && Math.abs(x) < 90) continue
       potPlant(
-        ctx,
         g,
         [x, y, B - 12],
         0.9 + ((k + i) % 3) * 0.15,

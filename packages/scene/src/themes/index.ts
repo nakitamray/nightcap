@@ -11,5 +11,5 @@ export const themes: Record<ThemeId, Theme> = {
   tokyo,
 }
 
-export { isThemeId, THEME_IDS } from './types'
+export { THEME_IDS } from './types'
 export type { BuiltTheme, Theme, ThemeId } from './types'

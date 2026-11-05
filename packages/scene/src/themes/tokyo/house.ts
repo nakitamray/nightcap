@@ -15,7 +15,7 @@ import {
 } from '../../layout'
 import { palette } from '../../palette'
 import { chance, createRng, range, type Rng } from '../../rng'
-import { acUnit, chochin, INK, strokePanel, tk } from './parts'
+import { acUnit, chochin, strokePanel, tk } from './parts'
 import { tokyoWindow } from './window'
 
 const ROOF = HOUSE.y - 10

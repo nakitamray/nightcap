@@ -151,14 +151,7 @@ const LEAF = [0x3a7a3a, 0x5a9a3a, 0x2e5a2e, 0x4a8a4a]
 const POTS = [0xb8643a, 0x2f6b66, 0xe8c25a, 0xd8c8a8, 0x8e3a1e, 0xf2e2bd]
 
 /** a pot with a plant in it, standing at `p`; `kind` decides what grows */
-export function potPlant(
-  ctx: Ctx,
-  g: Graphics,
-  p: P3,
-  size: number,
-  kind: PlantKind,
-  potIndex = 0,
-) {
+export function potPlant(g: Graphics, p: P3, size: number, kind: PlantKind, potIndex = 0) {
   const { x, y, s } = at(p)
   const k = s * size
   const pot = POTS[potIndex % POTS.length]!

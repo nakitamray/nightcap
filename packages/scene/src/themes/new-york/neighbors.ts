@@ -160,46 +160,6 @@ export class Neighbors extends Container {
     g.rect(x, base, w, GROUND - base).fill({ color: palette.ink, alpha: 0.4 })
   }
 
-  private deli(g: Graphics, lights: Container, rng: Rng, x: number, y: number, w: number) {
-    const h = GROUND - y
-    g.rect(x, y, w, h).fill(0x1a0c08)
-    // bright window full of shelves
-    g.rect(x + 10, y + 56, w - 70, h - 66).fill(0xf0b050)
-    for (let s = 0; s < 3; s++) {
-      for (let bx = x + 14; bx < x + w - 64; bx += range(rng, 5, 9)) {
-        g.rect(bx, y + 66 + s * 24, 4, 14).fill({
-          color: pick(rng, [palette.ink, 0x8a2a14, 0x2a4a2a]),
-          alpha: 0.6,
-        })
-      }
-    }
-    // produce crates out front
-    for (let c = 0; c < 3; c++) {
-      const cx = x + 18 + c * 34
-      g.rect(cx, GROUND - 30, 30, 30).fill(0x4a2a14)
-      for (let f = 0; f < 6; f++)
-        g.circle(cx + 5 + (f % 3) * 10, GROUND - 32 + Math.floor(f / 3) * 6, 4).fill(
-          pick(rng, [0xe0461f, 0xf0a030, 0x6a8a2a]),
-        )
-    }
-    g.rect(x + w - 54, y + 56, 40, h - 56).fill(0x8a3a16)
-    // awning with the name on it
-    g.poly([x - 10, y, x + w + 10, y, x + w + 20, y + 44, x - 20, y + 44])
-      .fill(0xb8261a)
-      .stroke(INK)
-    const name = new Text({
-      text: 'DELI  GROCERY',
-      style: { fontFamily: SIGN_FONT, fontSize: 14, fill: 0xfff0d0, letterSpacing: 2 },
-      resolution: 2,
-    })
-    name.anchor.set(0.5)
-    name.position.set(x + w / 2, y + 24)
-    this.addChild(name)
-    this.addNeon(neonWord(this, lights, 'OPEN', x + 60, y + 76, { size: 18, colour: 0xff3b2a }))
-    glow(lights, x + w / 2, y + 100, (w * 2) / 256, 1.2, 0xffb050, 0.45)
-  }
-
-  /** a three-bay brownstone with a stoop on one side, windows full of people's things */
   private brownstone(
     g: Graphics,
     lights: Container,

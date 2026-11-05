@@ -4,7 +4,7 @@ import { glow } from '../layers/neon'
 import { at, type Ctx } from '../room/context'
 import { candle } from '../room/extras'
 import { BOOKS, steamingMug } from '../room/furniture'
-import { block, fillPoly, INK, LINE, mix, shade, THIN } from '../room/paint'
+import { block, fillPoly, LINE, mix, shade, THIN } from '../room/paint'
 import { paintPoster, POSTER_H } from '../room/posters'
 import { flat, onFloor, pictureMatrix, project, ROOM, type Box, type P3 } from '../room/projection'
 import { cushion, drape, pillow, potPlant, vines } from '../room/soft'
@@ -418,7 +418,7 @@ export function coffeeTable(ctx: Ctx, plan: LoungePlan) {
   }
   candle(ctx, g, [-6, top, cz + 8], 10)
   if (plan.theme === 'tokyo') steamingMug(ctx, g, [26, top, cz - 4])
-  potPlant(ctx, g, [62, top, cz + 6], 0.8, 'cactus', 2)
+  potPlant(g, [62, top, cz + 6], 0.8, 'cactus', 2)
   mushroomLamp(ctx, [-62, top, cz + 4], plan.theme === 'new-york' ? 0xe8603a : 0xfff4e0)
 }
 
@@ -487,7 +487,7 @@ export function mediaWall(ctx: Ctx, plan: LoungePlan) {
     .fill(0x121014)
     .stroke({ color: 0x5a5650, width: 1 })
   g.circle(spx, spy + 9 * ss, 3 * ss).fill(0x121014)
-  potPlant(ctx, g, [fx, 60, (z0 + z1) / 2 - 6], 1, 'pothos', 1)
+  potPlant(g, [fx, 60, (z0 + z1) / 2 - 6], 1, 'pothos', 1)
 
   // the telly, fixed to the wall, a film playing
   const X = wallX(plan, side, 2)
@@ -556,7 +556,7 @@ export function bookshelf(ctx: Ctx, plan: LoungePlan) {
     while (z < z1 - 8) {
       const kind = (n * 7) % 17
       if (kind === 5 && z < z1 - 26) {
-        potPlant(ctx, g, [wallX(plan, side, 20), y, z + 11], 0.75, 'pothos', n)
+        potPlant(g, [wallX(plan, side, 20), y, z + 11], 0.75, 'pothos', n)
         z += 24
       } else if (kind === 11 && z < z1 - 22) {
         // a framed photo leaning on the books
@@ -593,7 +593,7 @@ export function bookshelf(ctx: Ctx, plan: LoungePlan) {
   }
   // trailing plants off the top
   const tp = at([wallX(plan, side, 20), height, (z0 + z1) / 2])
-  potPlant(ctx, g, [wallX(plan, side, 20), height, (z0 + z1) / 2], 1, 'pothos', 3)
+  potPlant(g, [wallX(plan, side, 20), height, (z0 + z1) / 2], 1, 'pothos', 3)
   vines(g, tp.x, tp.y - 2, tp.s, 6, 140, 2)
   // the library ladder, leaning, on a brass rail
   const lad = ctx.layer()
@@ -656,7 +656,7 @@ export function metalShelf(ctx: Ctx, plan: LoungePlan) {
     .fill(0x2a2624)
     .stroke(THIN)
   g.circle(sp.x, sp.y - 13 * sp.s, 3 * sp.s).fill(0x2a2624)
-  potPlant(ctx, g, [wallX(plan, side, 20), 136, z1 - 16], 1, 'fern', 4)
+  potPlant(g, [wallX(plan, side, 20), 136, z1 - 16], 1, 'fern', 4)
   // top shelf: the turntable
   block(g, wallBox(plan, side, 6, 34, 198, 206, z0 + 6, z1 - 20), 0x6a4026)
   const tt = at([wallX(plan, side, 20), 207, z0 + 26])
@@ -690,7 +690,7 @@ export function metalShelf(ctx: Ctx, plan: LoungePlan) {
     }
   }
   const pp = at([wallX(plan, side, 20), h, z1 - 18])
-  potPlant(ctx, g, [wallX(plan, side, 20), h, z1 - 18], 1, 'pothos', 5)
+  potPlant(g, [wallX(plan, side, 20), h, z1 - 18], 1, 'pothos', 5)
   vines(g, pp.x, pp.y, pp.s, 4, 90, 7)
 }
 
@@ -741,7 +741,7 @@ export function counter(ctx: Ctx, plan: LoungePlan) {
     let i = y
     for (let z = z0 + 18; z < z1 - 20; z += 22) {
       const p = at([wallX(plan, side, 13), y, z])
-      if (i % 4 === 0) potPlant(ctx, g, [wallX(plan, side, 13), y, z], 0.7, 'pothos', i)
+      if (i % 4 === 0) potPlant(g, [wallX(plan, side, 13), y, z], 0.7, 'pothos', i)
       else if (i % 4 === 1) {
         g.roundRect(p.x - 5 * p.s, p.y - 16 * p.s, 10 * p.s, 16 * p.s, 2)
           .fill({ color: 0xc8e8f0, alpha: 0.55 })
@@ -872,7 +872,7 @@ export function barCart(ctx: Ctx, plan: LoungePlan) {
   g.rect(ib.x - 8 * ib.s, ib.y - 16 * ib.s, 16 * ib.s, 16 * ib.s)
     .fill(0xc8ccd0)
     .stroke(THIN)
-  potPlant(ctx, g, [wallX(plan, side, 30), 70, z1 - 10], 0.8, 'snake', 3)
+  potPlant(g, [wallX(plan, side, 30), 70, z1 - 10], 0.8, 'snake', 3)
 }
 
 /** frames on the wall above the bar cart */
@@ -1003,7 +1003,7 @@ export function fireplace(ctx: Ctx, plan: LoungePlan) {
   g.circle(ck.x, ck.y - 12 * ck.s, 7 * ck.s)
     .fill(0xf2ece4)
     .stroke({ ...THIN, width: 0.6 })
-  potPlant(ctx, g, [42, 130, B - 14], 0.8, 'flowers', 2)
+  potPlant(g, [42, 130, B - 14], 0.8, 'flowers', 2)
   // the mirror: gilt, arched, showing the room's lamps as smudges of light
   const mg = ctx.layer()
   const [mx0, my0] = project([-62, 420, B])
@@ -1219,7 +1219,7 @@ export function hangingPlant(ctx: Ctx, x: number, z: number, drop: number, i: nu
     .quadraticCurveTo(p.x - 12 * p.s, p.y, p.x - 13 * p.s, p.y - 14 * p.s)
     .fill([0xf2ece4, 0xb8643a, 0x2f6b66][i % 3]!)
     .stroke(THIN)
-  potPlant(ctx, g, [x, C - drop + 2, z], 0.9, i % 2 ? 'pothos' : 'fern', i)
+  potPlant(g, [x, C - drop + 2, z], 0.9, i % 2 ? 'pothos' : 'fern', i)
   vines(g, p.x, p.y - 10 * p.s, p.s, 6, 110, i)
 }
 

@@ -81,7 +81,6 @@ function bookcase(ctx: Ctx, p: Piece, index: number) {
       const kind = (n * 7) % 13
       if (kind === 5 && z < z1 - 24) {
         potPlant(
-          ctx,
           g,
           [a.wx(18), y, z + 10],
           0.7,
@@ -125,7 +124,7 @@ function bookcase(ctx: Ctx, p: Piece, index: number) {
   }
   // on top: a trailing plant and a box
   const topP = at([a.wx(17), height, a.mid])
-  potPlant(ctx, g, [a.wx(17), height, a.mid - 14], 0.9, 'pothos', index)
+  potPlant(g, [a.wx(17), height, a.mid - 14], 0.9, 'pothos', index)
   vines(g, topP.x, topP.y - 2, topP.s, 5, 80, index)
   block(g, a.box(6, 28, height, height + 16, a.mid + 8, a.mid + 34), 0xc8a070)
   ctx.hit('furniture', (h) =>
@@ -278,7 +277,7 @@ function piano(ctx: Ctx, p: Piece) {
       .lineTo(mx + 12 * ms, my - 10 * ms + l * 4 * ms)
       .stroke({ color: INK, width: 0.5 })
   for (const z of [z0 + 14, z1 - 14]) candle(ctx, g, [a.wx(22), 132, z], 18)
-  potPlant(ctx, g, [a.wx(22), 132, a.mid], 0.9, 'fern', 1)
+  potPlant(g, [a.wx(22), 132, a.mid], 0.9, 'fern', 1)
   // the bench, with a cushion
   block(g, a.box(78, 106, 0, 40, a.mid - 30, a.mid + 30), black)
   cushion(
@@ -391,7 +390,6 @@ function plantstand(ctx: Ctx, p: Piece) {
     block(g, a.box(s.d0, s.d1, s.y - 4, s.y, a.mid - 34, a.mid + 34), 0xc8a070)
     for (const z of [a.mid - 18, a.mid + 16])
       potPlant(
-        ctx,
         g,
         [a.wx((s.d0 + s.d1) / 2), s.y, z],
         0.9,
@@ -483,7 +481,7 @@ function ladder(ctx: Ctx, p: Piece) {
     const d = 54 - (y / height) * 50
     block(g, a.box(d - 24 + i * 3, d, y, y + 4, a.mid - 32, a.mid + 32), wood, THIN)
     const front = a.wx(d - 10)
-    if (i % 2) potPlant(ctx, g, [front, y + 4, a.mid - 8], 0.9, plants[i % plants.length]!, i)
+    if (i % 2) potPlant(g, [front, y + 4, a.mid - 8], 0.9, plants[i % plants.length]!, i)
     else {
       let z = a.mid - 28
       let n = i * 5
@@ -803,7 +801,6 @@ function dresser(ctx: Ctx, p: Piece) {
   block(g, a.box(-2, 42, 112, 116, z0 - 2, z1 + 2), shade(wood, 0.15))
   // a plant, a jewellery box, perfume
   potPlant(
-    ctx,
     g,
     [a.wx(20), 116, z0 + 16],
     0.8,

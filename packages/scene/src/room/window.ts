@@ -128,17 +128,10 @@ export function drawWindow(ctx: Ctx, street: Container | null) {
     },
     0xe0d0b0,
   )
-  potPlant(ctx, sill, [-v.paneHalf + 16, SILL_Y - 4, B - 10], 0.85, v.plants[0]!, 0)
-  potPlant(
-    ctx,
-    sill,
-    [v.paneHalf - 18, SILL_Y - 4, B - 10],
-    0.75,
-    v.plants[1 % v.plants.length]!,
-    1,
-  )
+  potPlant(sill, [-v.paneHalf + 16, SILL_Y - 4, B - 10], 0.85, v.plants[0]!, 0)
+  potPlant(sill, [v.paneHalf - 18, SILL_Y - 4, B - 10], 0.75, v.plants[1 % v.plants.length]!, 1)
   if (v.plants.length > 2)
-    potPlant(ctx, sill, [v.paneHalf - 46, SILL_Y - 4, B - 9], 0.6, v.plants[2]!, 2)
+    potPlant(sill, [v.paneHalf - 46, SILL_Y - 4, B - 9], 0.6, v.plants[2]!, 2)
 
   ctx.hit('window', (g) => paneShape(g, v, shape, 14))
 
