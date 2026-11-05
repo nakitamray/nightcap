@@ -1,8 +1,5 @@
 import type { Graphics } from 'pixi.js'
 
-import { Text } from 'pixi.js'
-import { SIGN_FONT } from '../fonts'
-
 // Posters and prints for the walls, each drawn on a 100 x 140 sheet.
 export const POSTER_NAMES = [
   'sunset',

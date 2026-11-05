@@ -17,6 +17,7 @@ export default async function DevLounge({
   const { people, house } = await searchParams
   if (!DEV_MODE || !isTheme(city)) notFound()
   const n = Number(people)
-  const count = people !== undefined && Number.isInteger(n) ? Math.max(0, Math.min(12, n)) : undefined
+  const count =
+    people !== undefined && Number.isInteger(n) ? Math.max(0, Math.min(12, n)) : undefined
   return <SandboxLounge theme={city} base="/dev" count={count} house={house?.slice(0, 40)} />
 }

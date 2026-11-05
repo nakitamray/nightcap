@@ -26,7 +26,6 @@ export function drawVinyl(ctx: Ctx) {
   const vy = Math.min(374, ctx.plan.height - 70)
   const [cx, cy] = project([-(wall + reach) / 2, vy, B])
   const r = room * scaleAt(B)
-  const g = ctx.layer('vinyl')
   // the sleeve hanging behind it, slightly crooked
   const sleeve = new Graphics()
   sleeve
@@ -576,7 +575,7 @@ function shelfItem(ctx: Ctx, g: Graphics, kind: string, p: P3) {
   const { x, y, s } = at(p)
   switch (kind) {
     case 'trail': {
-      potPlant(ctx, g, p, 0.85, 'pothos', 0)
+      potPlant(g, p, 0.85, 'pothos', 0)
       // pothos vines spilling down the wall
       for (let v = 0; v < 5; v++) {
         const len = (30 + v * 14) * s
@@ -624,10 +623,10 @@ function shelfItem(ctx: Ctx, g: Graphics, kind: string, p: P3) {
       glow(ctx.lights, x + 5 * s, y - 8.5 * s, 0.1, 0.06, 0xffb04a, 0.6)
       break
     case 'cactus':
-      potPlant(ctx, g, p, 0.8, 'cactus', 1)
+      potPlant(g, p, 0.8, 'cactus', 1)
       break
     case 'plant':
-      potPlant(ctx, g, p, 0.95, ctx.plan.variant.plants[0]!, 2)
+      potPlant(g, p, 0.95, ctx.plan.variant.plants[0]!, 2)
       break
     case 'trinket':
       trinket(g, ctx.theme, x, y, s)

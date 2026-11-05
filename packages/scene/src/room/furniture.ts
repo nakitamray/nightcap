@@ -45,7 +45,6 @@ export function drawBookshelf(ctx: Ctx) {
       const kind = (row * cols + c + n) % 5
       if (kind === 3) {
         potPlant(
-          ctx,
           g,
           [b.x0 + ((c + 0.5) * (b.x1 - b.x0)) / cols, row ? 4 : 44, b.z0 + 2],
           0.7,
@@ -577,7 +576,7 @@ export function drawDesk(ctx: Ctx) {
   )
   steamingMug(ctx, g, [at_(front + 22), topY, z1 - 32])
   if (style !== 'secretary')
-    potPlant(ctx, g, [at_(16), topY, z0 + 18], 0.85, ctx.plan.variant.plants[0]!, 3)
+    potPlant(g, [at_(16), topY, z0 + 18], 0.85, ctx.plan.variant.plants[0]!, 3)
 
   drawChair(ctx, flip, mid - 21, topY)
 
@@ -610,7 +609,6 @@ function shelfOfBooks(
     const bw = 4 + (n % 3) * 2
     if (plants && n % 7 === 3) {
       potPlant(
-        ctx,
         g,
         [x, y0, z + 8],
         0.55,

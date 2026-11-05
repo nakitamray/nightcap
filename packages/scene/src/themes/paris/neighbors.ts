@@ -37,11 +37,10 @@ export class Neighbors extends Container {
   private chimneyTops: { x: number; y: number }[] = []
   private signGlow: Sprite
   private signText: Text
-  private rng: Rng
 
   constructor(seed: number, lights: Container) {
     super()
-    const rng = (this.rng = createRng(seed))
+    const rng = createRng(seed)
     const g = new Graphics()
     this.addChild(g)
     const lit: LitRect[] = []

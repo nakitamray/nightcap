@@ -302,8 +302,3 @@ export function planLounge(theme: ThemeId, seed: string): LoungePlan {
     posters,
   }
 }
-
-/** which seat each person gets: always the same order, so nobody swaps places on a refresh */
-export function seatFor(plan: LoungePlan, index: number): Seat | null {
-  return plan.seats[index] ?? null
-}

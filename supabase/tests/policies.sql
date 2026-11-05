@@ -302,3 +302,9 @@ select t.login(null);
 select t.fails($$select public.create_house('x', 'paris')$$, 'signed out, you can''t make a house');
 select t.fails($$select public.invite_preview('letmein')$$, 'or peek at an invite');
 select t.ok(public.username_available('somebody'), 'but you can check a username is free');
+select t.fails($$select public.is_member(gen_random_uuid())$$, 'or ask who lives where');
+
+reset role;
+select t.login(:alice);
+select t.fails($$select public.handle_new_user()$$, 'trigger functions can''t be called directly');
+select t.fails($$select public.notes_slow_down()$$, 'not even the notes limit');
