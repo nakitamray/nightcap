@@ -50,6 +50,7 @@ const marquees: Record<ThemeId, string[]> = {
   'new-york': ['NIGHTCAP', "FRI: DEV'S BIRTHDAY", 'SAT: CONEY ISLAND', 'SUN: ROOF, 9PM'],
   venice: ['NIGHTCAP', "FRI: DEV'S BIRTHDAY", 'SAT: GONDOLA AT 8', 'SUN: SPRITZ, 7PM'],
   tokyo: ['NIGHTCAP', "FRI: DEV'S BIRTHDAY", 'SAT: KARAOKE', 'SUN: RAMEN, 10PM'],
+  'san-diego': ['NIGHTCAP', "FRI: DEV'S BIRTHDAY", 'SAT: BONFIRE AT 8', 'SUN: TACOS, 11PM'],
 }
 
 export function marqueeFor(theme: ThemeId) {

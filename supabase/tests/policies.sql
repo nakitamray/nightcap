@@ -200,7 +200,7 @@ select public.create_house('one', 'paris');
 select public.create_house('two', 'tokyo');
 select public.create_house('three', 'venice');
 select public.create_house('four', 'new-york');
-select public.create_house('five', 'paris');
+select public.create_house('five', 'san-diego');
 select t.fails($$select public.create_house('six', 'paris')$$, 'five houses each');
 select t.fails($$select public.join_house('letmein')$$, 'even by joining');
 

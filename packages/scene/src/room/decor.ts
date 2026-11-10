@@ -682,6 +682,14 @@ function trinket(g: Graphics, theme: ThemeId, x: number, y: number, s: number) {
     g.moveTo(x + 10 * s, y - 16 * s)
       .quadraticCurveTo(x + 18 * s, y - 30 * s, x + 14 * s, y - 34 * s)
       .stroke({ color: BRASS, width: 1.5 })
+  } else if (theme === 'san-diego') {
+    // a little surfboard on a stand
+    g.rect(x - 9 * s, y - 2 * s, 18 * s, 2 * s).fill(0x4a2c1a)
+    g.ellipse(x, y - 17 * s, 5 * s, 16 * s)
+      .fill(0xf2e2bd)
+      .stroke({ ...THIN, width: 0.6 })
+    g.rect(x - 0.6 * s, y - 32 * s, 1.2 * s, 30 * s).fill(0xd8502a)
+    g.rect(x - 4.6 * s, y - 20 * s, 9.2 * s, 3 * s).fill(0x2a8a9a)
   } else {
     // a lucky cat, waving
     g.roundRect(x - 8 * s, y - 16 * s, 16 * s, 16 * s, 5 * s)
@@ -711,6 +719,7 @@ const NEON: Record<ThemeId, { text: string; colour: number; font: string }> = {
     colour: 0x5af0ff,
     font: `"Yu Gothic", "Hiragino Sans", "Noto Sans JP", sans-serif`,
   },
+  'san-diego': { text: 'tacos', colour: 0xffb02a, font: SIGN_FONT },
 }
 
 export function drawNeon(ctx: Ctx) {

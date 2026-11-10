@@ -50,6 +50,6 @@ describe('planLounge', () => {
 
   it('looks different in every city', () => {
     const floors = new Set(THEME_IDS.map((t) => planLounge(t, 'h').floor))
-    expect(floors.size).toBe(4)
+    expect(floors.size).toBe(THEME_IDS.length)
   })
 })

@@ -184,6 +184,10 @@ export function ceilingLights(ctx: Ctx, plan: LoungePlan) {
       ] as const)
         edison(ctx, [x, C - drop, z])
       break
+    case 'san-diego':
+      // black iron, like a wagon wheel
+      chandelier(ctx, [0, C - 160, 195], 0x2a2420, false)
+      break
     case 'tokyo':
       for (const [x, z, drop, c] of [
         [-120, 220, 200, 0xf2ece0],

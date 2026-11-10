@@ -7,7 +7,7 @@
 import { createRng, hashString, pick, range, type Rng } from '../rng'
 import type { ThemeId } from '../themes/types'
 
-export type LoungeFloor = 'herringbone' | 'planks' | 'terrazzo' | 'boards'
+export type LoungeFloor = 'herringbone' | 'planks' | 'terrazzo' | 'boards' | 'saltillo'
 export type RugPattern = 'persian' | 'checker' | 'round' | 'stripes' | 'kilim' | 'tatami'
 export type CoffeeTable = 'glass' | 'wood' | 'marble'
 export type FloorLampKind = 'arc' | 'tripod' | 'shade' | 'globe'
@@ -183,6 +183,33 @@ const CITIES: Record<ThemeId, City> = {
     ],
     trees: ['monstera', 'fig', 'palm'],
     neon: ['NIGHTCAP', 'RAMEN', 'KISSA'],
+  },
+  'san-diego': {
+    half: 320,
+    height: 590,
+    floor: 'saltillo',
+    walls: [0xf0e4cc, 0xe8c8a0, 0xd8dcc8, 0xe0b890, 0xc8d8d8],
+    trims: [0x4a2c1a, 0x3a2418],
+    woods: [0x4a2c1a, 0x8a5a2e, 0x6a3a22],
+    sofas: [0xe8dcc0, 0x2a7a7a, 0xc8642e, 0x6a7a5a, 0x3a5a8a],
+    chairs: [0xe8c25a, 0xd8502a, 0x2a8a9a, 0xf2e2bd, 0xd85a8a],
+    accents: [0x2a8a9a, 0xe8603a, 0xe8c25a],
+    rugs: ['kilim', 'stripes', 'round', 'kilim'],
+    sofa: 'back',
+    // three arches, the sea through all of them
+    panes: (_rng, half, height) => {
+      const w = (half * 2 - 150) / 3
+      const top = height - 100
+      return [0, 1, 2].map((i) => ({
+        x0: -half + 45 + i * (w + 30),
+        x1: -half + 45 + i * (w + 30) + w,
+        y0: 24,
+        y1: top,
+        arch: true,
+      }))
+    },
+    trees: ['palm', 'monstera', 'olive'],
+    neon: ['TACOS', 'SWELL', 'NIGHTCAP'],
   },
 }
 

@@ -4,8 +4,9 @@ A shared house for a group of friends, always at night.
 
 Everyone in a house gets a room in one building, and from the street you can
 see whose lights are on. Come home, look up at the windows, leave something
-for whoever's around. Houses come in four cities — Paris, New York, Venice and
-Tokyo — and everything on screen is drawn in code, with no image assets.
+for whoever's around. Houses come in five cities — Paris, New York, Venice,
+Tokyo and San Diego — and everything on screen is drawn in code, with no image
+assets.
 
 ## Features
 

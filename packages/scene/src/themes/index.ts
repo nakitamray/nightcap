@@ -1,5 +1,6 @@
 import { newYork } from './new-york'
 import { paris } from './paris'
+import { sanDiego } from './san-diego'
 import { tokyo } from './tokyo'
 import type { Theme, ThemeId } from './types'
 import { venice } from './venice'
@@ -9,6 +10,7 @@ export const themes: Record<ThemeId, Theme> = {
   'new-york': newYork,
   venice,
   tokyo,
+  'san-diego': sanDiego,
 }
 
 export { THEME_IDS } from './types'

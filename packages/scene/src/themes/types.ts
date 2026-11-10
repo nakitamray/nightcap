@@ -1,8 +1,9 @@
 import type { Container } from 'pixi.js'
 import type { BaseHouse } from '../layers/house-base'
+import type { Rect } from '../layout'
 import type { People } from '../layers/people'
 
-export const THEME_IDS = ['paris', 'new-york', 'venice', 'tokyo'] as const
+export const THEME_IDS = ['paris', 'new-york', 'venice', 'tokyo', 'san-diego'] as const
 export type ThemeId = (typeof THEME_IDS)[number]
 
 export function isThemeId(value: unknown): value is ThemeId {
@@ -41,6 +42,8 @@ export interface BuiltTheme {
   /** raindrops; 0 for a dry night */
   rain?: number
   bloomThreshold?: number
+  /** what the camera frames, if not the usual box round the house */
+  focus?: Rect
   update(time: number, dt: number, pointerX: number, reducedMotion: boolean): void
 }
 

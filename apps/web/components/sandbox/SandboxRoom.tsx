@@ -63,6 +63,7 @@ const CITY_TIME: Record<Theme, { zone: string; at: [number, number]; name: strin
   'new-york': { zone: 'America/New_York', at: [40.7, -74.0], name: 'New York' },
   venice: { zone: 'Europe/Rome', at: [45.4, 12.3], name: 'Venice' },
   tokyo: { zone: 'Asia/Tokyo', at: [35.7, 139.7], name: 'Tokyo' },
+  'san-diego': { zone: 'America/Los_Angeles', at: [32.7, -117.2], name: 'San Diego' },
 }
 
 /** any room in the demo or dev house: have a play, nothing gets saved */

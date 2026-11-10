@@ -132,14 +132,15 @@ export interface Fit {
 export const FOCUS: Rect = { x: HOUSE.x - 150, y: 50, width: HOUSE.width + 300, height: 1170 }
 
 /**
- * Scale the world so the focus box fills the screen, centred. Anything around
+ * Scale the world so the focus box fills the screen, centred. A street can
+ * frame something other than the usual house by passing its own box. Anything around
  * it (neighbours, sky, street) spills off the edges. Never show past the
  * bottom of the world.
  */
-export function fitWorld(viewWidth: number, viewHeight: number): Fit {
-  const scale = Math.min(viewHeight / FOCUS.height, viewWidth / FOCUS.width)
-  const x = viewWidth / 2 - (FOCUS.x + FOCUS.width / 2) * scale
-  const centred = viewHeight / 2 - (FOCUS.y + FOCUS.height / 2) * scale
+export function fitWorld(viewWidth: number, viewHeight: number, focus: Rect = FOCUS): Fit {
+  const scale = Math.min(viewHeight / focus.height, viewWidth / focus.width)
+  const x = viewWidth / 2 - (focus.x + focus.width / 2) * scale
+  const centred = viewHeight / 2 - (focus.y + focus.height / 2) * scale
   const y = Math.max(centred, viewHeight - WORLD.height * scale)
   return { scale, x, y }
 }

@@ -121,7 +121,7 @@ export class StreetScene {
   }
 
   private layout(width: number, height: number) {
-    const fit = fitWorld(width, height)
+    const fit = fitWorld(width, height, this.world.street.focus)
     this.world.scale.set(fit.scale)
     this.world.position.set(fit.x, fit.y)
     this.paper.setScreen(width, height)

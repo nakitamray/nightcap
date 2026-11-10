@@ -268,9 +268,13 @@ function drawFloor(ctx: Ctx, plan: LoungePlan) {
   const { left: L, right: R } = ROOM
   const g = ctx.layer()
   const seam = { color: INK, width: 1, alpha: 0.4 }
-  const base = { herringbone: 0x8a5028, planks: 0x6a4026, terrazzo: 0xb0a088, boards: 0xa8784a }[
-    plan.floor
-  ]
+  const base = {
+    herringbone: 0x8a5028,
+    planks: 0x6a4026,
+    terrazzo: 0xb0a088,
+    boards: 0xa8784a,
+    saltillo: 0xa8562e,
+  }[plan.floor]
   fillPoly(g, flat([L, 0, NEAR], [R, 0, NEAR], [R, 0, B], [L, 0, B]), base, null)
   switch (plan.floor) {
     case 'herringbone': {
@@ -345,6 +349,24 @@ function drawFloor(ctx: Ctx, plan: LoungePlan) {
         })
       break
     }
+    case 'saltillo': {
+      // square clay tiles, no two fired quite the same, pale grout between
+      const size = 52
+      for (let x = L; x < R; x += size) {
+        for (let z = NEAR; z < B; z += size) {
+          const c: [number, number][] = [
+            [x, z],
+            [Math.min(R, x + size), z],
+            [Math.min(R, x + size), Math.min(B, z + size)],
+            [x, Math.min(B, z + size)],
+          ]
+          g.poly(onFloor(c))
+            .fill(shade(base, range(ctx.rng, -0.16, 0.14)))
+            .stroke({ color: 0xd8c0a0, width: 1.6, alpha: 0.55 })
+        }
+      }
+      break
+    }
   }
 }
 
@@ -407,6 +429,12 @@ function ceiling(ctx: Ctx, plan: LoungePlan) {
       }
       break
     }
+    case 'san-diego': {
+      // dark beams, rough-sawn, close together
+      for (const z of [30, 110, 190, 270, 350])
+        block(g, { x0: L, x1: R, y0: C - 22, y1: C, z0: z - 10, z1: z + 10 }, 0x3a2418)
+      break
+    }
     case 'tokyo': {
       // a track of little spotlights
       g.poly(flat([0, C - 2, NEAR], [0, C - 2, B]), false).stroke({ color: 0x1e1a1c, width: 4 })
@@ -432,7 +460,7 @@ export function drawWindows(ctx: Ctx, plan: LoungePlan, street: Container) {
       ? 0x1e1e22
       : plan.theme === 'tokyo'
         ? 0x2a2420
-        : plan.theme === 'venice'
+        : plan.theme === 'venice' || plan.theme === 'san-diego'
           ? 0x3a2418
           : 0xf2e8d4
   // deep reveals
@@ -483,7 +511,8 @@ function glazing(g: Graphics, plan: LoungePlan, p: Pane, frame: number) {
   const top = p.arch ? p.y1 - (p.x1 - p.x0) / 2 : p.y1
   switch (plan.theme) {
     case 'paris':
-    case 'venice': {
+    case 'venice':
+    case 'san-diego': {
       // a centre post and small panes, radiating bars in the arch
       bar([midX, p.y0, B], [midX, p.y1, B], 5)
       const step = plan.theme === 'paris' ? 68 : 80

@@ -33,7 +33,9 @@ export interface Outfit {
   /** a sash round the middle (an obi, a belt) */
   belt?: number
   umbrella?: number
-  carry?: 'baguette' | 'briefcase' | 'bag'
+  carry?: 'baguette' | 'briefcase' | 'bag' | 'board'
+  /** bare legs below the knee */
+  shorts?: boolean
   poodle?: boolean
 }
 
@@ -62,6 +64,7 @@ class Walker extends Container {
     for (const leg of [this.legL, this.legR]) {
       const flare = o.bellBottoms ? 9 : 0
       leg.poly([-7, 0, 7, 0, 7 + flare, 130, -7 - flare, 130]).fill(o.legs)
+      if (o.shorts) leg.poly([-6, 56, 6, 56, 6, 130, -6, 130]).fill(skin)
       if (o.boots !== null) leg.poly([-7, 74, 7, 74, 8, 130, -8, 130]).fill(o.boots)
       leg.ellipse(5, 130, 11, 4).fill(INK)
       leg.position.set(0, hip)
@@ -161,6 +164,14 @@ class Walker extends Container {
       b.rect(-20, 2, 6, 1.5).rect(-4, 2, 6, 1.5).rect(12, 2, 6, 1.5).fill(0x7a4a1a)
       b.position.set(0, shoulder + 34)
       b.rotation = -0.25
+      this.body.addChild(b)
+    } else if (o.carry === 'board') {
+      // a surfboard under the arm, nose forward, fin down at the back
+      const b = new Graphics().ellipse(0, 0, 118, 11).fill(0xf2e2bd)
+      b.rect(-100, -1.5, 200, 3).fill(o.hatColour || 0xd8502a)
+      b.poly([-92, 6, -78, 6, -96, 24]).fill(INK)
+      b.position.set(8, shoulder + 78)
+      b.rotation = -0.07
       this.body.addChild(b)
     } else if (o.carry === 'briefcase' || o.carry === 'bag') {
       // swings with the hand
