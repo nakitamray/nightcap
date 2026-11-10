@@ -1,8 +1,11 @@
 import { AdvancedBloomFilter } from 'pixi-filters'
 import { Container, type Renderer } from 'pixi.js'
 import { NIGHT, type Conditions } from './conditions'
+import { celebrate, type Celebration } from './layers/celebration'
 import { DaySky, Fog, grading, Lightning, lookFor, mix, NightClouds, Snow } from './layers/daylight'
+import { Doorstep, type StepGift } from './layers/doorstep'
 import type { BaseHouse } from './layers/house-base'
+import type { Occasion } from './occasions'
 import { Rain } from './layers/rain'
 import { Sky } from './layers/sky'
 import { Reflection } from './layers/reflection'
@@ -25,9 +28,14 @@ export class StreetWorld extends Container {
   readonly lights = new Container()
   readonly street: BuiltTheme
   readonly house: BaseHouse
+  /** gifts waiting on the front step */
+  readonly doorstep = new Doorstep()
   private rain: Rain
   private reflection: Reflection
   private seed: number
+  private reducedMotion: boolean
+  private occasion: Occasion | null = null
+  private celebration: Celebration | null = null
   private rainTop = -900
   private conditions: Conditions = NIGHT
   private sunAt: { x: number; y: number; r: number } | null = null
@@ -45,6 +53,7 @@ export class StreetWorld extends Container {
     super()
     const { seed, reducedMotion: reduced } = options
     this.seed = seed
+    this.reducedMotion = reduced
     const street = (this.street = themes[options.theme].build({
       seed,
       lights: this.lights,
@@ -54,6 +63,7 @@ export class StreetWorld extends Container {
     this.upper.addChild(
       ...street.backdrop,
       street.house,
+      this.doorstep,
       ...street.props,
       this.lights,
       ...street.front,
@@ -85,6 +95,31 @@ export class StreetWorld extends Container {
       ...street.foreground,
       this.rain,
     )
+  }
+
+  setGifts(gifts: StepGift[]) {
+    this.doorstep.setGifts(gifts)
+  }
+
+  /**
+   * Dress the street up for an occasion, or take it all down again with
+   * null: lanterns and fireworks go up in front of it all, bunting goes on
+   * the house.
+   */
+  setOccasion(occasion: Occasion | null) {
+    if (occasion === this.occasion) return
+    this.occasion = occasion
+    this.celebration?.destroy()
+    this.celebration = null
+    if (!occasion) return
+    const c = (this.celebration = celebrate(
+      occasion,
+      this.seed,
+      this.house.windows,
+      this.reducedMotion,
+    ))
+    this.upper.addChildAt(c.front, this.upper.getChildIndex(this.house) + 1)
+    this.upper.addChild(c.sky)
   }
 
   /** rain has to start above whatever slice of sky is showing */
@@ -175,6 +210,8 @@ export class StreetWorld extends Container {
     this.street.update(t, dt, pointerX, reduced)
     this.house.update(t, dt, reduced)
     this.street.people.update(dt, reduced)
+    this.doorstep.update(dt, reduced)
+    this.celebration?.update(reduced ? dt * 0.5 : dt)
     this.rain.update(reduced ? dt * 0.4 : dt)
     const w = this.weather
     w.sky?.update(dt)
@@ -199,6 +236,7 @@ export class StreetWorld extends Container {
 
   override destroy() {
     this.clearWeather()
+    this.celebration?.destroy()
     this.reflection.destroy()
     super.destroy({ children: true })
   }

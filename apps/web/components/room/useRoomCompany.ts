@@ -1,13 +1,16 @@
 'use client'
 
 import type { Guest, Pet } from '@nightcap/scene'
+import type { GiftKind } from '@nightcap/scene/gifts'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Note } from '@/components/notes/NotesPanel'
+import { bothHandlers, useHouseNudges } from '@/components/nudges/useNudges'
 import { useCheckIn } from '@/components/useCheckIn'
 import { useHouseChannel, type NoteRow } from '@/components/useHouseChannel'
 import { supabaseBrowser } from '@/lib/supabase/browser'
 import { roomPlace, stillPlaying, whoIsIn, type Seen } from '@/lib/together'
 import type { Track } from '@/components/useNowPlaying'
+import type { Nudge } from '@/lib/moments'
 
 export interface Housemate {
   id: string
@@ -29,6 +32,10 @@ interface Options {
   initialNotes: Note[]
   /** what the person who lives here is playing, if you're visiting */
   initialOwnerTrack: (Track & { at: string }) | null
+  /** your own room in this house, for a note nudge to link to */
+  myRoomHref: string | null
+  /** show a nudge when something happens in the house */
+  nudge: (n: Nudge, href?: string) => void
 }
 
 /**
@@ -64,24 +71,46 @@ export function useRoomCompany(o: Options) {
     [names],
   )
 
-  useHouseChannel(supabase, live ? o.houseId : null, {
-    onSeen: (id, s) => setSeen((prev) => ({ ...prev, [id]: s })),
-    onNote: (row, event) => {
-      if (row.to_user !== o.userId || o.ownerId !== o.userId) return
-      setNotes((prev) => {
-        const rest = prev.filter((n) => n.id !== row.id)
-        return event === 'DELETE' ? rest : [toNote(row), ...rest]
-      })
-    },
-    onPlaying: (id, row) => {
-      if (id !== o.ownerId || id === o.userId) return
-      setOwnerTrack(
-        row
-          ? { title: row.title, artist: row.artist, art: row.art, url: row.url, at: row.updated_at }
-          : null,
-      )
-    },
+  const nudges = useHouseNudges({
+    supabase,
+    houseId: o.houseId,
+    houseName: '',
+    userId: o.userId,
+    names,
+    initialSeen: o.initialSeen,
+    goesAt: null,
+    myRoomHref: o.myRoomHref,
+    push: o.nudge,
   })
+
+  useHouseChannel(
+    supabase,
+    live ? o.houseId : null,
+    bothHandlers(nudges, {
+      onSeen: (id, s) => setSeen((prev) => ({ ...prev, [id]: s })),
+      onNote: (row, event) => {
+        if (row.to_user !== o.userId || o.ownerId !== o.userId) return
+        setNotes((prev) => {
+          const rest = prev.filter((n) => n.id !== row.id)
+          return event === 'DELETE' ? rest : [toNote(row), ...rest]
+        })
+      },
+      onPlaying: (id, row) => {
+        if (id !== o.ownerId || id === o.userId) return
+        setOwnerTrack(
+          row
+            ? {
+                title: row.title,
+                artist: row.artist,
+                art: row.art,
+                url: row.url,
+                at: row.updated_at,
+              }
+            : null,
+        )
+      },
+    }),
+  )
 
   // you're always in the room you're looking at; anyone else who checked in here lately too
   const guests: Guest[] = useMemo(() => {
@@ -134,7 +163,23 @@ export function useRoomCompany(o: Options) {
     [live, supabase, o.houseId, o.userId],
   )
 
+  /** resolves to an error message, or null once it's on their step */
+  const leaveGift = useCallback(
+    async (to: string, kind: GiftKind): Promise<string | null> => {
+      if (!live)
+        return 'this is only the demo, so nothing leaves the room. make a house to leave real gifts.'
+      const { error } = await supabase
+        .from('gifts')
+        .insert({ house_id: o.houseId, from_user: o.userId, to_user: to, kind })
+      if (!error) return null
+      console.error('leaving a gift', error)
+      return error.code === 'P0001' ? error.message : 'couldn’t leave that, try again'
+    },
+    [live, supabase, o.houseId, o.userId],
+  )
+
   return {
+    leaveGift,
     /** everyone else in this room right now */
     others: guests.filter((g) => !g.me),
     notes,

@@ -2,13 +2,20 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { houseAge, occasionFor, WARMING_MS } from '@nightcap/scene/occasions'
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import { forYouLine, stepGifts, type Gift } from '@/lib/gifts'
 import type { Member } from '@/lib/house'
+import { occasionLine } from '@/lib/moments'
 import { isHome } from '@/lib/presence'
 import { stillPlaying, whereabouts, type Seen } from '@/lib/together'
 import type { Theme } from '@/lib/themes'
 import { supabaseBrowser } from '@/lib/supabase/browser'
 import { ClaimCard } from './ClaimCard'
+import { HouseWarming, markWarmingSeen, sawWarming } from './gifts/HouseWarming'
+import { StepCard } from './gifts/StepCard'
+import { Nudges } from './nudges/Nudges'
+import { bothHandlers, useHouseNudges, useNudges } from './nudges/useNudges'
 import { InviteButton } from './InviteButton'
 import styles from './HouseView.module.css'
 import streetStyles from './Street.module.css'
@@ -36,6 +43,12 @@ interface Props {
   spotify: boolean
   /** a house still waiting for a friend goes away at this point */
   goesAt: string | null
+  /** gifts waiting on the front step */
+  initialGifts: Gift[]
+  /** when the house was made, for its birthday */
+  createdAt: string
+  /** when the second person moved in */
+  warmedAt: string | null
   marquee: string[]
   theme: Theme
 }
@@ -51,7 +64,10 @@ export function HouseView({
   unreadNotes,
   spotify,
   goesAt: initialGoesAt,
-  marquee,
+  initialGifts,
+  createdAt,
+  warmedAt: initialWarmedAt,
+  marquee: houseMarquee,
   theme,
 }: Props) {
   const router = useRouter()
@@ -62,6 +78,18 @@ export function HouseView({
   const [playing, setPlaying] = useState(initialPlaying)
   const [unread, setUnread] = useState(unreadNotes)
   const [goesAt, setGoesAt] = useState(initialGoesAt)
+  const [gifts, setGifts] = useState(initialGifts)
+  const [warmedAt, setWarmedAt] = useState(initialWarmedAt)
+  const [stepOpen, setStepOpen] = useState(false)
+  const [warmingDone, setWarmingDone] = useState(false)
+
+  // after a refresh (someone claimed a room or moved in) the server's word wins
+  const [fromServer, setFromServer] = useState({ initialRooms, initialGifts })
+  if (fromServer.initialRooms !== initialRooms || fromServer.initialGifts !== initialGifts) {
+    setFromServer({ initialRooms, initialGifts })
+    setMembers(initialRooms)
+    setGifts(initialGifts)
+  }
   const [now, setNow] = useState(() => Date.now())
   const [problem, setProblem] = useState('')
 
@@ -127,7 +155,62 @@ export function HouseView({
     router.refresh()
   }
 
-  const { hover, ready } = useStreetScene(hostRef, rooms, marquee, theme, goInside)
+  const names = useMemo(
+    () =>
+      new Map([
+        ...members.filter((m): m is Member => m !== null).map((m) => [m.id, m.name] as const),
+        ...roomless.map((p) => [p.id, p.name] as const),
+      ]),
+    [members, roomless],
+  )
+
+  // lanterns at new year, fireworks on the house's birthday, bunting when it's warmed
+  const zone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, [])
+  const occasion = useMemo(
+    () => occasionFor(new Date(now), { createdAt, warmedAt }, zone),
+    [now, createdAt, warmedAt, zone],
+  )
+  const marquee = useMemo(
+    () =>
+      occasion
+        ? [occasionLine(occasion, houseAge(new Date(), createdAt, zone)), ...houseMarquee]
+        : houseMarquee,
+    [occasion, houseMarquee, createdAt, zone],
+  )
+  const onStep = useMemo(() => stepGifts(gifts, userId), [gifts, userId])
+
+  const { hover, stepHover, ready, stepBounds } = useStreetScene(hostRef, {
+    rooms,
+    marquee,
+    theme,
+    gifts: onStep,
+    occasion,
+    onWindowClick: goInside,
+    onStepClick: () => setStepOpen(true),
+  })
+
+  async function takeIn(id: string) {
+    const before = gifts
+    setGifts((prev) => prev.filter((g) => g.id !== id))
+    const { error } = await supabase
+      .from('gifts')
+      .update({ taken_at: new Date().toISOString() })
+      .eq('id', id)
+    if (error) {
+      console.error('taking a gift in', error)
+      setGifts(before)
+      setProblem('couldn’t take that in, try again')
+    }
+  }
+
+  // the first time you see the house after it's warmed, it gets a moment
+  const inBrowser = useSyncExternalStore(noSubscription, yes, no)
+  const warming =
+    inBrowser &&
+    !warmingDone &&
+    !!warmedAt &&
+    now - Date.parse(warmedAt) < WARMING_MS &&
+    !sawWarming(houseId)
 
   // you're out front looking at the house; lights go out as check-ins get old
   useCheckIn(supabase, houseId, 'street')
@@ -138,23 +221,63 @@ export function HouseView({
   // and if you're listening to something, the house can see it from here too
   useNowPlaying(spotify)
 
-  useHouseChannel(supabase, houseId, {
-    onSeen: (id, s) => setSeen((prev) => ({ ...prev, [id]: s })),
-    onCurtains: (id, curtains) =>
-      setMembers((prev) => prev.map((m) => (m && m.id === id ? { ...m, curtains } : m))),
-    onNote: (note, event) => {
-      if (note.to_user !== userId) return
-      if (event === 'INSERT') setUnread((n) => n + 1)
-      else if (event === 'UPDATE' && note.read_at) setUnread((n) => Math.max(0, n - 1))
-    },
-    onPlaying: (id, row) =>
-      setPlaying((prev) => {
-        const next = { ...prev }
-        if (row) next[id] = { title: row.title, artist: row.artist, at: row.updated_at }
-        else delete next[id]
-        return next
-      }),
+  const nudges = useNudges()
+  const nudgeHandlers = useHouseNudges({
+    supabase,
+    houseId,
+    houseName,
+    userId,
+    names,
+    initialSeen,
+    goesAt,
+    myRoomHref: myRoom >= 0 ? `/h/${houseId}/room/${myRoom}` : null,
+    push: nudges.push,
   })
+
+  useHouseChannel(
+    supabase,
+    houseId,
+    bothHandlers(nudgeHandlers, {
+      onSeen: (id, s) => setSeen((prev) => ({ ...prev, [id]: s })),
+      onCurtains: (id, curtains) =>
+        setMembers((prev) => prev.map((m) => (m && m.id === id ? { ...m, curtains } : m))),
+      onNote: (note, event) => {
+        if (note.to_user !== userId) return
+        if (event === 'INSERT') setUnread((n) => n + 1)
+        else if (event === 'UPDATE' && note.read_at) setUnread((n) => Math.max(0, n - 1))
+      },
+      onPlaying: (id, row) =>
+        setPlaying((prev) => {
+          const next = { ...prev }
+          if (row) next[id] = { title: row.title, artist: row.artist, at: row.updated_at }
+          else delete next[id]
+          return next
+        }),
+      onGift: (row) =>
+        setGifts((prev) => {
+          const rest = prev.filter((g) => g.id !== row.id)
+          if (row.taken_at) return rest
+          return [
+            ...rest,
+            {
+              id: row.id,
+              kind: row.kind,
+              from: row.from_user,
+              fromName: names.get(row.from_user) ?? 'someone',
+              to: row.to_user,
+              toName: names.get(row.to_user) ?? 'someone',
+              createdAt: row.created_at,
+            },
+          ]
+        }),
+      // a new face: fetch the house again so they're on the street
+      onMovedIn: () => router.refresh(),
+      onWarmed: (at) => {
+        setWarmedAt(at)
+        setGoesAt(null)
+      },
+    }),
+  )
 
   async function keepHouse() {
     const { data, error } = await supabase.rpc('keep_house', { h: houseId })
@@ -189,12 +312,53 @@ export function HouseView({
   const unplaced = roomless.filter((p) => p.id !== userId).map((p) => p.name)
   const home = residents.filter((r) => r.home).length
   const hovered = hover ? (rooms[hover.index] ?? null) : null
+  const giftsForYou = forYouLine(gifts, userId)
 
   return (
     <main className={streetStyles.street}>
       <div ref={hostRef} className={streetStyles.canvas} data-ready={ready} />
 
       {hover && <WindowCard member={hovered} bounds={hover.bounds} />}
+      {stepHover && !stepOpen && (
+        <p
+          className={styles.stepTip}
+          style={{
+            left: stepHover.bounds.x + stepHover.bounds.width / 2,
+            top: stepHover.bounds.y - 8,
+          }}
+          role="status"
+        >
+          {giftsForYou ?? `${gifts.length === 1 ? 'a gift' : `${gifts.length} gifts`} on the step`}
+        </p>
+      )}
+
+      {stepOpen && (
+        <StepCard
+          gifts={gifts}
+          userId={userId}
+          bounds={stepBounds()}
+          onTakeIn={takeIn}
+          onClose={() => setStepOpen(false)}
+        />
+      )}
+
+      {warming && (
+        <HouseWarming
+          houseName={houseName}
+          others={[...names].filter(([id]) => id !== userId).map(([, name]) => name)}
+          onClose={() => {
+            markWarmingSeen(houseId)
+            setWarmingDone(true)
+          }}
+        />
+      )}
+
+      <Nudges
+        shown={nudges.shown}
+        onDismiss={nudges.dismiss}
+        allowed={nudges.allowed}
+        onAsk={nudges.ask}
+      />
 
       {everyone < 2 && (
         <p className={styles.banner} data-ready={ready}>
@@ -246,6 +410,18 @@ export function HouseView({
             </button>
           </>
         )}
+        {gifts.length > 0 && (
+          <button type="button" className={styles.button} onClick={() => setStepOpen(true)}>
+            {giftsForYou ? (
+              <span className={notesStyles.badge}>
+                the step{' '}
+                <b aria-label={giftsForYou}>{gifts.filter((g) => g.to === userId).length}</b>
+              </span>
+            ) : (
+              'the step'
+            )}
+          </button>
+        )}
         <InviteButton houseId={houseId} userId={userId} />
         <button type="button" className={styles.button} onClick={signOut}>
           sign out
@@ -276,6 +452,10 @@ export function HouseView({
     </main>
   )
 }
+
+const noSubscription = () => () => {}
+const yes = () => true
+const no = () => false
 
 function listNames(names: string[]) {
   if (names.length === 1) return `${names[0]} is`

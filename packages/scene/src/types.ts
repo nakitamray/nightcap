@@ -1,4 +1,6 @@
 import type { Conditions } from './conditions'
+import type { StepGift } from './layers/doorstep'
+import type { Occasion } from './occasions'
 import type { ThemeId } from './themes/types'
 
 export type Curtains = 'open' | 'drawn'
@@ -20,9 +22,18 @@ export interface WindowEvent {
   bounds: { x: number; y: number; width: number; height: number }
 }
 
+export type { StepGift }
+
+/** the gifts on the front step, in screen pixels */
+export interface StepEvent {
+  bounds: { x: number; y: number; width: number; height: number }
+}
+
 export interface SceneEvents extends Record<string, unknown> {
   'window:hover': WindowEvent | null
   'window:click': WindowEvent
+  'step:hover': StepEvent | null
+  'step:click': StepEvent
   ready: undefined
 }
 
@@ -35,4 +46,8 @@ export interface SceneOptions {
   reducedMotion?: boolean
   /** time of day and weather; a night street if left out */
   conditions?: Conditions
+  /** gifts waiting on the front step */
+  gifts?: StepGift[]
+  /** what the street is dressed up for, if anything */
+  occasion?: Occasion | null
 }

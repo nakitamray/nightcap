@@ -88,6 +88,8 @@ select t.ok(not exists (select 1 from public.invite_preview('stale')), 'expired 
 select t.ok(not exists (select 1 from public.houses), 'you can''t see a house before you join');
 select t.ok(public.join_house('letmein') = (select house from ids), 'joining with an invite');
 select t.ok((select count(*) from public.memberships) = 2, 'members see who lives there');
+select t.ok((select warmed_at from public.houses) is not null,
+  'the second person moving in warms the house');
 
 -- claiming rooms --------------------------------------------------------------
 
@@ -258,6 +260,51 @@ select t.fails($$insert into public.notes (house_id, from_user, to_user, body)
   values ((select house from ids), auth.uid(), '00000000-0000-0000-0000-00000000000a', 'one more')$$,
   'thirty notes a day each');
 
+-- gifts on the step ------------------------------------------------------------
+
+reset role;
+select t.login(:bob);
+insert into public.gifts (house_id, from_user, to_user, kind)
+  values ((select house from ids), auth.uid(), :alice, 'flowers');
+select t.fails($$insert into public.gifts (house_id, from_user, to_user, kind)
+  values ((select house from ids), '00000000-0000-0000-0000-00000000000a', auth.uid(), 'cake')$$,
+  'you can''t leave a gift as someone else');
+select t.fails($$insert into public.gifts (house_id, from_user, to_user, kind)
+  values ((select house from ids), auth.uid(), '00000000-0000-0000-0000-00000000000c', 'cake')$$,
+  'gifts only go to people who live there');
+select t.fails($$insert into public.gifts (house_id, from_user, to_user, kind)
+  values ((select house from ids), auth.uid(), '00000000-0000-0000-0000-00000000000a', 'a pony')$$,
+  'only things that fit on a step');
+select t.ok(t.rows($$update public.gifts set taken_at = now()$$) = 0,
+  'you can''t take back a gift once it''s left');
+select t.fails($$delete from public.gifts$$, 'or throw it away');
+insert into public.gifts (house_id, from_user, to_user, kind)
+  select (select house from ids), auth.uid(), :alice, 'candle' from generate_series(2, 6);
+select t.fails($$insert into public.gifts (house_id, from_user, to_user, kind)
+  values ((select house from ids), auth.uid(), '00000000-0000-0000-0000-00000000000a', 'tea')$$,
+  'six gifts and the step is full');
+reset role;
+select t.login(:alice);
+select t.ok((select count(*) from public.gifts) = 6, 'everyone in the house can see the step');
+select t.ok(t.rows($$update public.gifts set taken_at = now() where kind = 'flowers'$$) = 1,
+  'you can take in gifts left for you');
+reset role;
+select t.login(:bob);
+insert into public.gifts (house_id, from_user, to_user, kind)
+  values ((select house from ids), auth.uid(), :alice, 'tea');
+select t.ok(true, 'taking one in makes room on the step');
+reset role;
+select t.login(:alice);
+select t.fails($$update public.gifts set kind = 'wine'$$, 'nobody can swap what a gift is');
+reset role;
+select t.login(:carol);
+select t.ok(not exists (select 1 from public.gifts), 'outsiders can''t see the step');
+select t.fails($$insert into public.gifts (house_id, from_user, to_user, kind)
+  values ((select house from ids), auth.uid(), '00000000-0000-0000-0000-00000000000b', 'cake')$$,
+  'or leave anything on it');
+reset role;
+select t.login(:bob);
+
 -- now playing ---------------------------------------------------------------------
 
 insert into public.now_playing (user_id, title, artist, url)
@@ -308,3 +355,5 @@ reset role;
 select t.login(:alice);
 select t.fails($$select public.handle_new_user()$$, 'trigger functions can''t be called directly');
 select t.fails($$select public.notes_slow_down()$$, 'not even the notes limit');
+select t.fails($$select public.gifts_fit_on_the_step()$$, 'or the gift limit');
+select t.fails($$select public.warm_the_house()$$, 'or the house-warming');

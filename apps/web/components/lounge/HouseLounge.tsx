@@ -3,6 +3,8 @@
 import type { Guest, ThemeId } from '@nightcap/scene'
 import { useEffect, useMemo, useState } from 'react'
 import type { Housemate } from '@/components/room/useRoomCompany'
+import { Nudges } from '@/components/nudges/Nudges'
+import { bothHandlers, useHouseNudges, useNudges } from '@/components/nudges/useNudges'
 import { useCheckIn } from '@/components/useCheckIn'
 import { useHouseChannel } from '@/components/useHouseChannel'
 import { supabaseBrowser } from '@/lib/supabase/browser'
@@ -39,9 +41,26 @@ export function HouseLounge({
   }, [])
 
   useCheckIn(supabase, houseId, 'lounge')
-  useHouseChannel(supabase, houseId, {
-    onSeen: (id, s) => setSeen((prev) => ({ ...prev, [id]: s })),
+  const nudges = useNudges()
+  const names = useMemo(() => new Map(housemates.map((h) => [h.id, h.name])), [housemates])
+  const nudgeHandlers = useHouseNudges({
+    supabase,
+    houseId,
+    houseName,
+    userId,
+    names,
+    initialSeen,
+    goesAt: null,
+    myRoomHref: myRoom != null ? `/h/${houseId}/room/${myRoom}` : null,
+    push: nudges.push,
   })
+  useHouseChannel(
+    supabase,
+    houseId,
+    bothHandlers(nudgeHandlers, {
+      onSeen: (id, s) => setSeen((prev) => ({ ...prev, [id]: s })),
+    }),
+  )
 
   // you first, then everyone else in the order they live in the house, so
   // nobody swaps seats when someone new comes in
@@ -55,13 +74,21 @@ export function HouseLounge({
   }, [seen, now, userId, housemates])
 
   return (
-    <LoungeView
-      theme={theme}
-      seed={houseId}
-      people={people}
-      backHref={`/h/${houseId}`}
-      backLabel={`back to ${houseName}`}
-      myRoomHref={myRoom != null ? `/h/${houseId}/room/${myRoom}` : null}
-    />
+    <>
+      <Nudges
+        shown={nudges.shown}
+        onDismiss={nudges.dismiss}
+        allowed={nudges.allowed}
+        onAsk={nudges.ask}
+      />
+      <LoungeView
+        theme={theme}
+        seed={houseId}
+        people={people}
+        backHref={`/h/${houseId}`}
+        backLabel={`back to ${houseName}`}
+        myRoomHref={myRoom != null ? `/h/${houseId}/room/${myRoom}` : null}
+      />
+    </>
   )
 }

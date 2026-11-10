@@ -7,4 +7,5 @@ export interface HouseRow {
   marquee: string[]
   created_at: string
   keep_until: string | null
+  warmed_at: string | null
 }

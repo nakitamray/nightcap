@@ -4,7 +4,9 @@ import { WindowCardFrame } from '@/components/WindowCardFrame'
 import { WindowWallBackground } from '@/components/WindowWallBackground'
 import styles from '@/components/NightCard.module.css'
 import { HouseView } from '@/components/HouseView'
+import type { Gift } from '@/lib/gifts'
 import type { Member } from '@/lib/house'
+import { goesAt as goingAt } from '@/lib/moments'
 import { spotifyConfigured } from '@/lib/spotify'
 import { currentUserId, supabaseServer } from '@/lib/supabase/server'
 import type { HouseRow } from '@/lib/supabase/types'
@@ -20,7 +22,7 @@ export default async function HousePage({ params }: { params: Promise<{ id: stri
   // row level security means this comes back empty unless you live here
   const { data: house, error } = await supabase
     .from('houses')
-    .select('id, name, theme, marquee, created_at, keep_until')
+    .select('id, name, theme, marquee, created_at, keep_until, warmed_at')
     .eq('id', id)
     .maybeSingle<HouseRow>()
   // a real error (permissions, a missing table) shouldn't pretend to be a 404
@@ -33,7 +35,7 @@ export default async function HousePage({ params }: { params: Promise<{ id: stri
     .eq('house_id', id)
   if (roomsError) return <HouseError message={roomsError.message} />
   const ids = (rooms ?? []).map((r) => r.user_id)
-  const [people, presence, playing, notes, spotify] = await Promise.all([
+  const [people, presence, playing, notes, spotify, step] = await Promise.all([
     supabase.from('profiles').select('id, display_name, city, time_zone').in('id', ids),
     supabase.from('presence').select('user_id, seen_at, place').eq('house_id', id),
     supabase.from('now_playing').select('user_id, title, artist, updated_at').in('user_id', ids),
@@ -46,9 +48,15 @@ export default async function HousePage({ params }: { params: Promise<{ id: stri
     spotifyConfigured()
       ? supabase.from('spotify_links').select('user_id').eq('user_id', userId).maybeSingle()
       : Promise.resolve({ data: null, error: null }),
+    supabase
+      .from('gifts')
+      .select('id, kind, from_user, to_user, created_at')
+      .eq('house_id', id)
+      .is('taken_at', null)
+      .order('created_at'),
   ])
   // the street still works without names, lights or music, so note these and carry on
-  for (const [what, r] of Object.entries({ people, presence, playing, notes, spotify }))
+  for (const [what, r] of Object.entries({ people, presence, playing, notes, spotify, step }))
     if (r.error) console.error(`house ${id}: ${what}`, r.error)
   const seen = Object.fromEntries(
     (presence.data ?? []).map((p) => [p.user_id, { at: p.seen_at, place: p.place }]),
@@ -60,14 +68,7 @@ export default async function HousePage({ params }: { params: Promise<{ id: stri
     ]),
   )
   const waiting = (rooms ?? []).length < 2
-  const goesAt = waiting
-    ? new Date(
-        Math.max(
-          Date.parse(house.created_at) + 7 * 24 * 3600_000,
-          house.keep_until ? Date.parse(house.keep_until) : 0,
-        ),
-      ).toISOString()
-    : null
+  const goesAt = waiting ? goingAt(house.created_at, house.keep_until) : null
 
   const members: (Member | null)[] = Array.from({ length: 12 }, () => null)
   const roomless: { id: string; name: string }[] = []
@@ -89,6 +90,17 @@ export default async function HousePage({ params }: { params: Promise<{ id: stri
     }
   }
 
+  const nameOf = (uid: string) => people.data?.find((p) => p.id === uid)?.display_name ?? '?'
+  const gifts: Gift[] = (step.data ?? []).map((g) => ({
+    id: g.id,
+    kind: g.kind,
+    from: g.from_user,
+    fromName: nameOf(g.from_user),
+    to: g.to_user,
+    toName: nameOf(g.to_user),
+    createdAt: g.created_at,
+  }))
+
   const marquee = house.marquee.length ? house.marquee : [house.name.toUpperCase()]
   return (
     <HouseView
@@ -102,6 +114,9 @@ export default async function HousePage({ params }: { params: Promise<{ id: stri
       unreadNotes={notes.count ?? 0}
       spotify={!!spotify.data}
       goesAt={goesAt}
+      initialGifts={gifts}
+      createdAt={house.created_at}
+      warmedAt={house.warmed_at}
       marquee={marquee}
       theme={isTheme(house.theme) ? house.theme : 'paris'}
     />

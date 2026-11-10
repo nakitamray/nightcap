@@ -2,6 +2,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { useEffect, useRef } from 'react'
+import type { GiftKind } from '@nightcap/scene/gifts'
 import type { Seen } from '@/lib/together'
 
 export interface NoteRow {
@@ -12,6 +13,16 @@ export interface NoteRow {
   body: string
   created_at: string
   read_at: string | null
+}
+
+export interface GiftRow {
+  id: string
+  house_id: string
+  from_user: string
+  to_user: string
+  kind: GiftKind
+  created_at: string
+  taken_at: string | null
 }
 
 export interface PlayingRow {
@@ -28,11 +39,17 @@ export interface HouseHandlers {
   onCurtains?: (userId: string, curtains: 'open' | 'drawn') => void
   onNote?: (note: NoteRow, event: 'INSERT' | 'UPDATE' | 'DELETE') => void
   onPlaying?: (userId: string, row: PlayingRow | null) => void
+  /** a gift left on the step, or taken in (taken_at set) */
+  onGift?: (gift: GiftRow) => void
+  /** someone new moved in */
+  onMovedIn?: (userId: string) => void
+  /** the house warmed up: its second person moved in */
+  onWarmed?: (at: string) => void
 }
 
 /**
  * One live channel per page for everything that changes in a house: who's
- * where, curtains, notes, music. They all arrive as database changes on a
+ * where, curtains, notes, gifts, music, who's moving in. They all arrive as database changes on a
  * private channel only people who live here can join, and realtime checks
  * every row against the table's own policies before passing it on.
  */
@@ -70,6 +87,26 @@ export function useHouseChannel(
           ({ new: row }) => {
             const r = row as { user_id: string; curtains: 'open' | 'drawn' }
             ref.current.onCurtains?.(r.user_id, r.curtains)
+          },
+        )
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'memberships', filter: inHouse },
+          ({ new: row }) => ref.current.onMovedIn?.((row as { user_id: string }).user_id),
+        )
+        .on(
+          'postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'houses', filter: `id=eq.${houseId}` },
+          ({ new: row }) => {
+            const at = (row as { warmed_at?: string | null }).warmed_at
+            if (at) ref.current.onWarmed?.(at)
+          },
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'gifts', filter: inHouse },
+          ({ new: row }) => {
+            if ((row as GiftRow).id) ref.current.onGift?.(row as GiftRow)
           },
         )
         .on(

@@ -26,12 +26,31 @@ Tokyo — and everything on screen is drawn in code, with no image assets.
   town they've pinned on their map).
 - **Notes.** Leave a note in someone's room and it's slipped under their door.
   Unread notes lie folded on the floor until opened.
+- **Gifts on the step.** From someone's room, leave them flowers, a cake, a
+  record or something else small. It waits on the front step, drawn in the
+  street, until they take it in. Everyone in the house can see what's on the
+  step and who it's for.
+- **Nudges.** A note or gift for you, a friend getting home, someone moving
+  in, or a house in its last two days shows up as a small notice on any
+  page in the house, and as a system notification if the tab is in the
+  background and you've allowed it. The keyring shows what's waiting in each
+  house.
+- **House-warming.** When the second person moves in, the house gets a
+  moment: a card for everyone the next time they come home, and strings of
+  lights across the front for three days.
+- **Occasions.** Sky lanterns go up from six on New Year's Eve through New
+  Year's Day, and fireworks go off over the roofs on every anniversary of the
+  day the house was made. Both follow your local clock. With reduced motion
+  on, the lanterns drift slowly and birthdays get lights instead of
+  fireworks.
 - **Living room.** A shared lounge, different for every city and every house,
   with a seat for each person that lights up while they're in.
 - **Spotify (optional).** A record player on the wall that spins while you're
   listening, with the current track shown on your window's card.
 - **Demo and dev modes.** `/demo` is a street of made-up residents that needs
-  no backend. `/dev` lets you explore every city and room locally.
+  no backend. `/dev` lets you explore every city and room locally; add
+  `?occasion=new-year`, `birthday` or `house-warming` to a street to see it
+  dressed up.
 
 ## Tech stack
 
@@ -152,11 +171,12 @@ Privacy is enforced in the database with row level security, not in the UI:
 only residents can read a house, its rooms and its people. Creating, joining
 and claiming go through `create_house`, `join_house` and `claim_room`, which
 enforce the limits. Map pins are rounded to roughly 10 km by a trigger,
-layouts have a size cap, and houses can't be edited once created.
+layouts have a size cap, and houses can't be edited once created. The
+step holds at most six gifts per person, and each person can leave ten a day.
 
 `supabase/tests/policies.sql` signs in as several test users and verifies
 these rules: outsiders see nothing, nobody can change another person's room,
-the house and member limits hold, and signed-out users can't call protected
+the house, member and gift limits hold, and signed-out users can't call protected
 functions. CI runs it against Postgres on every push:
 
 ```sh

@@ -1,6 +1,14 @@
 export { StreetScene } from './scene'
 export { WindowWall } from './wall'
-export type { Curtains, Resident, Rooms, SceneOptions, WindowEvent } from './types'
+export type {
+  Curtains,
+  Resident,
+  Rooms,
+  SceneOptions,
+  StepEvent,
+  StepGift,
+  WindowEvent,
+} from './types'
 export { THEME_IDS } from './themes/types'
 export type { ThemeId } from './themes/types'
 export { RoomScene } from './room/room-scene'
@@ -12,3 +20,5 @@ export * from './conditions'
 export type { Guest } from './guest'
 export { LoungeScene } from './lounge/lounge-scene'
 export type { LoungeOptions } from './lounge/lounge-scene'
+export * from './gifts'
+export * from './occasions'

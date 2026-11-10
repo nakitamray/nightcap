@@ -8,7 +8,8 @@ import type { BaseHouse } from './layers/house-base'
 import type { RoomWindow } from './layers/window'
 import { palette } from './palette'
 import { StreetWorld } from './street-world'
-import type { Rooms, SceneEvents, SceneOptions, WindowEvent } from './types'
+import type { Occasion } from './occasions'
+import type { Rooms, SceneEvents, SceneOptions, StepEvent, StepGift, WindowEvent } from './types'
 
 const DEFAULT_SEED = 1931
 
@@ -26,6 +27,7 @@ export class StreetScene {
   private destroyed = false
   private rooms: Rooms = []
   private hovered: RoomWindow | null = null
+  private overStep = false
 
   private constructor(
     private app: Application,
@@ -73,15 +75,23 @@ export class StreetScene {
     // pointing at the wrong place when it hit-tests.
     app.stage.on('pointermove', (e) => {
       this.pointerX = (e.global.x / app.screen.width) * 2 - 1
-      this.hover(this.windowAt(e.global))
+      const w = this.windowAt(e.global)
+      this.hover(w)
+      this.hoverStep(!w && this.onStep(e.global))
     })
     app.stage.on('pointertap', (e) => {
       const w = this.windowAt(e.global)
       if (w) this.events.emit('window:click', this.windowEvent(w))
+      else if (this.onStep(e.global)) this.events.emit('step:click', this.stepEvent()!)
     })
-    app.canvas.addEventListener('pointerleave', () => this.hover(null))
+    app.canvas.addEventListener('pointerleave', () => {
+      this.hover(null)
+      this.hoverStep(false)
+    })
 
     if (options.conditions) this.world.setConditions(options.conditions)
+    if (options.gifts) this.world.setGifts(options.gifts)
+    if (options.occasion) this.world.setOccasion(options.occasion)
     this.house.marquee.setLines(options.marquee)
     this.setRooms(options.rooms)
 
@@ -107,6 +117,27 @@ export class StreetScene {
     w?.setHovered(true)
     this.app.canvas.style.cursor = w ? 'pointer' : ''
     this.events.emit('window:hover', w ? this.windowEvent(w) : null)
+  }
+
+  private onStep(global: PointData) {
+    const p = this.world.toLocal(global)
+    return this.world.doorstep.contains(p.x, p.y)
+  }
+
+  private hoverStep(over: boolean) {
+    if (over === this.overStep) return
+    this.overStep = over
+    if (!this.hovered) this.app.canvas.style.cursor = over ? 'pointer' : ''
+    this.events.emit('step:hover', over ? this.stepEvent() : null)
+  }
+
+  /** where the gifts are on screen, or null if the step is empty */
+  stepEvent(): StepEvent | null {
+    const a = this.world.doorstep.area
+    if (!a) return null
+    const topLeft = this.world.toGlobal({ x: a.x, y: a.y })
+    const s = this.world.scale.x
+    return { bounds: { x: topLeft.x, y: topLeft.y, width: a.width * s, height: a.height * s } }
   }
 
   private windowEvent(w: RoomWindow): WindowEvent {
@@ -161,6 +192,15 @@ export class StreetScene {
     const next = [...this.rooms]
     next[index] = { ...room, home }
     this.setRooms(next)
+  }
+
+  setGifts(gifts: StepGift[]) {
+    this.world.setGifts(gifts)
+    if (!gifts.length) this.hoverStep(false)
+  }
+
+  setOccasion(occasion: Occasion | null) {
+    this.world.setOccasion(occasion)
   }
 
   setMarquee(lines: string[]) {

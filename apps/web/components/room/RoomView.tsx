@@ -3,7 +3,10 @@
 import type { Conditions, Pin, ThemeId, Thing, Weather } from '@nightcap/scene'
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import { GiftPicker } from '@/components/gifts/GiftPicker'
 import { NoteComposer } from '@/components/notes/NoteComposer'
+import { Nudges } from '@/components/nudges/Nudges'
+import { useNudges } from '@/components/nudges/useNudges'
 import { NotesPanel, type Note } from '@/components/notes/NotesPanel'
 import notesStyles from '@/components/notes/Notes.module.css'
 import { useNowPlaying, type Track } from '@/components/useNowPlaying'
@@ -124,14 +127,17 @@ export function RoomView({
   const [saved, setSaved] = useState<'saved' | 'saving' | 'error'>('saved')
   const [place, setPlace] = useState(initialPlace)
   const [fakeTrack, setFakeTrack] = useState<Track | null>(null)
-  const [panel, setPanel] = useState<'notes' | 'write' | null>(null)
+  const [panel, setPanel] = useState<'notes' | 'write' | 'gift' | null>(null)
   const [writeTo, setWriteTo] = useState<{ id: string; name: string } | null>(null)
   // the sandbox warning shows the first time you change something
   const [warned, setWarned] = useState<'no' | 'showing' | 'done'>('no')
   const saveTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   useEffect(() => () => clearTimeout(saveTimer.current), [])
 
+  const nudges = useNudges()
   const company = useRoomCompany({
+    myRoomHref: ownerId === userId ? null : (myRoomHref ?? null),
+    nudge: nudges.push,
     live: mode !== 'sandbox',
     houseId,
     userId,
@@ -258,16 +264,27 @@ export function RoomView({
         ) : (
           ownerId &&
           owner && (
-            <button
-              type="button"
-              className={styles.button}
-              onClick={() => {
-                setWriteTo({ id: ownerId, name: owner })
-                setPanel('write')
-              }}
-            >
-              leave {owner} a note
-            </button>
+            <>
+              <button
+                type="button"
+                className={styles.button}
+                data-on={panel === 'write'}
+                onClick={() => {
+                  setWriteTo({ id: ownerId, name: owner })
+                  setPanel('write')
+                }}
+              >
+                leave {owner} a note
+              </button>
+              <button
+                type="button"
+                className={styles.button}
+                data-on={panel === 'gift'}
+                onClick={() => setPanel(panel === 'gift' ? null : 'gift')}
+              >
+                leave a gift
+              </button>
+            </>
           )
         )}
         {company.others.length > 0 && (
@@ -315,6 +332,21 @@ export function RoomView({
           onClose={() => setPanel(null)}
         />
       )}
+
+      {panel === 'gift' && ownerId && owner && (
+        <GiftPicker
+          to={owner}
+          onLeave={(kind) => company.leaveGift(ownerId, kind)}
+          onClose={() => setPanel(null)}
+        />
+      )}
+
+      <Nudges
+        shown={nudges.shown}
+        onDismiss={nudges.dismiss}
+        allowed={mode === 'sandbox' ? 'unsupported' : nudges.allowed}
+        onAsk={nudges.ask}
+      />
 
       {warned === 'showing' && (
         <div className={styles.notice} role="status">
