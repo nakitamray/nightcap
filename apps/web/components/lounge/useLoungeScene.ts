@@ -11,6 +11,7 @@ export function useLoungeScene(
   const sceneRef = useRef<LoungeScene | null>(null)
   const initial = useRef(opts)
   const [ready, setReady] = useState(false)
+  const [failed, setFailed] = useState(false)
 
   useEffect(() => {
     const el = host.current
@@ -18,12 +19,17 @@ export function useLoungeScene(
     let cancelled = false
     let scene: LoungeScene | null = null
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    import('@nightcap/scene').then(async ({ LoungeScene }) => {
-      const s = await LoungeScene.create(el, { ...initial.current, reducedMotion })
-      if (cancelled) return s.destroy()
-      scene = sceneRef.current = s
-      setReady(true)
-    })
+    import('@nightcap/scene')
+      .then(async ({ LoungeScene }) => {
+        const s = await LoungeScene.create(el, { ...initial.current, reducedMotion })
+        if (cancelled) return s.destroy()
+        scene = sceneRef.current = s
+        setReady(true)
+      })
+      .catch((err) => {
+        console.error('drawing the living room', err)
+        if (!cancelled) setFailed(true)
+      })
     return () => {
       cancelled = true
       scene?.destroy()
@@ -35,5 +41,5 @@ export function useLoungeScene(
     if (ready) sceneRef.current?.setPeople(opts.people)
   }, [opts.people, ready])
 
-  return ready
+  return { ready, failed }
 }

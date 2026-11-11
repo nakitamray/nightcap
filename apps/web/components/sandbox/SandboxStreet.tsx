@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useCallback, useRef } from 'react'
 import houseStyles from '@/components/HouseView.module.css'
 import streetStyles from '@/components/Street.module.css'
+import { SceneFailed } from '@/components/SceneFailed'
 import { useStreetScene } from '@/components/useStreetScene'
 import { WindowCard } from '@/components/WindowCard'
 import { demoRooms, marqueeFor, type Member } from '@/lib/house'
@@ -21,7 +22,13 @@ export function SandboxStreet({ theme, base }: { theme: Theme; base: '/demo' | '
     (index: number) => router.push(`${base}/${theme}/room/${index}`),
     [router, base, theme],
   )
-  const { hover, ready } = useStreetScene(hostRef, demoRooms, marqueeFor(theme), theme, open)
+  const { hover, ready, failed } = useStreetScene(
+    hostRef,
+    demoRooms,
+    marqueeFor(theme),
+    theme,
+    open,
+  )
 
   const residents = demoRooms.filter((r): r is Member => r !== null)
   const home = residents.filter((r) => r.home).length
@@ -30,6 +37,7 @@ export function SandboxStreet({ theme, base }: { theme: Theme; base: '/demo' | '
   return (
     <main className={streetStyles.street}>
       <div ref={hostRef} className={streetStyles.canvas} data-ready={ready} />
+      {failed && <SceneFailed what="the street" />}
       {hover && <WindowCard member={hovered} bounds={hover.bounds} />}
 
       <nav className={houseStyles.controls} data-ready={ready}>

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { refresh, spotifyConfigured } from '@/lib/spotify'
+import { accessToken, spotifyConfigured, spotifyGet } from '@/lib/spotify'
 import { currentUserId, supabaseServer } from '@/lib/supabase/server'
 
 const NOTHING = { playing: false }
@@ -48,39 +48,17 @@ export async function GET() {
   if (!userId) return NextResponse.json(NOTHING, { status: 401 })
 
   const supabase = await supabaseServer()
-  const { data: link } = await supabase
-    .from('spotify_links')
-    .select('refresh_token, access_token, expires_at')
-    .eq('user_id', userId)
-    .maybeSingle()
-  if (!link) return NextResponse.json(NOTHING)
+  const got = await accessToken(supabase, userId)
+  if ('problem' in got) return NextResponse.json({ ...NOTHING, problem: got.problem })
 
-  let token = link.access_token
-  // refresh a minute early so a token doesn't die halfway through a request
-  if (!token || !link.expires_at || new Date(link.expires_at).getTime() < Date.now() + 60_000) {
-    const fresh = await refresh(link.refresh_token)
-    if (!fresh) return NextResponse.json(NOTHING)
-    token = fresh.access_token
-    await supabase
-      .from('spotify_links')
-      .update({
-        access_token: fresh.access_token,
-        refresh_token: fresh.refresh_token ?? link.refresh_token,
-        expires_at: new Date(Date.now() + fresh.expires_in * 1000).toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('user_id', userId)
-  }
-
-  const res = await fetch(
-    'https://api.spotify.com/v1/me/player/currently-playing?additional_types=episode',
-    {
-      headers: { Authorization: `Bearer ${token}` },
-      cache: 'no-store',
-    },
+  const res = await spotifyGet<Playing>(
+    got.token,
+    '/me/player/currently-playing?additional_types=episode',
   )
+  // spotify's development mode only lets in accounts added in its dashboard
+  if (res.status === 403) return NextResponse.json({ ...NOTHING, problem: 'not-allowed' })
   // 204 means nothing's on
-  const body: Playing | null = res.status === 200 ? await res.json() : null
+  const body = res.body
   if (!body?.is_playing || !body.item) {
     await share(supabase, userId, null)
     return NextResponse.json(NOTHING)

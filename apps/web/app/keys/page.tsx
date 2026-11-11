@@ -1,4 +1,6 @@
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
+import { MoveOut } from '@/components/account/MoveOut'
 import { CityCard, EmptyWindowCard } from '@/components/CityCard'
 import cardStyles from '@/components/CityCard.module.css'
 import { Gallery } from '@/components/Gallery'
@@ -47,7 +49,12 @@ export default async function Keyring() {
     <Gallery
       title="YOUR KEYRING"
       sub={`${keys.length} of ${MAX_HOUSES} houses · signed in as ${me?.username ?? myName}`}
-      actions={<SignOut />}
+      actions={
+        <>
+          <Link href="/account">account</Link>
+          <SignOut />
+        </>
+      }
     >
       {keys.map((h) => {
         const members = (rooms ?? [])
@@ -70,6 +77,7 @@ export default async function Keyring() {
                 <InviteButton houseId={h.id} userId={userId} />
               </div>
             )}
+            <MoveOut houseId={h.id} name={h.name} last={members.length === 1} />
           </CityCard>
         )
       })}

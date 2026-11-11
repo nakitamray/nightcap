@@ -8,9 +8,16 @@ export const metadata = { title: 'Sign in · Nightcap' }
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string; verified?: string }>
+  searchParams: Promise<{ next?: string; verified?: string; goodbye?: string }>
 }) {
-  const { next, verified } = await searchParams
+  const { next, verified, goodbye } = await searchParams
   if (await currentUserId()) redirect(safePath(next))
-  return <AuthScreen mode="signin" next={safePath(next)} verified={verified === '1'} />
+  return (
+    <AuthScreen
+      mode="signin"
+      next={safePath(next)}
+      verified={verified === '1'}
+      goodbye={goodbye === '1'}
+    />
+  )
 }

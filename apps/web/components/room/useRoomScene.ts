@@ -24,6 +24,7 @@ export function useRoomScene(
   const pickRef = useRef(onPick)
   const initial = useRef(opts)
   const [ready, setReady] = useState(false)
+  const [failed, setFailed] = useState(false)
 
   useEffect(() => {
     pickRef.current = onPick
@@ -35,13 +36,18 @@ export function useRoomScene(
     let cancelled = false
     let scene: RoomScene | null = null
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    import('@nightcap/scene').then(async ({ RoomScene }) => {
-      const s = await RoomScene.create(el, { ...initial.current, reducedMotion })
-      if (cancelled) return s.destroy()
-      scene = sceneRef.current = s
-      s.events.on('pick', (t) => pickRef.current(t))
-      setReady(true)
-    })
+    import('@nightcap/scene')
+      .then(async ({ RoomScene }) => {
+        const s = await RoomScene.create(el, { ...initial.current, reducedMotion })
+        if (cancelled) return s.destroy()
+        scene = sceneRef.current = s
+        s.events.on('pick', (t) => pickRef.current(t))
+        setReady(true)
+      })
+      .catch((err) => {
+        console.error('drawing the room', err)
+        if (!cancelled) setFailed(true)
+      })
     return () => {
       cancelled = true
       scene?.destroy()
@@ -69,5 +75,5 @@ export function useRoomScene(
     if (ready && opts.conditions) sceneRef.current?.setConditions(opts.conditions)
   }, [opts.conditions, ready])
 
-  return ready
+  return { ready, failed }
 }

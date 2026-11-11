@@ -1,0 +1,90 @@
+/* the account page's sections, and the small confirm steps it shares with the keyring */
+
+.section {
+  position: relative;
+  margin: 0 0 22px;
+  padding-top: 16px;
+  text-align: left;
+  border-top: 1px solid rgba(217, 199, 162, 0.35);
+}
+
+.section h2 {
+  margin: 0 0 8px;
+  font-family: var(--font-sign);
+  font-size: 15px;
+  font-weight: normal;
+  letter-spacing: 0.06em;
+  color: #ffbf6a;
+}
+
+.section p {
+  margin: 0 0 10px;
+  font-size: 15px;
+  line-height: 1.45;
+  color: #f4ead2;
+}
+
+.section form {
+  margin: 0;
+}
+
+.button {
+  display: inline-block;
+  padding: 8px 14px;
+  font-family: var(--font-body);
+  font-size: 16px;
+  color: #fff1d8;
+  text-decoration: none;
+  background: #8e2416;
+  border: 1px solid #d9c7a2;
+  cursor: pointer;
+}
+
+.button:hover {
+  background: #a82c1a;
+}
+
+.quiet {
+  padding: 4px 0;
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: #b79b7a;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.quiet:hover {
+  color: #ffbf6a;
+}
+
+.confirm {
+  display: grid;
+  gap: 8px;
+  max-width: 260px;
+  margin: 8px auto 0;
+  font-size: 14px;
+  line-height: 1.4;
+  text-align: center;
+  color: var(--paper);
+}
+
+.confirm p {
+  margin: 0;
+}
+
+.buttons {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.back {
+  position: relative;
+  z-index: 2;
+  margin-top: 8px;
+  color: #b79b7a;
+  font-size: 14px;
+}

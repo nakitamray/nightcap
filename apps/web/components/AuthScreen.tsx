@@ -10,6 +10,8 @@ export function AuthScreen(props: {
   mode: 'signin' | 'signup'
   next?: string
   verified?: boolean
+  /** they've just deleted their account */
+  goodbye?: boolean
 }) {
   return (
     <main className={styles.page}>
@@ -17,6 +19,11 @@ export function AuthScreen(props: {
       <WindowCardFrame>
         <h1 className={styles.title}>NIGHTCAP</h1>
         <p className={styles.lede}>make a home</p>
+        {props.goodbye && (
+          <p className={styles.good} role="status">
+            Your account and everything in it are gone. Take care.
+          </p>
+        )}
         <AuthForm mode={props.mode} next={props.next ?? '/keys'} verified={props.verified} />
       </WindowCardFrame>
       <Link className={styles.demo} href="/demo">

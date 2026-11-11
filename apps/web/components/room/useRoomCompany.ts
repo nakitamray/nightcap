@@ -37,8 +37,9 @@ interface Options {
  * listening to.
  */
 export function useRoomCompany(o: Options) {
-  const supabase = useMemo(() => supabaseBrowser(), [])
   const live = o.live
+  // the demo and dev rooms are made up: no database, and none needed
+  const supabase = useMemo(() => (live ? supabaseBrowser() : null), [live])
   const [seen, setSeen] = useState(o.initialSeen)
   const [notes, setNotes] = useState(o.initialNotes)
   const [ownerTrack, setOwnerTrack] = useState(o.initialOwnerTrack)
@@ -99,30 +100,30 @@ export function useRoomCompany(o: Options) {
   const markRead = useCallback(
     async (ids: string[]) => {
       setNotes((prev) => prev.map((n) => (ids.includes(n.id) ? { ...n, read: true } : n)))
-      if (!live) return
+      if (!supabase) return
       const { error } = await supabase
         .from('notes')
         .update({ read_at: new Date().toISOString() })
         .in('id', ids)
       if (error) console.error('marking notes read', error)
     },
-    [live, supabase],
+    [supabase],
   )
 
   const throwAway = useCallback(
     async (id: string) => {
       setNotes((prev) => prev.filter((n) => n.id !== id))
-      if (!live) return
+      if (!supabase) return
       const { error } = await supabase.from('notes').delete().eq('id', id)
       if (error) console.error('throwing a note away', error)
     },
-    [live, supabase],
+    [supabase],
   )
 
   /** resolves to an error message, or null once it's under their door */
   const sendNote = useCallback(
     async (to: string, body: string): Promise<string | null> => {
-      if (!live)
+      if (!supabase)
         return 'this is only the demo, so the note stays with you. make a house to send real ones.'
       const { error } = await supabase
         .from('notes')
@@ -131,7 +132,7 @@ export function useRoomCompany(o: Options) {
       console.error('sending a note', error)
       return error.code === 'P0001' ? error.message : 'couldn’t send that, try again'
     },
-    [live, supabase, o.houseId, o.userId],
+    [supabase, o.houseId, o.userId],
   )
 
   return {

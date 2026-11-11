@@ -37,7 +37,7 @@ export interface HouseHandlers {
  * every row against the table's own policies before passing it on.
  */
 export function useHouseChannel(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient | null,
   houseId: string | null,
   handlers: HouseHandlers,
 ) {
@@ -47,8 +47,8 @@ export function useHouseChannel(
   })
 
   useEffect(() => {
-    if (!houseId) return
-    let channel: ReturnType<typeof supabase.channel> | null = null
+    if (!supabase || !houseId) return
+    let channel: ReturnType<SupabaseClient['channel']> | null = null
     let stopped = false
     const inHouse = `house_id=eq.${houseId}`
     supabase.realtime.setAuth().then(() => {
