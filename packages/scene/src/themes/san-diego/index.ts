@@ -4,21 +4,21 @@ import { Sky } from '../../layers/sky'
 import { CURB } from '../../layout'
 import { CobraLamps } from '../new-york/street'
 import type { Theme } from '../types'
-import { Coast, MIRROR } from './coast'
+import { Coast } from './coast'
 import { House } from './house'
 import { LAMPS, PALMS, SD_FOCUS } from './layout'
 import { Neighbors } from './neighbors'
 import { sanDiegoOutfits } from './people'
 import { Palm, Road, surfBus, Trolley } from './street'
 
-const MOON = { x: 400, y: 170, r: 66 }
+/** where the sun is going down; the moon takes the same place later on */
+const SUN = { x: 2060, y: 470, r: 62 }
 
 export const sanDiego: Theme = {
   id: 'san-diego',
   build({ seed, lights }) {
-    // the moon hangs out over the water, where the street runs off the cliff
-    const sky = new Sky(seed, { moon: MOON, glows: [], stars: 280 })
-    const coast = new Coast(seed + 1, MIRROR - MOON.x)
+    const sky = new Sky(seed, { moon: SUN, glows: [], stars: 280 })
+    const coast = new Coast(seed + 1, SUN.x)
     const neighbors = new Neighbors(seed + 2, lights)
     const house = new House(seed + 3, lights)
     const lamps = new CobraLamps(lights, [...LAMPS])
@@ -27,7 +27,7 @@ export const sanDiego: Theme = {
 
     const parked = new Container()
     const bus = surfBus()
-    bus.position.set(2120, CURB + 98)
+    bus.position.set(-20, CURB + 98)
     parked.addChild(bus)
     const trolley = new Trolley(seed + 11, CURB + 150)
 
@@ -40,9 +40,11 @@ export const sanDiego: Theme = {
       pools: lamps.pools,
       people,
       foreground: [parked, trolley],
-      // it doesn't rain here; the road just shines a little under the lamps
-      reflection: 0.45,
+      // it doesn't rain here; the road just shines a little
+      reflection: 0.3,
       rain: 0,
+      // and it's always the hour before sunset
+      usual: { phase: 'sunset' },
       focus: SD_FOCUS,
       update(time, dt, pointerX, reducedMotion) {
         sky.update(time, dt)

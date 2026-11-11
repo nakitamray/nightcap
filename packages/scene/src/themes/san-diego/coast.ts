@@ -1,41 +1,45 @@
 import { Container, Graphics, Sprite } from 'pixi.js'
 import { GROUND } from '../../layout'
-import { palette } from '../../palette'
 import { chance, createRng, pick, range, type Rng } from '../../rng'
 import { glowTexture } from '../../textures'
 import { sd } from './parts'
 
 /** where the sea meets the sky */
 export const HORIZON = 720
-/**
- * The view is drawn looking right and then turned round: the street runs out
- * along the cliff on the left of the house. x here = MIRROR - x on the street.
- */
-export const MIRROR = 2430
-/** in drawing coordinates; on the street it's the left wall of the house */
+/** everything right of here is open air: the street runs out onto the bluff */
 export const CLIFF_EDGE = 1690
 
-const WATER = 0x08101f
-const SAND = 0x4a3e2c
-const SANDSTONE = 0x5e4830
+// Everything out here is painted for the hour before sunset, which is when
+// this street is seen: the colours are the ones that come out gold, teal and
+// pink once the evening grade has been over them.
+const SEA = 0x0e3952
+const SEA_LIGHT = 0x1d4e62
+const FOAM = 0x839b9f
+const SAND = 0x767a62
+const WET = 0x565545
 const WARM = [0xffc46a, 0xfff0d0, 0xff9a4a, 0xffd890]
+const DARK = 0x16141c
 
-/** the hill the town climbs behind the shops, falling to a point at the bay */
+/** the hill the town climbs, behind the shops */
 function ridge(x: number) {
-  const t = Math.min(1, Math.max(0, (1800 - x) / 700))
+  const t = Math.min(1, Math.max(0, (1500 - x) / 800))
   const s = t * t * (3 - 2 * t)
-  return HORIZON + 4 - s * (120 + 26 * Math.sin(x / 230))
+  return HORIZON + 30 - s * (90 + 22 * Math.sin(x / 230))
 }
 
-/** the line the waves reach on the beach below */
-function shore(x: number) {
-  return 902 + 30 * Math.sin(Math.min(1, Math.max(0, (x - 1600) / 760)) * Math.PI)
+/** the line the waves reach: the beach runs away from you toward the point */
+export function shore(x: number) {
+  const t = Math.min(1, Math.max(0, (x - 1600) / 1000))
+  return 1000 - 240 * Math.pow(t, 0.8)
 }
 
-/** the bridge deck, in street coordinates: one long hump right over the rooftops */
+/**
+ * The bridge deck. It comes in from somewhere off to the left, already
+ * high, and is still coming down when the house gets in the way.
+ */
 function deck(x: number) {
-  const t = Math.min(1, Math.max(0, (x - 480) / 1500))
-  return HORIZON - 4 - 290 * Math.pow(Math.sin(t * Math.PI), 0.6)
+  const t = Math.min(1, Math.max(0, (x + 900) / 2320))
+  return HORIZON - 4 - 300 * Math.pow(Math.sin(t * Math.PI), 0.6)
 }
 
 function add(
@@ -58,255 +62,340 @@ function add(
   return s
 }
 
-// What you see from the top of the cliffs: off the end of the street the bay,
-// downtown across the water and the beach in the cove below with its fire
-// rings going; the Coronado bridge climbing right over the rooftops; and the
-// hill full of lights behind the shops.
+interface Glider {
+  node: Container
+  x: number
+  y: number
+  phase: number
+  drift: number
+}
+
+// What's behind the street. Inland, the hill and downtown standing up over
+// the shops, and the Coronado bridge crossing the whole sky. Out past the
+// house, the Pacific: the sun going down into it, a long beach running away
+// to the next point, surf coming in, and the paragliders off the cliffs
+// working the last of the lift.
 export class Coast extends Container {
   private far = new Container()
   private near = new Container()
-  /** the turned-round layers the view is drawn into */
-  private ff = new Container()
-  private nf = new Container()
-  private bursts: { g: Graphics; glow: Sprite; t: number; wait: number }[] = []
-  private rng: Rng
   private blinkers: Sprite[] = []
   private glitter = new Graphics()
   private foam: Graphics[] = []
+  private sets: Graphics[] = []
   private fires: { glow: Sprite; flame: Graphics; phase: number }[] = []
+  private gliders: Glider[] = []
   private plane = new Container()
   private strobe: Sprite
   private planeT: number
 
-  constructor(seed: number, moonX: number) {
+  constructor(seed: number, sunX: number) {
     super()
     const rng = createRng(seed)
     this.planeT = rng() * 0.6
-    this.rng = createRng(seed + 99)
-    for (const f of [this.ff, this.nf]) {
-      f.scale.x = -1
-      f.x = MIRROR
-    }
-    this.far.addChild(this.ff)
-    this.near.addChild(this.nf)
     this.addChild(this.far, this.plane, this.near)
 
     const g = new Graphics()
-    this.ff.addChild(g)
-    this.water(g, rng, moonX)
-    this.ff.addChild(this.glitter)
-    const city = new Graphics()
-    this.ff.addChild(city)
-    this.downtown(city, rng)
-    this.hill(city, rng)
-    this.fireworks()
-    const span = new Graphics()
-    this.far.addChild(span)
-    this.bridge(span)
+    this.far.addChild(g)
+    this.water(g, rng, sunX)
+    this.far.addChild(this.glitter)
+    const land = new Graphics()
+    this.far.addChild(land)
+    this.hill(land, rng)
+    this.downtown(land, rng)
+    this.bridge(land)
+    this.point(land, rng)
 
     const cove = new Graphics()
-    this.nf.addChild(cove)
+    this.near.addChild(cove)
     this.beach(cove, rng)
-    this.headland(cove, rng)
+
+    for (const [x, y, s, a, b] of [
+      [1800, 250, 1, 0xf0a020, 0xe8603a],
+      [2010, 400, 0.8, 0xd8283a, 0xf2e2bd],
+      [2230, 300, 0.62, 0xc8d030, 0x2a8a6a],
+      [1930, 520, 0.5, 0x3a6ad8, 0xf2e2bd],
+      [2330, 470, 0.7, 0xf2e2bd, 0xd8502a],
+      [1640, 150, 0.45, 0xe8c02a, 0x2a2a34],
+    ] as const)
+      this.glider(x, y, s, a, b, rng)
 
     this.strobe = this.aeroplane()
   }
 
-  private water(g: Graphics, rng: Rng, moonX: number) {
-    g.rect(-700, HORIZON, 4000, GROUND - HORIZON).fill(WATER)
-    g.rect(-700, HORIZON, 4000, 26).fill({ color: 0x1a2a4a, alpha: 0.5 })
-    for (let i = 0; i < 170; i++) {
-      const y = HORIZON + 6 + Math.pow(rng(), 1.4) * 190
-      const w = 10 + ((y - HORIZON) / 190) * 50 * rng()
-      g.rect(range(rng, 1500, 3100), y, w, 1.5).fill({
-        color: 0x8aa0c8,
-        alpha: range(rng, 0.08, 0.28),
+  private water(g: Graphics, rng: Rng, sunX: number) {
+    g.rect(-700, HORIZON, 4000, GROUND - HORIZON).fill(SEA)
+    // paler out toward the horizon, where it's all sky
+    for (let i = 0; i < 6; i++)
+      g.rect(-700, HORIZON + i * 14, 4000, 14).fill({ color: 0x7e694c, alpha: 0.5 - i * 0.08 })
+    for (let i = 0; i < 220; i++) {
+      const y = HORIZON + 8 + Math.pow(rng(), 1.3) * 250
+      const w = 12 + ((y - HORIZON) / 250) * 70 * rng()
+      g.rect(range(rng, 1500, 3100), y, w, 2).fill({
+        color: chance(rng, 0.5) ? SEA_LIGHT : 0x0a2c42,
+        alpha: range(rng, 0.3, 0.7),
       })
     }
-    // the moon laid out across the water, wider as it comes toward you
-    for (let i = 0; i < 70; i++) {
+    // the sun laid out across the water, wider as it comes toward you
+    for (let i = 0; i < 110; i++) {
       const t = Math.pow(rng(), 0.8)
-      const y = HORIZON + 4 + t * 170
-      const spread = 14 + t * 90
-      const w = range(rng, 8, 16 + t * 40)
+      const y = HORIZON + 3 + t * 230
+      const spread = 20 + t * 150
+      const w = range(rng, 10, 20 + t * 60)
       this.glitter
-        .rect(moonX + range(rng, -spread, spread) - w / 2, y, w, 2)
-        .fill({ color: palette.moon, alpha: range(rng, 0.25, 0.7) })
-    }
-  }
-
-  /** the towers across the bay, small and a long way off, doubled in the water */
-  private downtown(g: Graphics, rng: Rng) {
-    const x0 = 1740
-    const x1 = 2150
-    add(this.ff, (x0 + x1) / 2, HORIZON - 50, 5, 2, 0xff7a2a, 0.45)
-    g.rect(x0 - 70, HORIZON - 5, x1 - x0 + 130, 8).fill(0x0a0e1c)
-    let x = x0
-    let n = 0
-    while (x < x1) {
-      const w = range(rng, 26, 56)
-      const mid = 1 - Math.abs((x + w / 2 - (x0 + x1) / 2) / ((x1 - x0) / 2))
-      const h = 44 + mid * range(rng, 90, 250) + range(rng, 0, 40)
-      const top = HORIZON - h
-      const body = pick(rng, [0x0e1226, 0x12162c, 0x0c1020])
-      g.rect(x, top, w, h).fill(body)
-      const crown = n % 4
-      if (crown === 0 && h > 110) {
-        // the one with the pointed top that looks like a screwdriver
-        g.poly([x, top, x + w / 2, top - 30, x + w, top]).fill(body)
-        this.blinker(x + w / 2, top - 32)
-      } else if (crown === 1) {
-        g.rect(x + w * 0.2, top - 12, w * 0.6, 12).fill(body)
-      } else if (crown === 2 && h > 120) {
-        g.rect(x + w / 2 - 1, top - 26, 2, 26).fill(body)
-        this.blinker(x + w / 2, top - 26)
-      }
-      for (let wy = top + 6; wy < HORIZON - 8; wy += 8)
-        for (let wx = x + 3; wx < x + w - 4; wx += 6)
-          if (chance(rng, 0.36))
-            g.rect(wx, wy, 3, 4.5).fill({ color: pick(rng, WARM), alpha: 0.75 })
-      // and its lights run down the bay toward you
-      g.rect(x + 2, HORIZON + 4, w - 4, h * 0.55).fill({ color: pick(rng, WARM), alpha: 0.07 })
-      for (let k = 0; k < 4; k++)
-        g.rect(
-          x + range(rng, 0, w - 8),
-          HORIZON + range(rng, 6, h * 0.5),
-          range(rng, 6, 14),
-          1.5,
-        ).fill({
-          color: pick(rng, WARM),
-          alpha: 0.3,
-        })
-      x += w + range(rng, -3, 6)
-      n++
-    }
-    // marina lights along the foot of it
-    for (let lx = x0 - 60; lx < x1 + 60; lx += range(rng, 8, 20))
-      g.rect(lx, HORIZON - 2, 2, 2).fill(pick(rng, WARM))
-  }
-
-  /**
-   * The blue bridge to Coronado. It leaves from beside downtown, climbs on
-   * its tall thin legs until the navy can sail under it, and comes down
-   * somewhere behind the shops.
-   */
-  private bridge(g: Graphics) {
-    const blue = 0x234878
-    for (let x = 560; x < 1980; x += 118) {
-      const y = deck(x)
-      g.poly([x - 5, y, x + 5, y, x + 9, GROUND, x - 9, GROUND]).fill(0x172c50)
-      g.rect(x - 14, y, 28, 9).fill(0x172c50)
-      g.rect(x - 5, y, 3, GROUND - y).fill({ color: 0x6a8ac0, alpha: 0.18 })
-    }
-    const pts: number[] = []
-    for (let x = 480; x <= 1980; x += 20) pts.push(x, deck(x))
-    g.poly(pts, false).stroke({ color: blue, width: 16 })
-    g.poly(
-      pts.map((v, i) => (i % 2 ? v - 8 : v)),
-      false,
-    ).stroke({ color: 0x6a8ac0, width: 2.5 })
-    g.poly(
-      pts.map((v, i) => (i % 2 ? v + 8 : v)),
-      false,
-    ).stroke({ color: 0x122444, width: 3 })
-    // lamps along the deck, tail lights going over to the island
-    for (let x = 500; x < 1980; x += 44) {
-      const y = deck(x) - 16
-      g.rect(x - 1, y, 2, 8).fill(blue)
-      g.circle(x, y, 2.5).fill(0xffe0a0)
-      add(this.far, x, y, 0.16, 0.16, 0xffc870, 0.9)
-    }
-    for (const cx of [640, 905, 1470, 1710, 1820]) {
-      g.rect(cx, deck(cx) - 12, 7, 3).fill(0xff3a2a)
-      g.rect(cx + 60, deck(cx + 60) - 12, 6, 3).fill(0xfff0d0)
+        .rect(sunX + range(rng, -spread, spread) - w / 2, y, w, 2.5)
+        .fill({ color: 0x8e8a62, alpha: range(rng, 0.35, 0.9) })
     }
   }
 
   private hill(g: Graphics, rng: Rng) {
     const pts = [-700, GROUND]
-    for (let x = -700; x <= 1800; x += 50) pts.push(x, ridge(x))
-    pts.push(1800, GROUND)
-    g.poly(pts).fill(0x0b0d19)
-    for (let i = 0; i < 420; i++) {
-      const x = range(rng, -600, 1760)
+    for (let x = -700; x <= 1500; x += 50) pts.push(x, ridge(x))
+    pts.push(1500, GROUND)
+    g.poly(pts).fill(0x2c2a3a)
+    for (let i = 0; i < 300; i++) {
+      const x = range(rng, -600, 1460)
       const top = ridge(x) + 8
       const y = top + Math.pow(rng(), 0.7) * (900 - top)
-      if (y < top) continue
-      g.rect(x, y, 3, 2.5).fill({ color: pick(rng, WARM), alpha: range(rng, 0.45, 0.9) })
-    }
-    // streets running up it
-    for (let i = 0; i < 5; i++) {
-      const x = range(rng, -300, 1300)
-      const y0 = ridge(x) + 30
-      for (let k = 0; k < 12; k++)
-        g.rect(x + k * 9, y0 + k * 11, 2.5, 2.5).fill({ color: 0xffb050, alpha: 0.8 })
-    }
-    // the masts on top
-    for (const mx of [380, 430, 1020]) {
-      const top = ridge(mx)
-      g.rect(mx - 1, top - 70, 2, 70).fill(0x0b0d19)
-      g.poly([mx - 8, top, mx, top - 40, mx + 8, top]).fill(0x0b0d19)
-      this.blinker(mx, top - 70)
+      // roofs and trees, and here and there a window that's caught the sun
+      if (chance(rng, 0.4))
+        g.rect(x, y, range(rng, 10, 22), 6).fill({ color: 0x3e3440, alpha: 0.9 })
+      else if (chance(rng, 0.5))
+        g.circle(x, y, range(rng, 4, 8)).fill({ color: 0x1e2a2a, alpha: 0.9 })
+      else g.rect(x, y, 3, 2.5).fill({ color: pick(rng, WARM), alpha: range(rng, 0.5, 0.9) })
     }
   }
 
-  /** the cove at the foot of the cliff: sand, three lines of foam, fire rings */
+  /** downtown, standing up behind the shops with the light coming through it */
+  private downtown(g: Graphics, rng: Rng) {
+    const x0 = 120
+    const x1 = 700
+    const base = 830
+    add(this.far, (x0 + x1) / 2, 600, 6, 3, 0xffa040, 0.25)
+    let x = x0
+    let n = 0
+    while (x < x1) {
+      const w = range(rng, 34, 70)
+      const mid = 1 - Math.abs((x + w / 2 - (x0 + x1) / 2) / ((x1 - x0) / 2))
+      const h = 90 + mid * range(rng, 120, 300) + range(rng, 0, 50)
+      const top = base - h
+      const body = pick(rng, [0x2a2c48, 0x34304e, 0x262a44, 0x3a3450])
+      g.rect(x, top, w, h).fill(body)
+      // the side toward the sun
+      g.rect(x + w - 7, top, 7, h).fill({ color: 0x9a6a4a, alpha: 0.55 })
+      const crown = n % 4
+      if (crown === 0 && h > 200) {
+        // the one with the pointed top that looks like a screwdriver
+        g.poly([x, top, x + w / 2, top - 44, x + w, top]).fill(body)
+        g.poly([x + w / 2, top - 44, x + w, top, x + w - 7, top]).fill({
+          color: 0x9a6a4a,
+          alpha: 0.55,
+        })
+        this.blinker(x + w / 2, top - 46)
+      } else if (crown === 1) {
+        g.rect(x + w * 0.2, top - 16, w * 0.6, 16).fill(body)
+      } else if (crown === 2 && h > 220) {
+        g.rect(x + w / 2 - 1.5, top - 40, 3, 40).fill(body)
+        this.blinker(x + w / 2, top - 40)
+      } else if (crown === 3) {
+        g.rect(x, top - 6, w, 6).fill(0x1e2038)
+      }
+      for (let wy = top + 8; wy < base - 10; wy += 11)
+        for (let wx = x + 4; wx < x + w - 10; wx += 8)
+          if (chance(rng, 0.3))
+            g.rect(wx, wy, 4, 6).fill({ color: pick(rng, WARM), alpha: range(rng, 0.5, 0.9) })
+      x += w + range(rng, -4, 10)
+      n++
+    }
+  }
+
+  /** the blue bridge to Coronado, on its tall thin legs */
+  private bridge(g: Graphics) {
+    const blue = 0x234878
+    for (let x = -640; x < 1400; x += 150) {
+      const y = deck(x)
+      g.poly([x - 6, y, x + 6, y, x + 11, GROUND, x - 11, GROUND]).fill(0x1c3460)
+      g.rect(x - 16, y, 32, 10).fill(0x1c3460)
+      g.rect(x + 3, y, 4, GROUND - y).fill({ color: 0x9a7a5a, alpha: 0.5 })
+    }
+    const pts: number[] = []
+    for (let x = -900; x <= 1420; x += 20) pts.push(x, deck(x))
+    g.poly(pts, false).stroke({ color: blue, width: 18 })
+    g.poly(
+      pts.map((v, i) => (i % 2 ? v - 9 : v)),
+      false,
+    ).stroke({ color: 0x9a8a7a, width: 3 })
+    g.poly(
+      pts.map((v, i) => (i % 2 ? v + 9 : v)),
+      false,
+    ).stroke({ color: 0x142a50, width: 3.5 })
+    for (let x = -880; x < 1400; x += 46) {
+      const y = deck(x) - 18
+      g.rect(x - 1, y, 2, 9).fill(blue)
+      g.circle(x, y, 2.5).fill(0xffe0a0)
+      add(this.far, x, y, 0.12, 0.12, 0xffc870, 0.8)
+    }
+    // going over to the island for dinner
+    for (const cx of [-420, 96, 310, 468, 644, 890]) {
+      g.roundRect(cx, deck(cx + 8) - 17, 16, 7, 2).fill(
+        pick(createRng(cx + 5000), [0xc8281e, 0xe8e0d0, 0x2a2a34, 0x3a6a9a]),
+      )
+    }
+  }
+
+  /** the next point up the coast: a low cliff with palms and houses along the top */
+  private point(g: Graphics, rng: Rng) {
+    const top = [2120, 762, 2150, 734, 2230, 716, 2380, 704, 2700, 694, 3300, 686]
+    g.poly([...top, 3300, 840, 2120, 840]).fill(0x61553b)
+    g.poly([2120, 762, 2150, 734, 2230, 716, 2250, 728, 2190, 760, 2180, 840, 2120, 840]).fill(
+      0x7e7350,
+    )
+    for (let y = 730; y < 800; y += 12)
+      g.moveTo(2200 - (y - 730), y + 8)
+        .bezierCurveTo(2500, y - 6, 2800, y + 6, 3300, y - 4)
+        .stroke({ color: y % 24 < 12 ? 0x4a3d26 : 0x756d41, width: 2.5, alpha: 0.6 })
+    g.poly([...top, 3300, 700, 2380, 716, 2230, 728, 2150, 746], false).stroke({
+      color: 0x263d29,
+      width: 7,
+    })
+    // white water round the foot of it
+    g.ellipse(2130, 770, 40, 5).fill({ color: FOAM, alpha: 0.8 })
+    for (const [hx, hw, hh] of [
+      [2270, 60, 26],
+      [2350, 84, 36],
+      [2470, 66, 28],
+      [2570, 96, 40],
+      [2700, 70, 30],
+    ] as const) {
+      const base = 712 - (hx - 2270) * 0.035
+      g.rect(hx, base - hh, hw, hh).fill(pick(rng, [0x847a6a, 0x7a6a5a, 0x6e7478]))
+      g.rect(hx - 4, base - hh - 5, hw + 8, 6).fill(sd.tileDark)
+      for (let wx = hx + 8; wx < hx + hw - 10; wx += 18)
+        g.rect(wx, base - hh + 8, 9, 10).fill(chance(rng, 0.5) ? 0xffd890 : 0x2a3444)
+    }
+    for (let i = 0; i < 16; i++) {
+      const px = 2190 + i * 42 + range(rng, -12, 12)
+      const base = 724 - (px - 2190) * 0.045
+      const h = range(rng, 34, 74)
+      g.rect(px - 1.2, base - h, 2.4, h).fill(DARK)
+      for (let k = 0; k < 9; k++) {
+        const a = -Math.PI * (k / 8)
+        g.moveTo(px, base - h)
+          .lineTo(px + Math.cos(a) * 10, base - h + Math.sin(a) * 8 + Math.abs(Math.cos(a)) * 6)
+          .stroke({ color: DARK, width: 2 })
+      }
+    }
+  }
+
+  /** sand, three lines of foam, the sets coming in behind them, and everybody still down there */
   private beach(g: Graphics, rng: Rng) {
-    const pts = [1500, GROUND]
-    for (let x = 1500; x <= 3100; x += 40) pts.push(x, shore(x))
-    pts.push(3100, GROUND)
-    g.poly(pts).fill(SAND)
-    // wet sand where the last wave went back
-    const wet: number[] = []
-    for (let x = 1500; x <= 3100; x += 40) wet.push(x, shore(x) + 9)
-    g.poly(wet, false).stroke({ color: 0x5a5648, width: 16, alpha: 0.5 })
-    for (let i = 0; i < 300; i++)
-      g.rect(range(rng, 1600, 3000), range(rng, 935, GROUND), range(rng, 3, 12), 1.5).fill({
-        color: chance(rng, 0.5) ? palette.ink : 0x6a5a40,
-        alpha: 0.2,
+    const line = (off: number, wobble = 0, k = 0) => {
+      const p: number[] = []
+      for (let x = 1500; x <= 2700; x += 24)
+        p.push(
+          x,
+          shore(x) - off * (1 - (x - 1500) / 1700) + Math.sin(x / (38 + k * 9) + k * 2) * wobble,
+        )
+      return p
+    }
+    g.poly([1500, GROUND, ...line(0), 2700, GROUND]).fill(SAND)
+    g.poly(line(-10), false).stroke({ color: WET, width: 20, alpha: 0.8 })
+    g.poly(line(-3), false).stroke({ color: 0x8a8a70, width: 3, alpha: 0.6 })
+    for (let i = 0; i < 260; i++) {
+      const x = range(rng, 1600, 2500)
+      const y = range(rng, shore(x) + 24, GROUND)
+      g.rect(x, y, range(rng, 3, 12), 1.5).fill({
+        color: chance(rng, 0.5) ? WET : 0x8a8a70,
+        alpha: 0.35,
       })
+    }
     // kelp along the tide line
-    for (let i = 0; i < 14; i++) {
-      const x = range(rng, 1720, 2240)
-      g.ellipse(x, shore(x) + range(rng, 20, 30), range(rng, 6, 16), 2.5).fill({
-        color: 0x1a2416,
+    for (let i = 0; i < 18; i++) {
+      const x = range(rng, 1660, 2300)
+      g.ellipse(x, shore(x) + range(rng, 22, 34), range(rng, 6, 16), 2.5).fill({
+        color: 0x2a2416,
         alpha: 0.8,
       })
     }
 
-    ;[5, 17, 31].forEach((off, i) => {
-      const line = new Graphics()
-      const p: number[] = []
-      for (let x = 1500; x <= 3100; x += 24)
-        p.push(x, shore(x) - off + Math.sin(x / (38 + i * 9) + i * 2) * (2 + i * 1.5))
-      line.poly(p, false).stroke({ color: 0xdfe8f0, width: 5 - i * 1.5, alpha: 0.75 - i * 0.2 })
-      this.nf.addChild(line)
-      this.foam.push(line)
+    // the sets: long lines of swell, each with a strip of white where it's breaking
+    for (let k = 0; k < 4; k++) {
+      const set = new Graphics()
+      const off = 70 + k * 44
+      set.poly(line(off, 3, k + 4), false).stroke({ color: SEA_LIGHT, width: 7 - k, alpha: 0.9 })
+      const pts = line(off - 4, 3, k + 4)
+      for (let i = 0; i < pts.length - 6; i += 2) {
+        if ((i / 2 + k * 3) % 7 > 3) continue
+        set
+          .moveTo(pts[i]!, pts[i + 1]!)
+          .lineTo(pts[i + 2]!, pts[i + 3]!)
+          .stroke({ color: FOAM, width: 6 - k, alpha: 0.95 })
+      }
+      this.near.addChild(set)
+      this.sets.push(set)
+    }
+    ;[6, 20, 38].forEach((off, i) => {
+      const f = new Graphics()
+      f.poly(line(off, 2 + i * 1.5, i), false).stroke({
+        color: FOAM,
+        width: 7 - i * 2,
+        alpha: 0.95 - i * 0.2,
+      })
+      this.near.addChild(f)
+      this.foam.push(f)
     })
 
-    // a rock off the point with the swell breaking round it
-    g.ellipse(2170, 872, 34, 5).fill({ color: 0xdfe8f0, alpha: 0.45 })
-    g.poly([2142, 872, 2152, 850, 2170, 842, 2184, 854, 2198, 872]).fill(0x1c1610)
+    // surfers out the back, waiting
+    for (const sx of [1830, 1880, 2010, 2075]) {
+      const sy = shore(sx) - 96 - (sx % 30)
+      g.ellipse(sx, sy + 3, 11, 2).fill(0xe8e0d0)
+      g.rect(sx - 2.5, sy - 9, 5, 11).fill(DARK)
+      g.circle(sx, sy - 12, 3).fill(DARK)
+    }
 
-    // sea lions hauled out on it, one with its nose in the air
-    g.ellipse(2160, 846, 11, 4.5).ellipse(2180, 850, 9, 4).fill(0x0c0a08)
-    g.poly([2166, 846, 2172, 832, 2176, 834, 2172, 848]).fill(0x0c0a08)
+    const tower = new Graphics()
+    this.near.addChild(tower)
+    this.lifeguardTower(tower, 1930, shore(1930) + 62)
+    this.people(tower, rng)
+    this.fire(tower, 2085, shore(2085) + 70, 0.8, rng)
+  }
 
-    this.lifeguardTower(g, 1830, 990)
-    this.fire(g, 1990, 1000, 1, rng)
-    this.fire(g, 2150, 966, 0.7, rng)
-    // boards stuck in the sand, towels nobody came back for
-    for (const [bx, c] of [
-      [1912, 0xf2e2bd],
-      [1924, 0x8ac0c8],
-    ] as const)
-      g.ellipse(bx, 978, 4, 22).fill(c)
-    g.rect(2080, 1026, 22, 9).fill(0xd8502a)
-    g.rect(1770, 1012, 20, 8).fill(0x2a7a7a)
+  /** towels, umbrellas, people standing with their feet in it */
+  private people(g: Graphics, rng: Rng) {
+    const tops = [0xd8283a, 0xf2e2bd, 0x2a6a9a, 0xe8a020, 0x1a1a24, 0xd85a8a, 0x2a8a6a]
+    for (let i = 0; i < 26; i++) {
+      const x = 1700 + i * 26 + range(rng, -10, 10)
+      const far = (x - 1700) / 700
+      const s = 1 - far * 0.45
+      const y = shore(x) + range(rng, 4, 90 - far * 40)
+      const kind = rng()
+      if (kind < 0.2) {
+        // an umbrella with a towel in its shade
+        const c = pick(rng, tops)
+        g.rect(x - 0.8, y - 22 * s, 1.6, 22 * s).fill(DARK)
+        g.moveTo(x - 15 * s, y - 20 * s)
+          .arc(x, y - 20 * s, 15 * s, Math.PI, 0)
+          .closePath()
+          .fill(c)
+        g.rect(x + 4 * s, y - 2, 16 * s, 4 * s).fill(pick(rng, tops))
+      } else if (kind < 0.4) {
+        // lying down
+        g.rect(x - 9 * s, y - 2, 20 * s, 4.5 * s).fill(pick(rng, tops))
+        g.ellipse(x, y - 4 * s, 8 * s, 2.5 * s).fill(0x5a3a2a)
+        g.circle(x - 9 * s, y - 5 * s, 2.5 * s).fill(0x3a2418)
+      } else {
+        g.rect(x - 2.5 * s, y - 22 * s, 5 * s, 12 * s).fill(pick(rng, tops))
+        g.rect(x - 2.5 * s, y - 10 * s, 2 * s, 10 * s)
+          .rect(x + 0.5 * s, y - 10 * s, 2 * s, 10 * s)
+          .fill(0x5a3a2a)
+        g.circle(x, y - 25 * s, 3 * s).fill(0x3a2418)
+        // a board under one arm
+        if (kind > 0.85) g.ellipse(x + 5 * s, y - 14 * s, 2 * s, 14 * s).fill(0xf2e2bd)
+      }
+    }
   }
 
   private lifeguardTower(g: Graphics, x: number, y: number) {
-    const leg = { color: 0x8a8a84, width: 2.5 }
+    const leg = { color: 0x9a9a94, width: 2.5 }
     g.moveTo(x - 16, y)
       .lineTo(x - 12, y - 26)
       .moveTo(x + 16, y)
@@ -315,26 +404,26 @@ export class Coast extends Container {
     g.moveTo(x - 16, y)
       .lineTo(x + 12, y - 26)
       .stroke({ ...leg, width: 1.5 })
-    g.rect(x - 20, y - 30, 40, 4).fill(0x8a8a84)
+    g.rect(x - 20, y - 30, 40, 4).fill(0x9a9a94)
     g.rect(x - 14, y - 54, 28, 24).fill(0x5a8494)
     g.rect(x - 8, y - 48, 16, 10).fill(0x101820)
-    g.poly([x - 20, y - 54, x + 20, y - 54, x + 14, y - 62, x - 14, y - 62]).fill(0x8a8a84)
+    g.poly([x - 20, y - 54, x + 20, y - 54, x + 14, y - 62, x - 14, y - 62]).fill(0x9a9a94)
     // the ramp down to the sand
-    g.moveTo(x + 20, y - 28)
-      .lineTo(x + 50, y)
-      .stroke({ color: 0x8a8a84, width: 3 })
-    g.rect(x - 1, y - 78, 2, 16).fill(0x8a8a84)
-    g.rect(x + 1, y - 78, 12, 8).fill(0xd8a02a)
+    g.moveTo(x - 20, y - 28)
+      .lineTo(x - 50, y)
+      .stroke({ color: 0x9a9a94, width: 3 })
+    g.rect(x - 1, y - 80, 2, 18).fill(0x9a9a94)
+    g.rect(x + 1, y - 80, 13, 8).fill(0xd8a02a)
   }
 
-  /** a concrete fire ring with people round it */
+  /** a concrete fire ring with people round it, just lit */
   private fire(g: Graphics, x: number, y: number, s: number, rng: Rng) {
-    g.ellipse(x, y, 20 * s, 6 * s).fill(0x1a1612)
+    g.ellipse(x, y, 20 * s, 6 * s).fill(0x2a2620)
     for (let i = 0; i < 5; i++) {
       const px = x + (i - 2) * 22 * s + range(rng, -4, 4)
       if (Math.abs(px - x) < 12 * s) continue
       const py = y + (i % 2 ? 9 : -5) * s
-      g.circle(px, py - 20 * s, 5 * s).fill(palette.ink)
+      g.circle(px, py - 20 * s, 5 * s).fill(DARK)
       g.poly([
         px - 7 * s,
         py - 15 * s,
@@ -344,7 +433,7 @@ export class Coast extends Container {
         py,
         px - 10 * s,
         py,
-      ]).fill(palette.ink)
+      ]).fill(DARK)
     }
     const flame = new Graphics()
       .poly([-9, 0, -4, -16, 0, -8, 4, -24, 10, 0])
@@ -353,131 +442,62 @@ export class Coast extends Container {
       .fill(0xffe08a)
     flame.position.set(x, y)
     flame.scale.set(s)
-    this.nf.addChild(flame)
-    add(this.nf, x, y + 4, 2.4 * s, 0.7 * s, 0xff7a2a, 0.5)
+    this.near.addChild(flame)
     this.fires.push({
-      glow: add(this.nf, x, y - 10 * s, 0.9 * s, 0.9 * s, 0xff8a2a, 0.9),
+      glow: add(this.near, x, y - 10 * s, 0.9 * s, 0.9 * s, 0xff8a2a, 0.7),
       flame,
       phase: rng() * 10,
     })
   }
 
-  /** the next point along: sandstone going straight down into the cove, houses on top */
-  private headland(g: Graphics, rng: Rng) {
-    const top = [2250, 812, 2290, 786, 2370, 770, 2510, 762, 2710, 752, 3200, 748]
-    g.poly([2220, 1010, 2234, 900, 2250, 812, ...top.slice(2), 3200, GROUND, 2190, GROUND]).fill(
-      SANDSTONE,
-    )
-    // strata, and the gullies the rain cuts
-    for (let y = 800; y < 1060; y += 22)
-      g.moveTo(2230 - (y - 800) * 0.1, y + 10)
-        .bezierCurveTo(2410, y - 8, 2610, y + 12, 3200, y - 4)
-        .stroke({ color: y % 44 < 22 ? 0x3a2a1a : 0x6a5236, width: 3, alpha: 0.55 })
-    for (let i = 0; i < 9; i++) {
-      const x = range(rng, 2280, 2810)
-      g.poly([x, 790, x + 8, 790, x + range(rng, 10, 30), range(rng, 900, 1040)]).fill({
-        color: palette.ink,
-        alpha: 0.28,
-      })
-    }
-    g.poly([
-      2190,
-      GROUND,
-      2220,
-      1010,
-      2234,
-      900,
-      2250,
-      812,
-      2270,
-      830,
-      2260,
-      930,
-      2250,
-      GROUND,
-    ]).fill({
-      color: 0x8a6a44,
-      alpha: 0.3,
+  /** a paraglider: the wing in two colours, the lines, somebody sat under it */
+  private glider(x: number, y: number, s: number, a: number, b: number, rng: Rng) {
+    const node = new Container()
+    const g = new Graphics()
+    const w = 92
+    g.moveTo(-w, 10)
+      .bezierCurveTo(-w * 0.6, -34, w * 0.6, -34, w, 10)
+      .bezierCurveTo(w * 0.55, -12, -w * 0.55, -12, -w, 10)
+      .fill(a)
+    g.moveTo(-w * 0.5, -14)
+      .bezierCurveTo(-w * 0.2, -26, w * 0.2, -26, w * 0.5, -14)
+      .bezierCurveTo(w * 0.2, -16, -w * 0.2, -16, -w * 0.5, -14)
+      .fill(b)
+    for (const lx of [-w + 6, -w * 0.5, 0, w * 0.5, w - 6])
+      g.moveTo(lx, lx === 0 ? -8 : Math.abs(lx) > w * 0.7 ? 8 : -6)
+        .lineTo(0, 92)
+        .stroke({ color: DARK, width: 1, alpha: 0.7 })
+    g.roundRect(-7, 90, 14, 20, 5).fill(DARK)
+    g.circle(0, 86, 6).fill(DARK)
+    g.rect(-3, 108, 14, 4).fill(DARK)
+    node.addChild(g)
+    node.scale.set(s)
+    node.position.set(x, y)
+    this.addChild(node)
+    this.gliders.push({
+      node,
+      x,
+      y,
+      phase: rng() * 10,
+      drift: range(rng, 0.12, 0.26) * (chance(rng, 0.5) ? 1 : -1),
     })
-    // scrub along the lip, then the houses that paid for the view
-    g.poly([...top, 3200, 772, 2370, 790, 2280, 808], false).stroke({ color: sd.leaf, width: 10 })
-    for (const [hx, hw, hh] of [
-      [2350, 86, 44],
-      [2470, 110, 60],
-      [2620, 90, 46],
-      [2740, 120, 58],
-    ] as const) {
-      const base = 768 - (hx - 2350) * 0.03
-      g.rect(hx, base - hh, hw, hh).fill(0x2a2420)
-      g.poly([
-        hx - 8,
-        base - hh,
-        hx + hw + 8,
-        base - hh,
-        hx + hw - 10,
-        base - hh - 14,
-        hx + 10,
-        base - hh - 14,
-      ]).fill(sd.tileDark)
-      for (let wx = hx + 10; wx < hx + hw - 14; wx += 26)
-        if (chance(rng, 0.75)) {
-          g.rect(wx, base - hh + 12, 14, 16).fill(pick(rng, WARM))
-          add(this.nf, wx + 7, base - hh + 20, 0.2, 0.2, 0xffb050, 0.5)
-        }
-    }
-    for (const px of [2326, 2450, 2600, 2716, 2850]) {
-      const h = range(rng, 70, 120)
-      g.rect(px - 1.5, 770 - h, 3, h).fill(0x14100c)
-      for (let i = 0; i < 9; i++) {
-        const a = -Math.PI * (i / 8)
-        g.moveTo(px, 770 - h)
-          .lineTo(px + Math.cos(a) * 15, 770 - h + Math.sin(a) * 12 + Math.abs(Math.cos(a)) * 8)
-          .stroke({ color: 0x14100c, width: 2.5 })
-      }
-    }
-  }
-
-  /** the fireworks they let off over the bay every night of the summer */
-  private fireworks() {
-    for (const [x, y, colour] of [
-      [560, 300, 0xff5a8a],
-      [330, 380, 0xffd040],
-      [470, 250, 0x6ad0ff],
-    ] as const) {
-      const g = new Graphics()
-      for (let ring = 1; ring <= 2; ring++)
-        for (let i = 0; i < 16; i++) {
-          const a = (i / 16) * Math.PI * 2 + ring
-          g.circle(Math.cos(a) * 40 * ring, Math.sin(a) * 40 * ring, 4.5 - ring).fill(0xffffff)
-          g.moveTo(Math.cos(a) * 26 * ring, Math.sin(a) * 26 * ring)
-            .lineTo(Math.cos(a) * 38 * ring, Math.sin(a) * 38 * ring)
-            .stroke({ color: 0xffffff, width: 1.5, alpha: 0.6 })
-        }
-      g.tint = colour
-      g.position.set(x, y)
-      g.visible = false
-      this.far.addChild(g)
-      const glow = add(this.far, x, y, 2.2, 2.2, colour, 0)
-      this.bursts.push({ g, glow, t: 1, wait: 2 + this.bursts.length * 2.3 })
-    }
   }
 
   /** coming in low over the city, the way they all do here */
   private aeroplane() {
     const g = new Graphics()
-    g.roundRect(-34, -4, 68, 8, 4).fill(0x1a1e2e)
-    g.poly([-34, -2, -44, -16, -36, -16, -24, -2]).fill(0x1a1e2e)
-    g.poly([-6, 2, 8, 2, -10, 16, -16, 16]).fill(0x12162a)
+    g.roundRect(-34, -4, 68, 8, 4).fill(0x4a5068)
+    g.poly([-34, -2, -44, -16, -36, -16, -24, -2]).fill(0x4a5068)
+    g.poly([-6, 2, 8, 2, -10, 16, -16, 16]).fill(0x3a4058)
     for (let wx = -20; wx < 26; wx += 5)
       g.rect(wx, -2, 2.5, 2).fill({ color: 0xfff0d0, alpha: 0.8 })
     this.plane.addChild(g)
-    add(this.plane, 30, 2, 0.5, 0.14, 0xfff0d0, 0.8)
-    add(this.plane, -10, 14, 0.1, 0.1, 0x40ff80, 0.9)
+    add(this.plane, 30, 2, 0.5, 0.14, 0xfff0d0, 0.6)
     return add(this.plane, -40, -16, 0.16, 0.16, 0xff2a1a, 1)
   }
 
   private blinker(x: number, y: number) {
-    this.blinkers.push(add(this.ff, x, y, 0.13, 0.13, 0xff2a1a, 1))
+    this.blinkers.push(add(this.far, x, y, 0.13, 0.13, 0xff2a1a, 1))
   }
 
   update(time: number, dt: number, px: number, reducedMotion: boolean) {
@@ -486,46 +506,38 @@ export class Coast extends Container {
     this.blinkers.forEach((b, i) => (b.alpha = Math.sin(time * 2 + i * 1.3) > 0.4 ? 1 : 0.1))
     this.strobe.alpha = Math.sin(time * 6) > 0.7 ? 1 : 0.1
 
-    // one flight every minute or so, right to left and down toward the field
+    // one flight every minute or so, in from the east and down toward the field
     this.planeT += dt / (reducedMotion ? 160 : 55)
     if (this.planeT > 1.5) this.planeT = 0
     const t = this.planeT
     this.plane.visible = t < 1
-    this.plane.position.set(3000 - t * 3500, 130 + t * 330)
+    this.plane.position.set(1500 - t * 2200, 60 + t * 330)
     this.plane.rotation = -0.06
     this.plane.scale.set(-1, 1)
 
     if (reducedMotion) return
-    for (const b of this.bursts) {
-      if (b.wait > 0) {
-        b.wait -= dt
-        if (b.wait <= 0) b.t = 0
-        continue
-      }
-      b.t += dt / 1.8
-      const k = Math.min(1, b.t)
-      b.g.visible = true
-      b.g.scale.set(0.2 + Math.pow(k, 0.4) * 0.9)
-      b.g.y += dt * 9
-      b.g.alpha = 1 - k * k
-      b.glow.alpha = (1 - k) * 0.45
-      if (k >= 1) {
-        b.g.visible = false
-        b.g.y = range(this.rng, 240, 400)
-        b.g.x = range(this.rng, 300, 640)
-        b.glow.position.copyFrom(b.g.position)
-        b.wait = range(this.rng, 4, 11)
-      }
-    }
     this.glitter.alpha = 0.8 + Math.sin(time * 1.7) * 0.2
     this.foam.forEach((f, i) => {
       const w = Math.sin(time * 0.6 - i * 0.9)
-      f.y = w * (5 + i * 2)
-      f.alpha = 0.65 + w * 0.35
+      f.y = w * (4 + i * 2)
+      f.alpha = 0.7 + w * 0.3
     })
+    this.sets.forEach((s, i) => {
+      // each line of swell walks in, fades as it reaches the sand, starts again
+      const k = (time * 0.05 + i * 0.25) % 1
+      s.y = k * 40
+      s.x = -k * 16
+      s.alpha = Math.sin(k * Math.PI)
+    })
+    for (const g of this.gliders) {
+      // big slow figures of eight along the cliff
+      g.node.x = g.x + Math.sin(time * g.drift + g.phase) * 110
+      g.node.y = g.y + Math.sin(time * g.drift * 2 + g.phase) * 26
+      g.node.rotation = Math.cos(time * g.drift + g.phase) * 0.14
+    }
     for (const f of this.fires) {
       const k = Math.sin(time * 11 + f.phase) * 0.5 + Math.sin(time * 17 + f.phase * 2) * 0.5
-      f.glow.alpha = 0.8 + k * 0.15
+      f.glow.alpha = 0.6 + k * 0.15
       f.flame.scale.y = Math.abs(f.flame.scale.x) * (1 + k * 0.18)
       f.flame.skew.x = k * 0.12
     }

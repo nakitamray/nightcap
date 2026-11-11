@@ -4,8 +4,8 @@ import { glow } from '../../layers/neon'
 import { GROUND, WORLD } from '../../layout'
 import { palette } from '../../palette'
 import { chance, createRng, pick, range, type Rng } from '../../rng'
-import { CLIFF_EDGE, MIRROR } from './coast'
-import { TERRACE_WING } from './layout'
+import { CLIFF_EDGE } from './coast'
+import { GARAGE_WING } from './layout'
 import {
   agave,
   birdOfParadise,
@@ -21,10 +21,11 @@ import {
 
 const LIT = [0xf0a850, 0xe8843a, 0xffc878, 0xd8703a]
 
-// The street runs out along the cliff on one side of the house: a rail, a
-// bench, the stairs down to the beach, a paleta cart. On the other side it's
-// the town: the taco shop that never shuts, a surf shop, a brewery, the old
-// tower in the park and the arch over Fifth Avenue behind them.
+// Inland of the house it's the town: the taco shop that never shuts, a surf
+// shop, a brewery, the arch over Fifth Avenue and the old tower in the park
+// behind them. On the other side the street just stops, at the bluff:
+// sandstone worn into humps, a rope fence nobody stays behind, and everyone
+// who's walked up to watch the sun go down.
 export class Neighbors extends Container {
   private signs = new Container()
   private neon: Sprite[] = []
@@ -37,33 +38,30 @@ export class Neighbors extends Container {
 
     const back = new Graphics()
     this.backRow(back, rng)
-    this.parkTower(back, lights, 2215)
-    this.archSign(back, lights, 1790, 2070)
-    this.hotel(back, lights, rng, 2330)
+    this.parkTower(back, lights, 60)
+    this.hotel(back, lights, rng, -330)
+    this.archSign(back, lights, 250, 530)
     const g = new Graphics()
     this.addChild(back, g)
 
-    const x = TERRACE_WING.x + TERRACE_WING.width + 22
-    this.tacoShop(g, lights, rng, x, 340)
-    this.surfShop(g, lights, rng, x + 356, 290)
-    this.brewery(g, lights, rng, x + 662, 330)
-    this.bungalow(g, lights, rng, x + 1010, 330, true)
+    // right to left, walking away from the house
+    const x = GARAGE_WING.x - 16
+    this.tacoShop(g, lights, rng, x - 340, 340)
+    this.surfShop(g, lights, rng, x - 616, 260)
+    this.brewery(g, lights, rng, x - 962, 330)
+    this.bungalow(g, lights, rng, x - 1320, 340, true)
     this.streetLife(g, lights, x)
 
-    // the cliff is drawn looking the other way, like the view beyond it
     const edge = new Graphics()
-    edge.scale.x = -1
-    edge.x = MIRROR
-    this.cliffTop(edge, rng)
-    const cart = new Graphics()
-    this.paletaCart(cart, lights, 664)
-    this.addChild(edge, cart, this.signs)
+    this.bluff(edge, rng)
+    this.paletaCart(edge, lights, 1930)
+    this.addChild(edge, this.signs)
   }
 
   /** roofs and palms one street back, mostly dark */
   private backRow(g: Graphics, rng: Rng) {
-    let x = 1640
-    while (x < 3000) {
+    let x = -700
+    while (x < 760) {
       const w = range(rng, 130, 220)
       const top = GROUND - range(rng, 300, 400)
       g.rect(x, top, w, GROUND - top).fill(0x15131b)
@@ -457,9 +455,9 @@ export class Neighbors extends Container {
   private streetLife(g: Graphics, lights: Container, x: number) {
     // rental scooters, one of them on its side as usual
     for (const [sx, lean] of [
-      [x + 334, 0.12],
-      [x + 350, -0.08],
-      [x + 980, 0.1],
+      [x - 356, 0.12],
+      [x - 372, -0.08],
+      [x - 640, 0.1],
     ] as const) {
       g.moveTo(sx - 16, GROUND - 5)
         .lineTo(sx + 14, GROUND - 5)
@@ -473,7 +471,7 @@ export class Neighbors extends Container {
         .fill(palette.ink)
     }
     // sandwich board outside the surf shop
-    const bx = x + 370
+    const bx = x - 470
     g.poly([bx, GROUND, bx + 14, GROUND - 62, bx + 46, GROUND - 62, bx + 60, GROUND]).fill(0x14181a)
     g.poly([
       bx + 6,
@@ -488,40 +486,40 @@ export class Neighbors extends Container {
     this.text('WAX\n$2', bx + 30, GROUND - 32, 12, 0xd8502a, 1)
     // newspaper boxes
     ;[0x2a5a9a, 0xc8281e, 0xe8c02a].forEach((c, i) => {
-      const nx = x + 574 + i * 26
+      const nx = x - 720 + i * 26
       g.rect(nx, GROUND - 56, 22, 48).fill(c)
       g.rect(nx + 3, GROUND - 52, 16, 18).fill(0x14181a)
       g.rect(nx + 9, GROUND - 8, 4, 8).fill(0x2a2a2e)
     })
     // a padres flag off the brewery wall, brown and gold
-    const fx = x + 662
+    const fx = x - 632
     g.moveTo(fx, GROUND - 210)
-      .lineTo(fx - 44, GROUND - 250)
+      .lineTo(fx + 44, GROUND - 250)
       .stroke({ color: 0x8a8a90, width: 3 })
     g.poly([
-      fx - 44,
+      fx + 44,
       GROUND - 250,
-      fx - 44,
+      fx + 44,
       GROUND - 196,
-      fx - 8,
+      fx + 8,
       GROUND - 176,
-      fx - 8,
+      fx + 8,
       GROUND - 222,
     ]).fill(0x4a2c1a)
     g.poly([
-      fx - 44,
+      fx + 44,
       GROUND - 232,
-      fx - 44,
+      fx + 44,
       GROUND - 216,
-      fx - 8,
+      fx + 8,
       GROUND - 194,
-      fx - 8,
+      fx + 8,
       GROUND - 210,
     ]).fill(0xe8c02a)
-    // lights strung over the pavement from the taco shop to the surf shop
-    this.swag(g, lights, x + 300, x + 372, GROUND - 236, 6)
+    // lights strung over the gap between the surf shop and the taco shop
+    this.swag(g, lights, x - 420, x - 300, GROUND - 236, 7)
     // potted palms by the doors
-    for (const px of [x + 548, x + 1000]) {
+    for (const px of [x - 348, x - 980]) {
       g.poly([px - 12, GROUND - 26, px + 12, GROUND - 26, px + 9, GROUND, px - 9, GROUND]).fill(
         sd.pot,
       )
@@ -580,97 +578,193 @@ export class Neighbors extends Container {
   }
 
   /**
-   * Where the land stops. A lip of sandstone with ice plant growing over it,
-   * a rail to keep people off it, and the top of the stairs down to the sand.
+   * Where the land stops. Soft gold sandstone the rain has cut into humps and
+   * gullies, low at the lookout and climbing to a knoll at the far end, with
+   * the beach a long way down behind it.
    */
-  private cliffTop(g: Graphics, rng: Rng) {
+  private bluff(g: Graphics, rng: Rng) {
     const x0 = CLIFF_EDGE - 14
-    const x1 = WORLD.width + 600
-    const lip = (x: number) => GROUND - 44 - 9 * Math.sin(x / 83) - 5 * Math.sin(x / 31)
-    const pts = [x0, GROUND]
-    for (let x = x0; x <= x1; x += 18) pts.push(x, lip(x))
-    pts.push(x1, GROUND)
-    g.poly(pts).fill(0x5c4630)
-    for (const [dy, c] of [
-      [14, 0x44321f],
-      [26, 0x6e5638],
-    ] as const) {
-      const band: number[] = []
-      for (let x = x0; x <= x1; x += 18) band.push(x, lip(x) + dy + 3 * Math.sin(x / 47))
-      g.poly(band, false).stroke({ color: c, width: 3.5, alpha: 0.7 })
+    const x1 = WORLD.width + 700
+    // the skyline of it, as [x, how far it stands above the pavement]
+    const profile: [number, number][] = [
+      [x0, 34],
+      [1780, 46],
+      [1880, 38],
+      [1980, 62],
+      [2060, 118],
+      [2140, 176],
+      [2220, 212],
+      [2340, 222],
+      [2520, 204],
+      [2700, 236],
+      [x1, 250],
+    ]
+    const top = (x: number) => {
+      let i = 0
+      while (i < profile.length - 2 && x > profile[i + 1]![0]) i++
+      const [ax, ah] = profile[i]!
+      const [bx, bh] = profile[i + 1]!
+      const t = Math.min(1, Math.max(0, (x - ax) / (bx - ax)))
+      const s = t * t * (3 - 2 * t)
+      return GROUND - (ah + (bh - ah) * s) - 5 * Math.sin(x / 37) - 3 * Math.sin(x / 13)
     }
-    // ice plant, in flower
-    for (let x = x0 + 10; x < x1; x += range(rng, 14, 30)) {
-      const y = lip(x) + 2
-      g.ellipse(x, y, range(rng, 12, 22), range(rng, 5, 9)).fill(
-        chance(rng, 0.5) ? 0x2a4a34 : sd.leaf,
+    const pts = [x0, GROUND]
+    for (let x = x0; x <= x1; x += 12) pts.push(x, top(x))
+    pts.push(x1, GROUND)
+    g.poly(pts).fill(0x756d41)
+    // the lit shoulders of each hump, then the gullies between them
+    for (let x = x0 + 30; x < x1; x += range(rng, 46, 90)) {
+      const h = GROUND - top(x)
+      g.ellipse(x, top(x) + h * 0.28, range(rng, 26, 48), h * 0.3).fill({
+        color: 0x8a8458,
+        alpha: 0.55,
+      })
+    }
+    for (let x = x0 + 12; x < x1; x += range(rng, 30, 64)) {
+      const y = top(x) + 6
+      const h = GROUND - y
+      const lean = range(rng, -14, 14)
+      g.poly([x - 5, y, x + 5, y, x + lean + range(rng, 6, 16), GROUND, x + lean - 4, GROUND]).fill(
+        {
+          color: 0x4a3d26,
+          alpha: h > 60 ? 0.6 : 0.4,
+        },
       )
-      if (chance(rng, 0.6))
-        for (let i = 0; i < 3; i++)
-          g.circle(x + range(rng, -12, 12), y + range(rng, -5, 3), 2).fill(
-            chance(rng, 0.7) ? 0xd84a8a : 0xe8c25a,
-          )
+    }
+    for (const dy of [16, 34, 60, 92, 130]) {
+      const band: number[] = []
+      for (let x = x0; x <= x1; x += 18) {
+        const y = top(x) + dy + 4 * Math.sin(x / 47)
+        if (y < GROUND - 4) band.push(x, y)
+      }
+      g.poly(band, false).stroke({ color: 0x645933, width: 2.5, alpha: 0.5 })
+    }
+    // a path worn up the back of it
+    const path: number[] = []
+    for (let x = 1960; x <= 2420; x += 16) path.push(x, top(x) + 22 + (x - 1960) * 0.06)
+    g.poly(path, false).stroke({ color: 0x8e8860, width: 12, alpha: 0.7 })
+
+    // scrub and ice plant, gone red at the tips
+    for (let x = x0 + 10; x < x1; x += range(rng, 16, 44)) {
+      const y = top(x) + range(rng, 0, 8)
+      const r = range(rng, 9, 20)
+      const colour = pick(rng, [0x282f1a, 0x452622, 0x33381e, 0x3a2a20])
+      for (let k = 0; k < 9; k++) {
+        const a = -Math.PI * (k / 8)
+        g.moveTo(x, y + 2)
+          .lineTo(x + Math.cos(a) * r, y + 2 + Math.sin(a) * r * 0.7)
+          .stroke({ color: colour, width: 3.5, cap: 'round' })
+      }
+      g.ellipse(x, y + 3, r * 0.9, r * 0.35).fill(colour)
+      if (chance(rng, 0.3)) g.circle(x + range(rng, -6, 6), y - 3, 2).fill(0xd84a8a)
     }
 
-    // post-and-rail, with a gap where the stairs go down
-    const stairs = { x0: 2050, x1: 2120 }
-    const railTop = GROUND - 88
-    for (let x = x0 + 40; x < x1; x += 62) {
-      if (x > stairs.x0 - 20 && x < stairs.x1 + 20) continue
-      g.rect(x - 4.5, railTop - 8, 9, GROUND - railTop + 8).fill(sd.woodLight)
-      g.rect(x - 4.5, railTop - 8, 3, GROUND - railTop + 8).fill({ color: 0xffa040, alpha: 0.14 })
-    }
-    for (const [a, b] of [
-      [x0 + 20, stairs.x0],
-      [stairs.x1, x1],
-    ] as const)
-      for (const y of [railTop, railTop + 34]) g.rect(a, y, b - a, 6).fill(0x3e2416)
+    // posts and rope along the edge, with a gap where the stairs go down
+    const stairs = { x0: 1846, x1: 1906 }
+    const posts: number[] = []
+    for (let x = x0 + 34; x < 2500; x += 58)
+      if (x < stairs.x0 - 16 || x > stairs.x1 + 16) posts.push(x)
+    posts.forEach((x, i) => {
+      const y = top(x)
+      const next = posts[i + 1]
+      if (next && next - x < 70) {
+        const ny = top(next)
+        for (const d of [14, 30])
+          g.moveTo(x, y - 46 + d)
+            .quadraticCurveTo((x + next) / 2, (y + ny) / 2 - 46 + d + 12, next, ny - 46 + d)
+            .stroke({ color: 0x4a3a28, width: 2.5 })
+      }
+      g.rect(x - 5, y - 44, 10, 52).fill(0x7e6a4a)
+      g.rect(x + 1, y - 44, 4, 52).fill({ color: 0xb09868, alpha: 0.7 })
+      g.rect(x - 5, y - 46, 10, 3).fill(0x5a4a34)
+    })
     // the stairs: two newel posts and the handrails dropping out of sight
     for (const sx of [stairs.x0, stairs.x1]) {
-      g.rect(sx - 6, railTop - 20, 12, GROUND - railTop + 20).fill(sd.woodLight)
-      g.moveTo(sx, railTop - 8)
-        .lineTo(sx + 44, GROUND - 30)
-        .stroke({ color: 0x3e2416, width: 6 })
+      const y = top(sx)
+      g.rect(sx - 6, y - 60, 12, 68).fill(0x7e6a4a)
+      g.moveTo(sx, y - 50)
+        .lineTo(sx + 40, y - 8)
+        .stroke({ color: 0x5a4a34, width: 6 })
     }
     for (let i = 0; i < 3; i++)
-      g.rect(stairs.x0 + 10 + i * 12, GROUND - 26 + i * 8, stairs.x1 - stairs.x0 - 4, 5).fill(
-        0x3e2416,
+      g.rect(stairs.x0 + 8 + i * 10, top(stairs.x0) - 6 + i * 6, stairs.x1 - stairs.x0 - 6, 4).fill(
+        0x5a4a34,
       )
-    g.roundRect(stairs.x0 - 86, railTop - 34, 72, 26, 3)
+    const sy = top(stairs.x0) - 92
+    g.roundRect(stairs.x0 - 6, sy, 72, 24, 3)
       .fill(0x2a4a34)
       .stroke(INK)
-    this.text('BEACH  ↓', MIRROR - (stairs.x0 - 50), railTop - 21, 12, 0xf2e2bd, 1)
+    this.text('BEACH  ↓', stairs.x0 + 30, sy + 12, 12, 0xf2e2bd, 1)
 
     // what the city puts up instead of fixing the cliff
-    const wx = 1890
-    g.rect(wx - 2, railTop - 62, 4, 70).fill(0x6a6a70)
-    g.roundRect(wx - 44, railTop - 70, 88, 44, 3)
+    const wx = 1742
+    g.rect(wx - 2, top(wx) - 96, 4, 100).fill(0x6a6a70)
+    g.roundRect(wx - 44, top(wx) - 112, 88, 44, 3)
       .fill(0xe8c02a)
       .stroke({ color: palette.ink, width: 2 })
-    this.text('UNSTABLE\nCLIFFS', MIRROR - wx, railTop - 48, 11, 0x14100c, 1)
+    this.text('UNSTABLE\nCLIFFS', wx, top(wx) - 90, 11, 0x14100c, 1)
 
-    // a bench facing the water, two people on it who aren't going home yet
-    const bx = 2190
-    g.rect(bx - 62, GROUND - 58, 124, 7).fill(sd.woodLight)
-    g.rect(bx - 62, GROUND - 44, 124, 7).fill(sd.woodLight)
-    g.rect(bx - 66, GROUND - 30, 132, 8).fill(0x3e2416)
-    for (const lx of [bx - 54, bx + 48]) g.rect(lx, GROUND - 60, 6, 60).fill(sd.iron)
-    for (const [px, lean] of [
-      [bx - 14, 3],
-      [bx + 14, -3],
-    ] as const) {
-      g.poly([
-        px - 15,
-        GROUND - 30,
-        px - 13 + lean,
-        GROUND - 84,
-        px + 13 + lean,
-        GROUND - 84,
-        px + 15,
-        GROUND - 30,
-      ]).fill(palette.ink)
-      g.circle(px + lean * 1.6, GROUND - 97, 10).fill(palette.ink)
+    // the lookout: a little timber stand somebody built, two people up it
+    const lx = 1990
+    const ly = top(lx)
+    for (const px of [lx - 34, lx + 34]) g.rect(px - 3, ly - 110, 6, 116).fill(0x5a4a34)
+    g.moveTo(lx - 34, ly)
+      .lineTo(lx + 34, ly - 60)
+      .moveTo(lx + 34, ly)
+      .lineTo(lx - 34, ly - 60)
+      .stroke({ color: 0x5a4a34, width: 3 })
+    g.rect(lx - 42, ly - 66, 84, 7).fill(0x7e6a4a)
+    g.rect(lx - 40, ly - 108, 80, 4).fill(0x5a4a34)
+    this.person(g, lx - 12, ly - 66, 1, 0x1a1a24, 0x1a1a24)
+    this.person(g, lx + 14, ly - 66, 0.96, 0xe8e0d0, 0x2a2a34, true)
+
+    // and everyone else, wherever there's somewhere to stand
+    const crowd: [number, number, number, number, boolean?][] = [
+      [1790, 1, 0xf2e2bd, 0x2a2a34, true],
+      [1812, 0.95, 0x2a2a34, 0x4a5a7a],
+      [2064, 1, 0xe8e0d0, 0x1a1a24, true],
+      [2088, 1.02, 0x3a3a44, 0x1a1a24],
+      [2196, 1, 0x1a1a24, 0x1a1a24],
+      [2236, 0.98, 0xd8a02a, 0x2a2a34, true],
+      [2258, 1.02, 0x2a4a6a, 0x1a1a24],
+      [2380, 1, 0xf2e2bd, 0x1a1a24, true],
+    ]
+    for (const [px, s, a, b, hair] of crowd) this.person(g, px, top(px) + 4, s, a, b, hair)
+    // two sat on the edge with their legs over
+    for (const px of [2134, 2152]) {
+      const y = top(px) + 2
+      g.roundRect(px - 7, y - 24, 14, 24, 5).fill(px % 4 ? 0x8a3a2a : 0x2a2a34)
+      g.circle(px, y - 30, 6).fill(0x3a2418)
     }
+    // a dog, obviously
+    const dx = 2292
+    const dy = top(dx) + 4
+    g.ellipse(dx, dy - 12, 13, 6).fill(0xc8a060)
+    g.circle(dx + 13, dy - 18, 5).fill(0xc8a060)
+    g.rect(dx - 10, dy - 10, 3, 10)
+      .rect(dx + 7, dy - 10, 3, 10)
+      .fill(0xc8a060)
+    g.moveTo(dx - 12, dy - 14)
+      .lineTo(dx - 20, dy - 24)
+      .stroke({ color: 0xc8a060, width: 3 })
+  }
+
+  /** somebody standing with their back to you, watching the sea; feet at (x, y) */
+  private person(
+    g: Graphics,
+    x: number,
+    y: number,
+    s: number,
+    top: number,
+    legs: number,
+    long = false,
+  ) {
+    g.rect(x - 6 * s, y - 34 * s, 5 * s, 34 * s)
+      .rect(x + 1 * s, y - 34 * s, 5 * s, 34 * s)
+      .fill(legs)
+    g.roundRect(x - 8 * s, y - 62 * s, 16 * s, 32 * s, 4 * s).fill(top)
+    g.circle(x, y - 69 * s, 6.5 * s).fill(0x3a2418)
+    if (long) g.roundRect(x - 6.5 * s, y - 72 * s, 13 * s, 20 * s, 5 * s).fill(0x3a2418)
   }
 
   private text(text: string, x: number, y: number, size: number, fill: number, spacing: number) {

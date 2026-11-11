@@ -18,8 +18,8 @@ export const VIEWS: Record<ThemeId, { cx: number; cy: number; h: number; tint: n
   'new-york': { cx: 560, cy: 660, h: 1200, tint: 0xff9030 },
   venice: { cx: 1700, cy: 760, h: 1080, tint: 0xffb850 },
   tokyo: { cx: 1860, cy: 650, h: 1150, tint: 0xff5a9a },
-  // off the end of the street: downtown, the bridge, the cove
-  'san-diego': { cx: 560, cy: 660, h: 1050, tint: 0xffa860 },
+  // off the end of the street: the bluff, the beach, the sun going down
+  'san-diego': { cx: 2040, cy: 640, h: 1000, tint: 0xffa860 },
 }
 
 export function pane(v: Variant) {

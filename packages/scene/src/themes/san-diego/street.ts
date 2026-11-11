@@ -37,7 +37,7 @@ export class Road extends Container {
     g.rect(-500, CURB - 7, d.x - 30 + 500, 7).fill(0x3c3836)
     g.rect(d.x + d.width + 30, CURB - 7, WORLD.width + 500, 7).fill(0x3c3836)
     // red kerb by the lookout: no stopping
-    g.rect(330, CURB - 7, 340, 7).fill(0x8a2416)
+    g.rect(1760, CURB - 7, 340, 7).fill(0x8a2416)
 
     g.rect(-500, CURB, WORLD.width + 1000, STREET_BOTTOM - CURB).fill(0x0c0b0d)
     for (let i = 0; i < 36; i++) {
@@ -54,7 +54,7 @@ export class Road extends Container {
     // sand off the beach, thicker toward the cliff
     for (let i = 0; i < 260; i++) {
       const t = Math.pow(rng(), 0.5)
-      const x = 1500 - t * 1900
+      const x = 900 + t * (WORLD.width - 500)
       g.rect(x, range(rng, GROUND + 2, CURB + 120), range(rng, 2, 9), 1.5).fill({
         color: 0xc8a878,
         alpha: range(rng, 0.08, 0.3),

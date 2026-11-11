@@ -85,6 +85,7 @@ export class StreetWorld extends Container {
       ...street.foreground,
       this.rain,
     )
+    if (street.usual) this.setConditions(street.usual)
   }
 
   /** rain has to start above whatever slice of sky is showing */

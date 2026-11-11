@@ -73,13 +73,13 @@ export const GARAGE_DOOR: Rect = { x: 772, y: 908, width: 196, height: GROUND - 
 
 /** fan palms along the kerb; the tall skinny ones every street here has */
 export const PALMS = [
-  { x: 262, top: 250, lean: -0.05 },
-  { x: 688, top: 190, lean: 0.03 },
-  { x: 1722, top: 150, lean: -0.03 },
-  { x: 2290, top: 240, lean: 0.04 },
+  { x: 150, top: 240, lean: -0.04 },
+  { x: 731, top: 130, lean: -0.02 },
+  { x: 1716, top: 200, lean: 0.03 },
+  { x: 2310, top: 120, lean: 0.04 },
 ] as const
 
-export const LAMPS = [2330] as const
+export const LAMPS = [20] as const
 
-/** the camera takes in the cliff on one side of the house and the shops on the other */
-export const SD_FOCUS: Rect = { x: 620, y: 50, width: 1280, height: 1170 }
+/** the camera takes in the shops on one side of the house and the bluff on the other */
+export const SD_FOCUS: Rect = { x: 600, y: 50, width: 1280, height: 1170 }

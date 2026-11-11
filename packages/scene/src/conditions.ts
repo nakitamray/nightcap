@@ -2,7 +2,9 @@
 // night street unless told otherwise; a room shows the sky where its owner
 // actually is, at their time.
 
-export const PHASES = ['dawn', 'morning', 'midday', 'afternoon', 'dusk', 'night'] as const
+// 'sunset' isn't on the clock: it's the golden hour, held, for a street that
+// is always seen then
+export const PHASES = ['dawn', 'morning', 'midday', 'afternoon', 'sunset', 'dusk', 'night'] as const
 export type Phase = (typeof PHASES)[number]
 
 export const WEATHERS = ['clear', 'cloudy', 'rain', 'storm', 'snow', 'fog'] as const

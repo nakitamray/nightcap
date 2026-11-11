@@ -1,4 +1,5 @@
 import type { Container } from 'pixi.js'
+import type { Conditions } from '../conditions'
 import type { BaseHouse } from '../layers/house-base'
 import type { Rect } from '../layout'
 import type { People } from '../layers/people'
@@ -42,6 +43,8 @@ export interface BuiltTheme {
   /** raindrops; 0 for a dry night */
   rain?: number
   bloomThreshold?: number
+  /** the hour this street is always seen at, when nobody says otherwise; night if left out */
+  usual?: Conditions
   /** what the camera frames, if not the usual box round the house */
   focus?: Rect
   update(time: number, dt: number, pointerX: number, reducedMotion: boolean): void

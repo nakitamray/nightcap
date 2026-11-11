@@ -25,6 +25,10 @@ interface Look {
   /** lamps, lit windows' bloom and the pools of light under them */
   lights: number
   pools: number
+  /** how far down the sky (in world y) it has turned to each of its three colours */
+  skyAt?: [number, number, number]
+  /** clouds in their own colours rather than ones worked out from the sky */
+  clouds?: { body: number; belly: number; rim: number }
 }
 
 const LOOKS: Record<Exclude<Phase, 'night'>, Look> = {
@@ -67,6 +71,19 @@ const LOOKS: Record<Exclude<Phase, 'night'>, Look> = {
     sun: { colour: 0xfff0c0, glow: 0xffc860, size: 0.8, low: false },
     lights: 0.3,
     pools: 0.1,
+  },
+  // the hour before the sun goes: everything gold, the clouds gone pink
+  sunset: {
+    gain: [1.6, 1.5, 1.46],
+    lift: [0.07, 0.06, 0.07],
+    saturation: 0.95,
+    sky: [0x4f7fc4, 0xf0b4b0, 0xffcc80],
+    skyAt: [150, 470, 690],
+    skyTop: 1,
+    sun: { colour: 0xfff0c0, glow: 0xffa040, size: 1.05, low: true },
+    lights: 0.6,
+    pools: 0.35,
+    clouds: { body: 0xf6b09c, belly: 0xc890a0, rim: 0xfff0c8 },
   },
   dusk: {
     gain: [1.3, 1.08, 1.12],
@@ -213,6 +230,7 @@ export class DaySky extends Container {
   ) {
     super()
     const [top, mid, low] = look.sky
+    const [topAt, midAt, lowAt] = look.skyAt ?? [40, 260, 520]
     // the colours change over the band of sky you actually see above the
     // roofs, not over the whole (mostly hidden) height of it. At dusk the top
     // of the sky is still the night, so the stars show through.
@@ -225,9 +243,9 @@ export class DaySky extends Container {
         { offset: 0, color: css(paint(top), look.skyTop * 0.6) },
         { offset: at(-900), color: css(paint(top), look.skyTop) },
         { offset: at(-300), color: css(paint(top), 1) },
-        { offset: at(40), color: css(paint(top), 1) },
-        { offset: at(260), color: css(paint(mid), 1) },
-        { offset: at(520), color: css(paint(low), 1) },
+        { offset: at(topAt), color: css(paint(top), 1) },
+        { offset: at(midAt), color: css(paint(mid), 1) },
+        { offset: at(lowAt), color: css(paint(low), 1) },
         { offset: 1, color: css(paint(low), 1) },
       ],
       textureSpace: 'local',
@@ -265,25 +283,26 @@ export class DaySky extends Container {
   private addClouds(rng: Rng, look: Look, paint: (c: number) => number, weather?: Weather) {
     const heavy =
       weather === 'cloudy' || weather === 'rain' || weather === 'storm' || weather === 'snow'
-    const count = heavy ? 11 : weather === 'fog' ? 4 : 5
+    const count = heavy ? 11 : weather === 'fog' ? 4 : look.clouds ? 7 : 5
     // a low sun turns the clouds into dark shapes with burning edges
     const low = !!look.sun?.low
-    const base = low
-      ? mix(look.sky[0], 0x14142a, 0.3)
-      : mix(look.sky[1], 0xffffff, weather === 'storm' ? 0.05 : heavy ? 0.35 : 0.7)
-    const shadow = mix(
-      base,
-      weather === 'storm' || low ? 0x0e0e1c : look.sky[0],
-      heavy ? 0.45 : 0.3,
-    )
-    const rim = low ? look.sun!.glow : 0xffffff
+    const own = heavy ? undefined : look.clouds
+    const base =
+      own?.body ??
+      (low
+        ? mix(look.sky[0], 0x14142a, 0.3)
+        : mix(look.sky[1], 0xffffff, weather === 'storm' ? 0.05 : heavy ? 0.35 : 0.7))
+    const shadow =
+      own?.belly ??
+      mix(base, weather === 'storm' || low ? 0x0e0e1c : look.sky[0], heavy ? 0.45 : 0.3)
+    const rim = own?.rim ?? (low ? look.sun!.glow : 0xffffff)
     for (let i = 0; i < count; i++) {
       const g = cloud(
         rng,
-        heavy ? range(rng, 420, 820) : range(rng, 240, 480),
+        heavy ? range(rng, 420, 820) : own ? range(rng, 300, 620) : range(rng, 240, 480),
         paint(base),
         paint(shadow),
-        paint(low ? rim : mix(base, rim, 0.5)),
+        paint(low || own ? rim : mix(base, rim, 0.5)),
       )
       g.x = range(rng, -500, WORLD.width + 200)
       g.y = range(rng, heavy ? -60 : -30, heavy ? 230 : 200)
