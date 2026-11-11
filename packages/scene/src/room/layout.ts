@@ -24,13 +24,19 @@ export type RugShape = 'none' | 'rect' | 'circle' | 'oval' | 'diamond'
 export type NightstandStyle = 'drawers' | 'skirted' | 'suitcases'
 export const NIGHTSTAND_STYLES: NightstandStyle[] = ['drawers', 'skirted', 'suitcases']
 
-export type PetKind = 'none' | 'cat' | 'dog'
+export type PetKind = 'none' | 'cat' | 'dog' | 'squirrel' | 'raccoon'
 export const CAT_BREEDS = ['black', 'tabby', 'white', 'persian', 'grey'] as const
 export const DOG_BREEDS = ['terrier', 'labradoodle', 'golden', 'shepherd'] as const
+export const SQUIRREL_COATS = ['red', 'grey'] as const
 export type CatBreed = (typeof CAT_BREEDS)[number]
 export type DogBreed = (typeof DOG_BREEDS)[number]
+export type SquirrelCoat = (typeof SQUIRREL_COATS)[number]
 export type Pet =
-  { kind: 'none' } | { kind: 'cat'; breed: CatBreed } | { kind: 'dog'; breed: DogBreed }
+  | { kind: 'none' }
+  | { kind: 'cat'; breed: CatBreed }
+  | { kind: 'dog'; breed: DogBreed }
+  | { kind: 'squirrel'; breed: SquirrelCoat }
+  | { kind: 'raccoon' }
 
 /** furniture you can add yourself, on top of what the room comes with */
 export const ADDABLE: Extra[] = [
@@ -192,6 +198,9 @@ function readPet(raw: unknown, fallback: Pet): Pet {
   if (p.kind === 'none') return { kind: 'none' }
   if (p.kind === 'dog') return { kind: 'dog', breed: pick(p.breed, DOG_BREEDS, 'golden') }
   if (p.kind === 'cat') return { kind: 'cat', breed: pick(p.breed, CAT_BREEDS, 'black') }
+  if (p.kind === 'squirrel')
+    return { kind: 'squirrel', breed: pick(p.breed, SQUIRREL_COATS, 'red') }
+  if (p.kind === 'raccoon') return { kind: 'raccoon' }
   return fallback
 }
 
