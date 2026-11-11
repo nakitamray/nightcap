@@ -118,6 +118,25 @@ derived from `SPOTIFY_CLIENT_SECRET` before they're saved, and the database
 refuses anything unencrypted. If you rotate the client secret, saved links
 can't be read any more: they're dropped and people just reconnect.
 
+## Deploying to Vercel
+
+1. Import the repo in Vercel and set **Root Directory** to `apps/web`. Vercel
+   detects Next.js and pnpm; leave the build and install commands as they
+   are. Keep "Include files outside the root directory" on, since the app
+   uses `packages/scene`.
+2. Add the environment variables from [Configuration](#configuration) to the
+   Production and Preview environments. `NEXT_PUBLIC_DEV_MODE` stays unset,
+   so `/dev` is off in production.
+3. Deploy, then add the new origin wherever this app is allowed to redirect:
+   - Supabase, **Authentication → URL Configuration**: set the Site URL to
+     `https://<your-domain>` and add `https://<your-domain>/login` to the
+     redirect URLs.
+   - Spotify dashboard (if you use it): add
+     `https://<your-domain>/api/spotify/callback` as a redirect URI.
+
+Database changes aren't part of a Vercel deploy. Apply new files in
+`supabase/migrations/` to the Supabase project separately.
+
 ## Routes
 
 | Route              | Purpose                                       |
