@@ -1,9 +1,9 @@
 'use client'
 
-import { BREED_NAMES, CAT_BREEDS, DOG_BREEDS } from '@/lib/room'
+import { BREED_NAMES, CAT_BREEDS, DOG_BREEDS, SQUIRREL_COATS } from '@/lib/room'
 import { Choice, Row, type Section } from './controls'
 
-/** a cat on the bed, a dog on its cushion, or nobody */
+/** a cat or a squirrel on the bed, a dog or a raccoon on its cushion, or nobody */
 export function PetPanel({ layout, set }: Section) {
   const pet = layout.pet
   return (
@@ -15,6 +15,8 @@ export function PetPanel({ layout, set }: Section) {
             ['none', 'nobody'],
             ['cat', 'a cat'],
             ['dog', 'a dog'],
+            ['squirrel', 'a squirrel'],
+            ['raccoon', 'a raccoon'],
           ]}
           onPick={(kind) =>
             set(
@@ -23,7 +25,9 @@ export function PetPanel({ layout, set }: Section) {
                 ? { kind, breed: 'black' }
                 : kind === 'dog'
                   ? { kind, breed: 'golden' }
-                  : { kind },
+                  : kind === 'squirrel'
+                    ? { kind, breed: 'red' }
+                    : { kind },
             )
           }
         />
@@ -43,6 +47,15 @@ export function PetPanel({ layout, set }: Section) {
             value={pet.breed}
             options={DOG_BREEDS.map((b) => [b, BREED_NAMES[b] ?? b])}
             onPick={(breed) => set('pet', { kind: 'dog', breed })}
+          />
+        </Row>
+      )}
+      {pet.kind === 'squirrel' && (
+        <Row label="coat">
+          <Choice
+            value={pet.breed}
+            options={SQUIRREL_COATS.map((b) => [b, BREED_NAMES[b] ?? b])}
+            onPick={(breed) => set('pet', { kind: 'squirrel', breed })}
           />
         </Row>
       )}

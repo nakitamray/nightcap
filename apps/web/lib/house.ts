@@ -64,7 +64,7 @@ export function roomIndex(raw: string): number | null {
 
 // everyone in the made-up house has their own taste in pets and chairs
 export const DEMO_TASTE: { pet: Pet; furniture: Extra[] }[] = [
-  { pet: { kind: 'cat', breed: 'tabby' }, furniture: ['beanbag'] },
+  { pet: { kind: 'squirrel', breed: 'red' }, furniture: ['beanbag'] },
   { pet: { kind: 'dog', breed: 'golden' }, furniture: ['lounger', 'pouf'] },
   { pet: { kind: 'none' }, furniture: [] },
   { pet: { kind: 'cat', breed: 'white' }, furniture: ['dresser'] },
@@ -72,7 +72,7 @@ export const DEMO_TASTE: { pet: Pet; furniture: Extra[] }[] = [
   { pet: { kind: 'cat', breed: 'black' }, furniture: ['lounger', 'plantstand'] },
   { pet: { kind: 'cat', breed: 'persian' }, furniture: ['armchair'] },
   { pet: { kind: 'dog', breed: 'labradoodle' }, furniture: ['beanbag', 'floorlamp'] },
-  { pet: { kind: 'cat', breed: 'grey' }, furniture: ['bookcase'] },
+  { pet: { kind: 'raccoon' }, furniture: ['bookcase'] },
   { pet: { kind: 'dog', breed: 'shepherd' }, furniture: ['loveseat', 'pouf'] },
   { pet: { kind: 'none' }, furniture: [] },
   { pet: { kind: 'cat', breed: 'tabby' }, furniture: ['records', 'monstera'] },

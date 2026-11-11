@@ -49,6 +49,13 @@ describe('readLayout', () => {
       kind: 'cat',
       breed: 'black',
     })
+    expect(readLayout({ pet: { kind: 'squirrel', breed: 'purple' } }).pet).toEqual({
+      kind: 'squirrel',
+      breed: 'red',
+    })
+    expect(readLayout({ pet: { kind: 'raccoon', breed: 'whatever' } }).pet).toEqual({
+      kind: 'raccoon',
+    })
     expect(readLayout({ pet: { kind: 'none' } }).pet).toEqual({ kind: 'none' })
   })
 

@@ -1,11 +1,12 @@
 import { Graphics } from 'pixi.js'
 import { at, type Ctx } from './context'
-import type { CatBreed, DogBreed, Pet } from './layout'
+import type { CatBreed, DogBreed, Pet, SquirrelCoat } from './layout'
 import { shade, THIN } from './paint'
 import type { P3 } from './projection'
 
-// Whoever else lives in the room: a cat curled up on the bed or a dog
-// stretched out on a cushion by the rug. Both breathe; dogs wag now and then.
+// Whoever else lives in the room: a cat or a squirrel curled up on the bed, a
+// dog or a raccoon on a cushion by the rug. They all breathe; dogs wag now and
+// then, and a squirrel's tail twitches in its sleep.
 
 const CATS: Record<CatBreed, { coat: number; stripe?: number; fluffy?: boolean; ear: number }> = {
   black: { coat: 0x121014, ear: 0x2a2024 },
@@ -32,17 +33,23 @@ const DOGS: Record<
   shepherd: { coat: 0xb8783a, saddle: 0x1a1410, size: 1.15, ears: 'up', snout: 15 },
 }
 
+const SQUIRRELS: Record<SquirrelCoat, { coat: number; tail: number; belly: number; tuft: number }> =
+  {
+    red: { coat: 0xb85a2a, tail: 0xc8683a, belly: 0xf0dcc0, tuft: 0x8a3a1a },
+    grey: { coat: 0x8a8680, tail: 0x9e9890, belly: 0xece6dc, tuft: 0x5a5650 },
+  }
+
 export function drawPet(ctx: Ctx) {
   const pet = ctx.layout.pet
-  if (pet.kind === 'cat') {
+  if (pet.kind === 'cat' || pet.kind === 'squirrel') {
     // curled up on the duvet
     const top = ctx.layout.bed.style === 'platform' ? 30 : 46
-    cat(
-      ctx,
-      pet.breed,
-      ctx.layout.bed.spot === 'right' ? [ctx.plan.half - 56, top + 8, 300] : [20, top + 8, 320],
-    )
+    const spot: P3 =
+      ctx.layout.bed.spot === 'right' ? [ctx.plan.half - 56, top + 8, 300] : [20, top + 8, 320]
+    if (pet.kind === 'cat') cat(ctx, pet.breed, spot)
+    else squirrel(ctx, pet.breed, spot)
   } else if (pet.kind === 'dog') dog(ctx, pet.breed, [0, 0, 150], true)
+  else if (pet.kind === 'raccoon') raccoon(ctx, [0, 0, 150], true)
 }
 
 /**
@@ -52,6 +59,8 @@ export function drawPet(ctx: Ctx) {
 export function drawPetAt(ctx: Ctx, pet: Pet, p: P3, opts: { cushion?: boolean } = {}) {
   if (pet.kind === 'cat') cat(ctx, pet.breed, p)
   else if (pet.kind === 'dog') dog(ctx, pet.breed, p, opts.cushion ?? false)
+  else if (pet.kind === 'squirrel') squirrel(ctx, pet.breed, p)
+  else if (pet.kind === 'raccoon') raccoon(ctx, p, opts.cushion ?? false)
 }
 
 /** a cat asleep in a ring */
@@ -108,21 +117,133 @@ function cat(ctx: Ctx, breed: CatBreed, p: P3) {
   ctx.hit('pet', (h) => h.ellipse(x, y - 8 * k, 28 * k, 16 * k))
 }
 
+/** a cushion on the floor for a dog or a raccoon to sleep on */
+function floorCushion(ctx: Ctx, x: number, y: number, s: number) {
+  const bed = ctx.layer('pet')
+  const fabric = shade(0x8a4a3a, 0.1)
+  bed
+    .ellipse(x, y - 4 * s, 60 * s, 16 * s)
+    .fill(shade(fabric, -0.25))
+    .stroke(THIN)
+  bed.ellipse(x, y - 9 * s, 52 * s, 11 * s).fill(fabric)
+  bed.ellipse(x, y - 9 * s, 40 * s, 7 * s).fill(shade(fabric, 0.12))
+}
+
+/** a point along a quadratic curve, for laying things out along a tail */
+function along(t: number, a: number[], b: number[], c: number[]): [number, number] {
+  const u = 1 - t
+  return [
+    u * u * a[0]! + 2 * u * t * b[0]! + t * t * c[0]!,
+    u * u * a[1]! + 2 * u * t * b[1]! + t * t * c[1]!,
+  ]
+}
+
+/** a squirrel asleep in a ball, its big tail pulled up over its back */
+function squirrel(ctx: Ctx, coat: SquirrelCoat, p: P3) {
+  const { x, y, s } = at(p)
+  const look = SQUIRRELS[coat]
+  const k = s * 0.95
+  const pet = ctx.live(ctx.container('pet'))
+  const tail = new Graphics()
+  const body = new Graphics()
+  pet.addChild(tail, body)
+  // the tail: a plume of fluff from its rump, up and over towards its head
+  const a = [10, 4]
+  const b = [22, -22]
+  const c = [-6, -20]
+  for (let i = 0; i <= 10; i++) {
+    const [tx, ty] = along(i / 10, a, b, c)
+    tail.circle(tx * k, ty * k, (5 + i * 0.45) * k).fill(look.tail)
+  }
+  for (let i = 2; i <= 10; i += 2) {
+    const [tx, ty] = along(i / 10, a, b, c)
+    tail.circle(tx * k - 2 * k, ty * k - 2 * k, (2 + i * 0.25) * k).fill(shade(look.tail, 0.12))
+  }
+  // body and a pale belly
+  body.ellipse(0, 0, 15 * k, 9 * k).fill(look.coat)
+  body.ellipse(-5 * k, 4 * k, 8 * k, 4 * k).fill(look.belly)
+  // head tucked down, with tufted ears
+  const hx = -13 * k
+  const hy = -1 * k
+  body.ellipse(hx, hy, 7.5 * k, 6.5 * k).fill(look.coat)
+  body.ellipse(hx - 3 * k, hy + 2.5 * k, 3.5 * k, 2.5 * k).fill(look.belly)
+  body
+    .poly([hx - 1 * k, hy - 5 * k, hx + 1 * k, hy - 12 * k, hx + 4 * k, hy - 4 * k])
+    .fill(look.coat)
+  body
+    .moveTo(hx + 1 * k, hy - 12 * k)
+    .lineTo(hx + 0.5 * k, hy - 14 * k)
+    .stroke({ color: look.tuft, width: 1.5 * k, cap: 'round' })
+  // a closed eye and a little nose
+  body
+    .moveTo(hx - 3 * k, hy - 1.5 * k)
+    .quadraticCurveTo(hx - 1.5 * k, hy - 0.5 * k, hx, hy - 1.5 * k)
+    .stroke({ color: 0x1a1210, width: 0.9 })
+  body.circle(hx - 7 * k, hy + 1.5 * k, 1 * k).fill(0x2a1a14)
+  // paws folded under its chin
+  body.ellipse(hx + 3 * k, hy + 6 * k, 3 * k, 2 * k).fill(shade(look.coat, -0.1))
+  pet.position.set(x, y - 7 * k)
+  ctx.anim.push((t) => {
+    body.scale.set(1, 1 + Math.sin(t * 2.2) * 0.05)
+    // a twitch of the tail every so often
+    const w = t % 5
+    tail.rotation = w < 0.4 ? Math.sin(w * 30) * 0.04 : 0
+  })
+  ctx.hit('pet', (h) => h.ellipse(x, y - 12 * k, 26 * k, 20 * k))
+}
+
+/** a raccoon curled up nose to tail, mask and all */
+function raccoon(ctx: Ctx, spot: P3, withCushion: boolean) {
+  const { x, y, s } = at(spot)
+  const k = s * 1.05
+  if (withCushion) floorCushion(ctx, x, y, s)
+  const body = ctx.live(ctx.container('pet')).addChild(new Graphics())
+  const coat = 0x7e7872
+  const dark = 0x2e2a28
+  const pale = 0xe6e0d8
+  // body, with a darker back
+  body.ellipse(0, 0, 25 * k, 12 * k).fill(coat)
+  body.ellipse(3 * k, -6 * k, 18 * k, 5 * k).fill(shade(coat, -0.18))
+  // the ringed tail, wrapped round the front
+  const a = [22, 2]
+  const b = [18, 16]
+  const c = [-10, 11]
+  for (let i = 0; i <= 12; i++) {
+    const [tx, ty] = along(i / 12, a, b, c)
+    const ring = Math.floor(i / 2) % 2 === 0
+    body.circle(tx * k, ty * k, (5.5 - i * 0.12) * k).fill(ring ? dark : shade(coat, 0.15))
+  }
+  // head resting on the tail
+  const hx = -18 * k
+  const hy = -3 * k
+  body.circle(hx + 6 * k, hy - 8 * k, 3.5 * k).fill(coat)
+  body.circle(hx - 4 * k, hy - 8 * k, 3.5 * k).fill(coat)
+  body.circle(hx + 6 * k, hy - 8 * k, 2 * k).fill(pale)
+  body.circle(hx - 4 * k, hy - 8 * k, 2 * k).fill(pale)
+  body.ellipse(hx, hy, 10 * k, 8 * k).fill(shade(coat, 0.1))
+  body.ellipse(hx - 2 * k, hy + 1 * k, 8 * k, 5 * k).fill(pale)
+  // the bandit mask, eyes shut behind it
+  body.ellipse(hx - 2 * k, hy - 1 * k, 8.5 * k, 2.8 * k).fill(dark)
+  body
+    .moveTo(hx - 7 * k, hy - 1 * k)
+    .lineTo(hx - 4 * k, hy - 0.5 * k)
+    .moveTo(hx + 0 * k, hy - 1 * k)
+    .lineTo(hx + 3 * k, hy - 0.5 * k)
+    .stroke({ color: pale, width: 0.9 })
+  // a pointed nose
+  body.poly([hx - 8 * k, hy + 1 * k, hx - 13 * k, hy + 3 * k, hx - 8 * k, hy + 5 * k]).fill(pale)
+  body.circle(hx - 13 * k, hy + 3 * k, 1.4 * k).fill(dark)
+  body.position.set(x, y - (withCushion ? 12 : 4) * s)
+  ctx.anim.push((t) => body.scale.set(1, 1 + Math.sin(t * 1.3) * 0.04))
+  ctx.hit('pet', (h) => h.ellipse(x, y - 10 * s, 40 * k, 20 * k))
+}
+
 /** a dog stretched out (on its cushion, if it brought it), head on its paws */
 function dog(ctx: Ctx, breed: DogBreed, spot: P3, withCushion: boolean) {
   const look = DOGS[breed]
   const { x, y, s } = at(spot)
   const k = s * 0.9 * look.size
-  if (withCushion) {
-    const bed = ctx.layer('pet')
-    const fabric = shade(0x8a4a3a, 0.1)
-    bed
-      .ellipse(x, y - 4 * s, 60 * s, 16 * s)
-      .fill(shade(fabric, -0.25))
-      .stroke(THIN)
-    bed.ellipse(x, y - 9 * s, 52 * s, 11 * s).fill(fabric)
-    bed.ellipse(x, y - 9 * s, 40 * s, 7 * s).fill(shade(fabric, 0.12))
-  }
+  if (withCushion) floorCushion(ctx, x, y, s)
 
   const pup = ctx.live(ctx.container('pet'))
   const tail = new Graphics()

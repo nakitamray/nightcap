@@ -18,6 +18,7 @@ export {
   POSTER_NAMES,
   readLayout,
   settle,
+  SQUIRREL_COATS,
   VARIANTS,
 } from '@nightcap/scene/layout'
 export type { Extra, LampStyle, Pet, RoomLayout as Layout } from '@nightcap/scene/layout'
@@ -109,4 +110,5 @@ export const BREED_NAMES: Record<string, string> = {
   labradoodle: 'labradoodle',
   golden: 'golden retriever',
   shepherd: 'german shepherd',
+  red: 'red',
 }

@@ -38,7 +38,10 @@ export interface Placed {
 
 /** a glass lantern with a candle in it, standing on the floor at `p` */
 function lantern(ctx: Ctx, p: P3) {
-  const { x, y, s } = at(p)
+  const { x, y, s: depth } = at(p)
+  // a small thing by their feet: keep it small even on the seats up front,
+  // where the perspective would otherwise blow it up bigger than the mugs
+  const s = Math.min(depth, 1.8) * 0.6
   const g = ctx.layer()
   const w = 9 * s
   const h = 20 * s
@@ -57,8 +60,8 @@ function lantern(ctx: Ctx, p: P3) {
   flame.ellipse(0, 0, 2.2 * s, 4 * s).fill(0xffd070)
   flame.position.set(x, y - 13 * s)
   ctx.lights.addChild(flame)
-  glow(ctx.lights, x, y - 12 * s, (60 * s) / 128, (54 * s) / 128, 0xffa040, 0.25)
-  glow(ctx.lights, x, y - 12 * s, (20 * s) / 128, (20 * s) / 128, 0xfff0c8, 0.6)
+  glow(ctx.lights, x, y - 12 * s, (50 * s) / 128, (44 * s) / 128, 0xffa040, 0.2)
+  glow(ctx.lights, x, y - 12 * s, (16 * s) / 128, (16 * s) / 128, 0xfff0c8, 0.5)
   const phase = (p[0] * 7 + p[2]) % 10
   ctx.anim.push((t) => {
     flame.scale.y = 1 + Math.sin(t * 9 + phase) * 0.12
