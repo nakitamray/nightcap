@@ -352,7 +352,7 @@ select t.fails($$select public.keep_house((select house from ids))$$,
   'a house that''s had friends in it doesn''t need keeping');
 reset role;
 select t.ok(exists (select 1 from public.houses where id = (select house from ids)),
-  'a settled house isn''t swept when it''s down to one');
+  'a warmed house isn''t swept when it''s down to one');
 
 select t.login(:alice);
 select public.leave_house((select house from ids));

@@ -3,35 +3,43 @@
 -- - move out of a house; the last one out closes it
 -- - delete your account and everything that's yours
 -- - a house that's had friends in it isn't swept away when it's down to one
+--   (once it's warmed, see house-moments)
 -- - spotify tokens are only ever stored encrypted
 
--- settled houses -----------------------------------------------------------
+-- warmed houses ------------------------------------------------------------
 
--- the first time a second person moves in, the house is settled. Until then
--- it's waiting for a friend and the sweep can take it; after, it stays even if
--- people move out and it's down to one.
-alter table public.houses add column if not exists settled_at timestamptz;
-update public.houses h set settled_at = coalesce(h.settled_at, now())
-where (select count(*) from public.memberships m where m.house_id = h.id) >= 2;
+-- the first time a second person moves in, the house is warmed (the same
+-- column and trigger as the house-moments migration, repeated here so this
+-- one stands on its own; both are safe to run in either order). Until then
+-- it's waiting for a friend and the sweep can take it; after, it stays even
+-- if people move out and it's down to one.
+alter table public.houses add column if not exists warmed_at timestamptz;
+update public.houses h
+set warmed_at = (
+  select m.joined_at from public.memberships m
+  where m.house_id = h.id
+  order by m.joined_at
+  offset 1 limit 1
+)
+where h.warmed_at is null;
 
-create or replace function public.settle_house()
+create or replace function public.warm_the_house()
 returns trigger
 language plpgsql
 security definer set search_path = ''
 as $$
 begin
-  update public.houses set settled_at = now()
+  update public.houses set warmed_at = now()
   where id = new.house_id
-    and settled_at is null
+    and warmed_at is null
     and (select count(*) from public.memberships where house_id = new.house_id) >= 2;
-  return new;
+  return null;
 end;
 $$;
-revoke execute on function public.settle_house() from public, anon, authenticated;
-
-drop trigger if exists memberships_settle_house on public.memberships;
-create trigger memberships_settle_house after insert on public.memberships
-  for each row execute function public.settle_house();
+revoke execute on function public.warm_the_house() from public, anon, authenticated;
+drop trigger if exists warm_the_house on public.memberships;
+create trigger warm_the_house after insert on public.memberships
+  for each row execute function public.warm_the_house();
 
 -- houses nobody else joined go away a week after they're made (or later, if
 -- someone asked for more time); houses with nobody left in them go too
@@ -43,13 +51,13 @@ as $$
   delete from public.houses h
   where not exists (select 1 from public.memberships m where m.house_id = h.id)
      or (
-       h.settled_at is null
+       h.warmed_at is null
        and greatest(h.created_at + interval '7 days', coalesce(h.keep_until, h.created_at)) < now()
        and (select count(*) from public.memberships m where m.house_id = h.id) < 2
      );
 $$;
 
--- a settled house doesn't need more time
+-- a warmed house doesn't need more time
 create or replace function public.keep_house(h uuid)
 returns timestamptz
 language plpgsql
@@ -63,7 +71,7 @@ begin
     raise exception 'you don''t live here';
   end if;
   select * into house from public.houses where id = h for update;
-  if house.settled_at is not null or (select count(*) from public.memberships where house_id = h) >= 2 then
+  if house.warmed_at is not null or (select count(*) from public.memberships where house_id = h) >= 2 then
     raise exception 'this house is already staying';
   end if;
   if house.extensions >= 3 then
@@ -139,6 +147,7 @@ grant execute on function public.delete_account() to authenticated;
 delete from public.spotify_links where refresh_token not like 'v1:%';
 update public.spotify_links set access_token = null, expires_at = null
 where access_token is not null and access_token not like 'v1:%';
+alter table public.spotify_links drop constraint if exists spotify_links_encrypted;
 alter table public.spotify_links
   add constraint spotify_links_encrypted check (
     refresh_token like 'v1:%' and (access_token is null or access_token like 'v1:%')
