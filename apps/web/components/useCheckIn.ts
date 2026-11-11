@@ -6,12 +6,13 @@ import { BEAT_MS } from '@/lib/presence'
 import type { Place } from '@/lib/together'
 
 /** tells the house you're here (and where) while the page is on screen */
-export function useCheckIn(supabase: SupabaseClient, houseId: string | null, place: Place) {
+export function useCheckIn(supabase: SupabaseClient | null, houseId: string | null, place: Place) {
   useEffect(() => {
-    if (!houseId) return
+    if (!supabase || !houseId) return
+    const db = supabase
     async function beat() {
       if (document.visibilityState !== 'visible') return
-      const { error } = await supabase.rpc('here', { h: houseId, place })
+      const { error } = await db.rpc('here', { h: houseId, place })
       if (error) console.error('checking in', error)
     }
     beat()

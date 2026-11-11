@@ -13,6 +13,7 @@ import type { Seen } from '@/lib/together'
 import { conditionsFor, fetchWeather, localTime, WEATHER_WORDS } from '@/lib/weather'
 import { Panel, type Place } from './Panel'
 import { useRoomCompany, type Housemate } from './useRoomCompany'
+import { SceneFailed } from '@/components/SceneFailed'
 import { useRoomScene } from './useRoomScene'
 import styles from './Room.module.css'
 
@@ -143,7 +144,17 @@ export function RoomView({
     initialOwnerTrack,
   })
   // what's on the record player: yours from spotify, theirs from the house
-  const myTrack = useNowPlaying(mode === 'mine' && spotify === 'linked')
+  const mine = useNowPlaying(mode === 'mine' && spotify === 'linked')
+  const myTrack = mine.track
+  // what the panel says: spotify may have dropped the link, or not let you in
+  const spotifyNow =
+    mode === 'sandbox'
+      ? 'dev'
+      : mine.problem === 'unlinked'
+        ? 'unlinked'
+        : mine.problem === 'not-allowed'
+          ? 'not-allowed'
+          : spotify
   const track = mode === 'visit' ? company.ownerTrack : mode === 'mine' ? myTrack : fakeTrack
 
   // the sky outside: their time, their weather
@@ -195,7 +206,7 @@ export function RoomView({
     },
     [editable],
   )
-  const ready = useRoomScene(
+  const { ready, failed } = useRoomScene(
     hostRef,
     {
       layout,
@@ -230,6 +241,7 @@ export function RoomView({
   return (
     <main className={styles.page}>
       <div ref={hostRef} className={styles.scene} data-ready={ready} />
+      {failed && <SceneFailed what="this room" />}
 
       <header className={styles.top}>
         <Link className={styles.button} href={backHref}>
@@ -338,7 +350,7 @@ export function RoomView({
           onChange={change}
           room={room}
           onClose={() => setOpen(null)}
-          spotify={mode === 'sandbox' ? 'dev' : spotify}
+          spotify={spotifyNow}
           track={track}
           onFakePlay={() => setFakeTrack((t) => (t ? null : FAKE_TRACK))}
           houseId={houseId}

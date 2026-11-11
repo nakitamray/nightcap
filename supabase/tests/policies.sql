@@ -308,3 +308,95 @@ reset role;
 select t.login(:alice);
 select t.fails($$select public.handle_new_user()$$, 'trigger functions can''t be called directly');
 select t.fails($$select public.notes_slow_down()$$, 'not even the notes limit');
+
+-- spotify tokens --------------------------------------------------------------------
+
+reset role;
+select t.login(:bob);
+select t.fails($$insert into public.spotify_links (user_id, refresh_token)
+  values (auth.uid(), 'plain-text-token')$$, 'spotify tokens have to be encrypted');
+insert into public.spotify_links (user_id, refresh_token) values (auth.uid(), 'v1:sealed');
+select t.fails($$update public.spotify_links set access_token = 'plain' where user_id = auth.uid()$$,
+  'access tokens too');
+select t.fails($$insert into public.spotify_links (user_id, refresh_token)
+  values ('00000000-0000-0000-0000-00000000000a', 'v1:sealed')$$,
+  'you can''t link spotify for someone else');
+reset role;
+select t.login(:alice);
+select t.ok(not exists (select 1 from public.spotify_links), 'nobody else can see your spotify link');
+
+-- moving out ------------------------------------------------------------------------
+
+reset role;
+select t.login(:carol);
+select t.fails($$select public.leave_house((select house from ids))$$,
+  'you can''t move out of a house you don''t live in');
+reset role;
+select t.login(:bob);
+select public.here((select house from ids));
+select public.leave_house((select house from ids));
+reset role;
+select t.ok(not exists (select 1 from public.memberships
+  where house_id = (select house from ids) and user_id = :bob), 'moving out gives up your room');
+select t.ok(not exists (select 1 from public.presence where user_id = :bob), 'your light goes off');
+select t.ok(not exists (select 1 from public.notes where from_user = :bob or to_user = :bob),
+  'and your notes go with you');
+select t.ok(exists (select 1 from public.houses where id = (select house from ids)),
+  'the house stays for whoever''s left');
+
+-- down to one, but it's had friends in it: the sweep leaves it alone
+update public.houses set created_at = now() - interval '30 days' where id = (select house from ids);
+select t.login(:alice);
+select public.sweep_lonely_houses();
+select t.fails($$select public.keep_house((select house from ids))$$,
+  'a house that''s had friends in it doesn''t need keeping');
+reset role;
+select t.ok(exists (select 1 from public.houses where id = (select house from ids)),
+  'a warmed house isn''t swept when it''s down to one');
+
+select t.login(:alice);
+select public.leave_house((select house from ids));
+reset role;
+select t.ok(not exists (select 1 from public.houses where id = (select house from ids)),
+  'the last one out closes the house');
+
+-- leaving for good ------------------------------------------------------------------
+
+insert into auth.users (id, email, raw_user_meta_data) values
+  ('00000000-0000-0000-0000-00000000000e', 'eve@example.com', '{"username": "eve"}');
+\set eve '''00000000-0000-0000-0000-00000000000e'''
+select t.login(:carol);
+create temp table shared as select public.create_house('the attic', 'tokyo') as house;
+grant select on shared to authenticated, anon;
+insert into public.invites (code, house_id, created_by)
+  values ('attic', (select house from shared), auth.uid());
+reset role;
+select t.login(:eve);
+select public.join_house('attic');
+create temp table solo as select public.create_house('just eve', 'paris') as house;
+grant select on solo to authenticated, anon;
+insert into public.invites (code, house_id, created_by)
+  values ('eves', (select house from shared), auth.uid());
+insert into public.notes (house_id, from_user, to_user, body)
+  values ((select house from shared), auth.uid(), :carol, 'bye x');
+insert into public.spotify_links (user_id, refresh_token) values (auth.uid(), 'v1:sealed');
+insert into public.now_playing (user_id, title, artist) values (auth.uid(), 'Goodbye', 'Someone');
+reset role;
+select t.login(null);
+select t.fails($$select public.delete_account()$$, 'signed out, there''s no account to delete');
+reset role;
+select t.login(:eve);
+select public.delete_account();
+reset role;
+select t.ok(not exists (select 1 from auth.users where id = :eve), 'deleting your account removes your login');
+select t.ok(not exists (select 1 from public.profiles where id = :eve), 'and your profile');
+select t.ok(not exists (select 1 from public.memberships where user_id = :eve), 'and every room');
+select t.ok(not exists (select 1 from public.invites where created_by = :eve), 'and your invites');
+select t.ok(not exists (select 1 from public.notes where from_user = :eve), 'and your notes');
+select t.ok(not exists (select 1 from public.spotify_links where user_id = :eve), 'and your spotify link');
+select t.ok(not exists (select 1 from public.now_playing where user_id = :eve), 'and what you were playing');
+select t.ok(not exists (select 1 from public.houses where id = (select house from solo)),
+  'a house you were alone in goes too');
+select t.ok(exists (select 1 from public.houses where id = (select house from shared)),
+  'but one with other people in it stays');
+select t.ok((select count(*) from auth.users) = 4, 'and nobody else is touched');

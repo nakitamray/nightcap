@@ -1,9 +1,12 @@
 'use client'
 
+import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import type { Track } from '@/components/useNowPlaying'
+import { SPOTIFY_RESULT } from '@/lib/spotifyText'
 import styles from '../Room.module.css'
 
-export type Spotify = 'off' | 'unlinked' | 'linked' | 'dev'
+export type Spotify = 'off' | 'unlinked' | 'linked' | 'not-allowed' | 'dev'
 
 export function RecordPanel({
   spotify,
@@ -16,6 +19,9 @@ export function RecordPanel({
   houseId: string
   onFakePlay?: () => void
 }) {
+  // coming back from spotify: say how it went
+  const result = useSearchParams().get('spotify')
+  const said = result && result !== 'connected' ? SPOTIFY_RESULT[result] : null
   if (spotify === 'dev') {
     return (
       <>
@@ -34,6 +40,11 @@ export function RecordPanel({
   if (spotify === 'unlinked') {
     return (
       <>
+        {said && (
+          <p className={styles.hint} role="alert">
+            {said}
+          </p>
+        )}
         <p className={styles.hint}>
           connect spotify and the record lights up when you&apos;re listening. everyone in the house
           can see what&apos;s on.
@@ -43,6 +54,16 @@ export function RecordPanel({
             connect spotify
           </a>
         </p>
+      </>
+    )
+  }
+  if (spotify === 'not-allowed') {
+    return (
+      <>
+        <p className={styles.hint} role="alert">
+          {SPOTIFY_RESULT['not-allowed']}
+        </p>
+        <Disconnect houseId={houseId} />
       </>
     )
   }
@@ -66,17 +87,26 @@ export function RecordPanel({
       ) : (
         <p className={styles.hint}>nothing playing right now.</p>
       )}
-      <form
-        action="/api/spotify/disconnect"
-        method="post"
-        className={styles.row}
-        style={{ marginTop: 14 }}
-      >
-        <input type="hidden" name="next" value={`/h/${houseId}/room`} />
-        <button type="submit" className={styles.button}>
-          disconnect
-        </button>
-      </form>
+      <Disconnect houseId={houseId} />
     </>
+  )
+}
+
+function Disconnect({ houseId }: { houseId: string }) {
+  return (
+    <form
+      action="/api/spotify/disconnect"
+      method="post"
+      className={styles.row}
+      style={{ marginTop: 14 }}
+    >
+      <input type="hidden" name="next" value={`/h/${houseId}/room`} />
+      <button type="submit" className={styles.button}>
+        disconnect
+      </button>
+      <Link className={styles.hint} href="/account">
+        your account
+      </Link>
+    </form>
   )
 }

@@ -4,6 +4,7 @@ import type { Guest, ThemeId } from '@nightcap/scene'
 import Link from 'next/link'
 import { useRef } from 'react'
 import styles from '@/components/room/Room.module.css'
+import { SceneFailed } from '@/components/SceneFailed'
 import { useLoungeScene } from './useLoungeScene'
 
 interface Props {
@@ -19,12 +20,13 @@ interface Props {
 /** the house's living room: whoever's in, on the sofas and cushions */
 export function LoungeView({ theme, seed, people, backHref, backLabel, myRoomHref }: Props) {
   const hostRef = useRef<HTMLDivElement>(null)
-  const ready = useLoungeScene(hostRef, { theme, seed, people })
+  const { ready, failed } = useLoungeScene(hostRef, { theme, seed, people })
   const count = people.length
 
   return (
     <main className={styles.page}>
       <div ref={hostRef} className={styles.scene} data-ready={ready} />
+      {failed && <SceneFailed what="the living room" />}
 
       <header className={styles.top}>
         <Link className={styles.button} href={backHref}>

@@ -20,6 +20,7 @@ export function useStreetScene(
   const initial = useRef({ rooms, marquee, theme })
   const [hover, setHover] = useState<WindowEvent | null>(null)
   const [ready, setReady] = useState(false)
+  const [failed, setFailed] = useState(false)
 
   useEffect(() => {
     clickRef.current = onWindowClick
@@ -32,15 +33,21 @@ export function useStreetScene(
     let scene: StreetScene | null = null
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
-    import('@nightcap/scene').then(async ({ StreetScene }) => {
-      const s = await StreetScene.create(el, { ...initial.current, reducedMotion })
-      // strict mode mounts twice; the first one can finish after it's gone
-      if (cancelled) return s.destroy()
-      scene = sceneRef.current = s
-      s.events.on('window:hover', setHover)
-      s.events.on('window:click', (e) => clickRef.current(e.index))
-      setReady(true)
-    })
+    import('@nightcap/scene')
+      .then(async ({ StreetScene }) => {
+        const s = await StreetScene.create(el, { ...initial.current, reducedMotion })
+        // strict mode mounts twice; the first one can finish after it's gone
+        if (cancelled) return s.destroy()
+        scene = sceneRef.current = s
+        s.events.on('window:hover', setHover)
+        s.events.on('window:click', (e) => clickRef.current(e.index))
+        setReady(true)
+      })
+      // no webgl, most likely
+      .catch((err) => {
+        console.error('drawing the street', err)
+        if (!cancelled) setFailed(true)
+      })
 
     return () => {
       cancelled = true
@@ -57,5 +64,5 @@ export function useStreetScene(
     sceneRef.current?.setMarquee(marquee)
   }, [marquee, ready])
 
-  return { hover, ready }
+  return { hover, ready, failed }
 }

@@ -15,6 +15,7 @@ import streetStyles from './Street.module.css'
 import { useCheckIn } from './useCheckIn'
 import { useHouseChannel } from './useHouseChannel'
 import { useNowPlaying } from './useNowPlaying'
+import { SceneFailed } from './SceneFailed'
 import { useStreetScene } from './useStreetScene'
 import notesStyles from './notes/Notes.module.css'
 import { WindowCard } from './WindowCard'
@@ -127,7 +128,7 @@ export function HouseView({
     router.refresh()
   }
 
-  const { hover, ready } = useStreetScene(hostRef, rooms, marquee, theme, goInside)
+  const { hover, ready, failed } = useStreetScene(hostRef, rooms, marquee, theme, goInside)
 
   // you're out front looking at the house; lights go out as check-ins get old
   useCheckIn(supabase, houseId, 'street')
@@ -193,6 +194,7 @@ export function HouseView({
   return (
     <main className={streetStyles.street}>
       <div ref={hostRef} className={streetStyles.canvas} data-ready={ready} />
+      {failed && <SceneFailed what="the street" />}
 
       {hover && <WindowCard member={hovered} bounds={hover.bounds} />}
 

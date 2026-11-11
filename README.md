@@ -29,7 +29,14 @@ Tokyo — and everything on screen is drawn in code, with no image assets.
 - **Living room.** A shared lounge, different for every city and every house,
   with a seat for each person that lights up while they're in.
 - **Spotify (optional).** A record player on the wall that spins while you're
-  listening, with the current track shown on your window's card.
+  listening, with the current track shown on your window's card. Connect it
+  from your account page or your room's record player.
+- **Your account.** `/account` shows your Spotify connection and lets you sign
+  out or delete your account. Each house on your keyring has a "move out"
+  button; the last person out closes the house.
+- **When things go wrong.** Friendly not-found and error pages, and a message
+  in place of the scene if a browser can't draw it at all. Without WebGL the
+  scenes fall back to a plain 2D canvas.
 - **Demo and dev modes.** `/demo` is a street of made-up residents that needs
   no backend. `/dev` lets you explore every city and room locally.
 
@@ -95,9 +102,21 @@ Copy `apps/web/.env.example` to `apps/web/.env.local` and fill it in:
 Create an app at developer.spotify.com and add
 `<your-origin>/api/spotify/callback` as a redirect URI. Spotify does not
 accept `localhost`, so use `http://127.0.0.1:3000` in development (and add
-`http://127.0.0.1:3000/login` to the Supabase redirect URLs). Apps in
-Spotify's development mode only work for users added under "Users and
-Access".
+`http://127.0.0.1:3000/login` to the Supabase redirect URLs).
+
+**Who can connect.** Spotify keeps new apps in development mode, and since
+February 2026 a development-mode app works for at most five people, each
+added by hand. The app owner also needs Spotify Premium. To let someone
+connect, add the email on their Spotify account under your app's **Users
+and Access** in the Spotify dashboard. Anyone not on the list gets a message
+in the app explaining this. Opening it to everyone needs Spotify's extended
+quota, which Spotify only grants to registered businesses with a large
+audience.
+
+**Tokens.** Refresh and access tokens are encrypted (AES-256-GCM) with a key
+derived from `SPOTIFY_CLIENT_SECRET` before they're saved, and the database
+refuses anything unencrypted. If you rotate the client secret, saved links
+can't be read any more: they're dropped and people just reconnect.
 
 ## Routes
 
@@ -105,7 +124,8 @@ Access".
 | ------------------ | --------------------------------------------- |
 | `/`, `/login`      | Sign in                                       |
 | `/signup`          | Create an account (username, email, password) |
-| `/keys`            | Your houses                                   |
+| `/keys`            | Your houses; move out of one                  |
+| `/account`         | Spotify, signing out, deleting your account   |
 | `/new`             | Make a house and choose its city              |
 | `/h/<id>/invite`   | Get an invite link                            |
 | `/join/<code>`     | Preview a house and join it                   |
@@ -151,13 +171,16 @@ seeded, so a given house looks the same on every load.
 Privacy is enforced in the database with row level security, not in the UI:
 only residents can read a house, its rooms and its people. Creating, joining
 and claiming go through `create_house`, `join_house` and `claim_room`, which
-enforce the limits. Map pins are rounded to roughly 10 km by a trigger,
+enforce the limits. Moving out (`leave_house`) closes a house when the last
+person leaves, and `delete_account` moves you out of every house and deletes
+your login, taking your profile, notes, invites and Spotify link with it. Map pins are rounded to roughly 10 km by a trigger,
 layouts have a size cap, and houses can't be edited once created.
 
 `supabase/tests/policies.sql` signs in as several test users and verifies
 these rules: outsiders see nothing, nobody can change another person's room,
-the house and member limits hold, and signed-out users can't call protected
-functions. CI runs it against Postgres on every push:
+the house and member limits hold, signed-out users can't call protected
+functions, moving out and deleting an account clean up after themselves, and
+Spotify tokens can only be stored encrypted. CI runs it against Postgres on every push:
 
 ```sh
 PGHOST=localhost PGUSER=postgres pnpm test:db
